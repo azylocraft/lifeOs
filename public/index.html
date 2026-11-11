@@ -200,8 +200,13 @@
             <div class="dlg-actions" style="margin:0"><button type="button" class="btn small" data-lg="all-today">Bring all to today</button><button type="button" class="btn secondary small" id="lgReviewToggle" aria-expanded="false" aria-controls="lgReviewList">Review one by one</button></div></div>
           <div class="bj-list" id="lgReviewList" hidden style="margin-top:14px"></div>
         </div>
-        <div class="grid two-col">
-          <div class="card">
+        <div class="book day">
+          <div class="page left">
+            <div class="cal-head"><div><div class="cal-title">Earlier days</div><div class="sub" id="lgPastSub">The pages before this one</div></div></div>
+            <div id="lgPast"></div>
+            <button type="button" class="btn secondary small" id="lgPastMore" hidden style="margin-top:12px">Show earlier days</button>
+          </div>
+          <div class="page right">
             <div class="cal-head"><div><div class="cal-title" id="lgDate">Today</div><div class="sub" id="lgSub"></div></div>
               <div class="cal-nav"><button type="button" class="btn secondary small" id="lgToday">Today</button><button type="button" class="icon-btn" id="lgPrev" aria-label="Previous day">‹</button><button type="button" class="icon-btn" id="lgNext" aria-label="Next day">›</button></div></div>
             <div class="bj-key" aria-label="What the bullets mean"><span><b>•</b>Action</span><span><b>–</b>Note</span><span><b>○</b>Event</span><span><b>=</b>Mood</span><span><b>✕</b>Done</span><span><b>&gt;</b>Moved</span></div>
@@ -213,30 +218,30 @@
             </form>
             <p class="sub" style="margin-top:10px">Shortcut: start with <b>-</b> for a note, <b>o</b> for an event (<i>o 4pm dentist</i>), <b>=</b> for a mood, <b>!</b> for an important action.</p>
           </div>
-          <div class="stack">
-            <div class="card dark">
-              <div class="card-head"><div><h2>Shape of the day</h2><div class="sub" id="lgShapeSub">Maker time and manager time</div></div><span class="stat-icon" aria-hidden="true">◐</span></div>
-              <div class="list" id="lgShape"></div>
+        </div>
+        <div class="grid day-cards" style="margin-top:18px">
+          <div class="card dark">
+            <div class="card-head"><div><h2>Shape of the day</h2><div class="sub" id="lgShapeSub">Maker time and manager time</div></div><span class="stat-icon" aria-hidden="true">◐</span></div>
+            <div class="list" id="lgShape"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h2>Focus session</h2><div class="sub" id="fcToday">Protect a stretch of maker time</div></div><span class="stat-icon" aria-hidden="true">◎</span></div>
+            <div id="fcIdle">
+              <div class="field"><label for="fcTask">Focus on</label><select id="fcTask"></select></div>
+              <div class="seg" id="fcMins" role="group" aria-label="Length of the session" style="margin-bottom:14px"><button type="button" data-mins="25" aria-pressed="false">25 min</button><button type="button" data-mins="50" aria-pressed="true">50 min</button><button type="button" data-mins="90" aria-pressed="false">90 min</button></div>
+              <button type="button" class="btn" id="fcStart">▶ Start focus</button>
             </div>
-            <div class="card">
-              <div class="card-head"><div><h2>Focus session</h2><div class="sub" id="fcToday">Protect a stretch of maker time</div></div><span class="stat-icon" aria-hidden="true">◎</span></div>
-              <div id="fcIdle">
-                <div class="field"><label for="fcTask">Focus on</label><select id="fcTask"></select></div>
-                <div class="seg" id="fcMins" role="group" aria-label="Length of the session" style="margin-bottom:14px"><button type="button" data-mins="25" aria-pressed="false">25 min</button><button type="button" data-mins="50" aria-pressed="true">50 min</button><button type="button" data-mins="90" aria-pressed="false">90 min</button></div>
-                <button type="button" class="btn" id="fcStart">▶ Start focus</button>
-              </div>
-              <div id="fcRun" hidden>
-                <div class="fc-clock" id="fcClock" role="timer">50:00</div>
-                <div class="sub" id="fcWhat" style="margin-bottom:10px"></div>
-                <div class="progress"><span id="fcBar" style="width:0%"></span></div>
-                <button type="button" class="btn secondary small" id="fcStop" style="margin-top:14px">Stop and log it</button>
-              </div>
+            <div id="fcRun" hidden>
+              <div class="fc-clock" id="fcClock" role="timer">50:00</div>
+              <div class="sub" id="fcWhat" style="margin-bottom:10px"></div>
+              <div class="progress"><span id="fcBar" style="width:0%"></span></div>
+              <button type="button" class="btn secondary small" id="fcStop" style="margin-top:14px">Stop and log it</button>
             </div>
-            <div class="card">
-              <div class="card-head"><div><h2 id="lgTomTitle">Tomorrow</h2><div class="sub">What you’ve already lined up</div></div><span class="stat-icon" aria-hidden="true">→</span></div>
-              <div class="bj-list" id="lgTomorrow"></div>
-              <form id="lgTomForm" class="hz-add" style="margin-top:12px"><input id="lgTomText" maxlength="120" required autocomplete="off" placeholder="Add an action for tomorrow" aria-label="Add an action for tomorrow"><button class="btn small" type="submit">＋ Add</button></form>
-            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h2 id="lgTomTitle">Tomorrow</h2><div class="sub">What you’ve already lined up</div></div><span class="stat-icon" aria-hidden="true">→</span></div>
+            <div class="bj-list" id="lgTomorrow"></div>
+            <form id="lgTomForm" class="hz-add" style="margin-top:12px"><input id="lgTomText" maxlength="120" required autocomplete="off" placeholder="Add an action for tomorrow" aria-label="Add an action for tomorrow"><button class="btn small" type="submit">＋ Add</button></form>
           </div>
         </div>
       </div>

@@ -1579,7 +1579,7 @@
   /* ---------- daily log ---------- */
   const GLYPH = {task:'•', note:'–', event:'○', mood:'='};
   const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood'};
-  let logDate = isoToday, logOpen = null, logType = 'task', reviewOpen = false, jnTab = 'day';
+  let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', reviewOpen = false, jnTab = 'day';
   function parseEntry(raw, type){
     let text = String(raw).trim(), t = type, high = false, time = '';
     const m = text.match(/^([-–.*•oO○=])\s+(.+)$/);
@@ -1599,6 +1599,7 @@
   function moveTask(id, to, quiet){
     const t = items.find(i => i.id === id);
     if (!t || !isDate(to) || t.due === to) return;
+    if (logOpen === id) logOpen = null;
     patchItem(id, {due:to, at:Date.now(), moved:[...new Set([...(t.moved || []), t.due].filter(Boolean))]});
     if (!quiet) toast('Moved to ' + (to === isoToday ? 'today' : to === isoTomorrow ? 'tomorrow' : shortDay(to)));
   }
@@ -1679,6 +1680,27 @@
     const mk = loose.filter(t => workOf(t) === 'maker').length;
     $('lgShapeSub').textContent = open.length ? `${mk} deep · ${open.length - mk} quick · for ${d === isoToday ? 'today' : shortDay(d)}` : 'Maker time and manager time';
   }
+  /* the left page: the days before this one, newest first, each ruled off like a paper journal */
+  let pastCount = 5;
+  function pastDays(before){
+    const set = new Set();
+    items.forEach(i => {
+      if (i.kind === 'task' && i.due && i.due < before) set.add(i.due);
+      else if (i.kind === 'bullet' && isDate(i.date) && i.date < before) set.add(i.date);
+      if ((i.kind === 'task' || i.kind === 'goal') && Array.isArray(i.moved)) i.moved.forEach(d => { if (isDate(d) && d < before) set.add(d); });
+    });
+    return [...set].sort().reverse();
+  }
+  function renderPast(){
+    const all = pastDays(logDate), shown = all.slice(0, pastCount);
+    $('lgPastSub').textContent = all.length ? `${all.length} earlier ${all.length === 1 ? 'day' : 'days'} with entries · tap a date to open it` : 'The pages before this one';
+    $('lgPastMore').hidden = all.length <= pastCount;
+    safeHTML($('lgPast'), shown.length ? shown.map(d => {
+      const line = (monthDoc(monthKey(d)).lines || {})[d.slice(8)];
+      return `<section class="bj-day"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button>
+        ${line ? `<div class="bj-quote">“${esc(line)}”</div>` : ''}<div class="bj-list">${dayEntries(d).map(e => entryHTML(e, d)).join('')}</div></section>`;
+    }).join('') : `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing before this day yet. Your past days collect here as you go.'}</div>`);
+  }
   function renderLog(){
     $('lgDate').textContent = periodLabel('day', logDate);
     $('lgToday').hidden = logDate === isoToday;
@@ -1686,7 +1708,7 @@
     const acts = entries.filter(e => e.role === 'task'), openN = acts.filter(e => !e.i.done).length;
     const others = entries.filter(e => e.role !== 'task' && e.role !== 'ghost').length;
     $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` : 'A blank page';
-    if (logOpen && !entries.some(e => e.i.id === logOpen)) logOpen = null;
+    if (logOpen && !items.some(x => x.id === logOpen)) logOpen = null;
     safeHTML($('lgList'), entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
       : `<div class="empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing logged yet. Jot the first thing below — a to-do, a thought, how you feel.'}</div>`);
     document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType)));
@@ -1698,6 +1720,7 @@
     $('lgReviewToggle').setAttribute('aria-expanded', String(reviewOpen));
     $('lgReviewToggle').textContent = reviewOpen ? 'Hide' : 'Review one by one';
     safeHTML($('lgReviewList'), stale.map(reviewHTML).join(''));
+    renderPast();
     renderShape();
     const tom = ofKind('task').filter(t => t.due === isoTomorrow).sort(byDoneThenAge);
     $('lgTomTitle').textContent = 'Tomorrow · ' + dayMonth(isoTomorrow);
@@ -1709,7 +1732,7 @@
     const i = items.find(x => x.id === id);
     if (act === 'all-today') { const list = leftBehind('day'); list.forEach(t => moveTask(t.id, isoToday, true)); toast(list.length === 1 ? '1 action brought to today' : list.length + ' actions brought to today'); return; }
     if (!i) return;
-    if (act === 'more') { logOpen = logOpen === id ? null : id; renderLog(); const again = $('lgList').querySelector(`[data-lg="more"][data-id="${CSS.escape(id)}"]`); if (again) again.focus(); }
+    if (act === 'more') { logOpen = logOpen === id ? null : id; renderLog(); const again = $('jnDay').querySelector(`[data-lg="more"][data-id="${CSS.escape(id)}"]`); if (again) again.focus(); }
     else if (act === 'done') patchItem(id, i.cancelled ? {done:false, cancelled:false} : {done:!i.done});
     else if (act === 'today') moveTask(id, isoToday);
     else if (act === 'tomorrow') moveTask(id, isoTomorrow);
@@ -1740,7 +1763,7 @@
       }
     }
   }
-  ['lgList','lgReview','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
+  ['lgList','lgPast','lgReview','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
   $('lgShape').addEventListener('click', e => {
     const b = e.target.closest('[data-shape]');
     if (!b) return;
@@ -1754,18 +1777,19 @@
   $('lgType').addEventListener('click', e => {
     const b = e.target.closest('[data-btype]');
     if (!b) return;
-    logType = b.dataset.btype; renderLog(); $('lgText').focus();
+    logType = logPicked = b.dataset.btype; renderLog(); $('lgText').focus();
   });
   $('lgText').addEventListener('input', e => {
     const m = e.target.value.match(/^([-–.*•oO○=])\s/);
-    const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : null;
-    if (t && t !== logType) { logType = t; document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType))); }
+    const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : logPicked;
+    if (t !== logType) { logType = t; document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType))); }
   });
   $('lgForm').addEventListener('submit', e => {
     e.preventDefault();
     const p = parseEntry($('lgText').value, logType);
     if (!p.text) return;
     $('lgText').value = '';
+    logType = logPicked;
     if (p.type === 'task') newTask(p.text, logDate, p.high ? {priority:'High'} : null);
     else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
     $('lgText').focus();
@@ -1779,7 +1803,9 @@
     newTask(title, isoTomorrow);
     toast('Lined up for tomorrow');
   });
-  const setLogDate = d => { logDate = d; logOpen = null; renderLog(); };
+  const setLogDate = d => { logDate = d; logOpen = null; pastCount = 5; renderLog(); };
+  $('lgPast').addEventListener('click', e => { const b = e.target.closest('[data-past-open]'); if (b) { setLogDate(b.dataset.pastOpen); $('lgDate').scrollIntoView({block:'center'}); $('lgPrev').focus(); } });
+  $('lgPastMore').addEventListener('click', () => { pastCount += 7; renderPast(); });
   $('lgPrev').addEventListener('click', () => setLogDate(addDays(logDate, -1)));
   $('lgNext').addEventListener('click', () => setLogDate(addDays(logDate, 1)));
   $('lgToday').addEventListener('click', () => { setLogDate(isoToday); $('lgPrev').focus(); });
