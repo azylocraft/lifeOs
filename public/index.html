@@ -203,8 +203,10 @@
         <div class="book day">
           <div class="page left">
             <div class="cal-head"><div><div class="cal-title">Earlier days</div><div class="sub" id="lgPastSub">The pages before this one</div></div></div>
-            <div id="lgPast"></div>
-            <button type="button" class="btn secondary small" id="lgPastMore" hidden style="margin-top:12px">Show earlier days</button>
+            <div class="past-scroll" id="lgPastScroll">
+              <div id="lgPast"></div>
+              <button type="button" class="btn secondary small" id="lgPastMore" hidden style="margin-top:12px">Show earlier days</button>
+            </div>
           </div>
           <div class="page right">
             <div class="cal-head"><div><div class="cal-title" id="lgDate">Today</div><div class="sub" id="lgSub"></div></div>
@@ -255,12 +257,22 @@
             <div id="mlRows"></div>
           </div>
           <div class="page right">
-            <div class="cal-head"><div><div class="cal-title" id="mlPlanTitle">Planning</div><div class="sub">What you want to get done this month</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
-            <div class="ml-plan">
-              <div class="ml-col"><h3>Personal</h3><div class="bj-list" id="mlPersonal"></div>
-                <form class="hz-add ml-goal-form" data-area="personal"><input maxlength="120" required autocomplete="off" placeholder="Add a personal task" aria-label="Add a personal task for this month"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
-              <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
-                <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="Add a work task" aria-label="Add a work task for this month"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+            <div class="cal-head"><div><div class="cal-title" id="mlPlanTitle">Planning</div><div class="sub" id="mlPlanSub">What you want to get done this month</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
+            <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
+            <div id="mlPlanView">
+              <div class="ml-weeks scroll-soft" id="mlWeeks"></div>
+              <div class="divider" style="margin:14px 0"></div>
+              <h3 class="ml-proj-head">Projects</h3>
+              <div class="sub" style="margin-bottom:12px">Create a project, add steps, and move them to weeks above</div>
+              <div class="ml-plan">
+                <div class="ml-col"><h3>Personal</h3><div class="bj-list" id="mlPersonal"></div>
+                  <form class="hz-add ml-goal-form" data-area="personal"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a personal project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+                <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
+                  <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a work project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+              </div>
+            </div>
+            <div id="mlDoneView" hidden>
+              <div id="mlDoneList"></div>
             </div>
           </div>
         </div>

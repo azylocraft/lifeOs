@@ -614,3 +614,37 @@ button.bj-g:hover { background:var(--track) }
 .bj.is-top .bj-t .tx { font-weight:600 }
 .bj.is-top:has(+ .bj:not(.is-top)) { border-bottom:1.5px solid var(--stroke); border-radius:12px 12px 0 0; padding-bottom:8px; margin-bottom:6px }
 @media (prefers-reduced-motion:reduce) { .bj[data-row] { transition:none } }
+
+/* earlier days: grouped by week inside a scroll box */
+.past-scroll { max-height:65vh; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; padding-right:4px }
+.past-week { margin-bottom:6px }
+.past-wk-label { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:8px 4px 2px; border-top:1.5px solid var(--stroke) }
+.past-week:first-child .past-wk-label { border-top:0; padding-top:0 }
+
+/* monthly log tabs */
+.ml-tabs { margin-bottom:16px }
+
+/* week buckets in plan view */
+.ml-weeks { max-height:40vh; overflow-y:auto; scrollbar-width:thin }
+.ml-wk-bucket { border-bottom:1px solid var(--line-soft); padding:6px 0 8px }
+.ml-wk-bucket:last-child { border-bottom:0 }
+.ml-wk-head { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; padding:2px 4px 4px }
+.ml-wk-items .bj { padding:4px 6px }
+.ml-wk-empty { min-height:20px }
+
+/* project rows in monthly plan */
+.ml-project { border:1px solid var(--line-soft); border-radius:12px; padding:4px 6px; margin-bottom:8px }
+.ml-project.done { opacity:.6 }
+.ml-kids { padding:0 0 8px 30px }
+.ml-kids .bj { padding:3px 4px }
+.ml-kids .bj .bj-g { font-size:11px }
+.ml-kid-form { margin-top:6px }
+.ml-kid-form input { padding:6px 10px; font-size:13px }
+.ml-wk-sel { font-size:11px; padding:2px 4px; border:1px solid var(--line-soft); border-radius:6px; background:var(--input-bg); color:var(--muted); cursor:pointer; max-width:80px }
+.ml-wk-sel:focus { border-color:var(--pop, var(--accent)) }
+.ml-proj-head { margin:0 0 4px; font-size:15px }
+
+/* done view in monthly log */
+.ml-done-week { margin-bottom:12px }
+.ml-done-week .bj-list { padding-left:4px }
+.ml-done-week .ml-wk-head { margin-bottom:4px }

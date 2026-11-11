@@ -1705,14 +1705,23 @@
   }
   function renderPast(){
     const all = pastDays(logDate), shown = all.slice(0, pastCount);
-    $('lgPastSub').textContent = all.length ? `${all.length} earlier ${all.length === 1 ? 'day' : 'days'} with entries · tap a date to open it` : 'The pages before this one';
+    $('lgPastSub').textContent = all.length ? `${all.length} earlier ${all.length === 1 ? 'day' : 'days'} with entries` : 'The pages before this one';
     $('lgPastMore').hidden = all.length <= pastCount;
-    safeHTML($('lgPast'), shown.length ? shown.map(d => {
+    if (!shown.length) { safeHTML($('lgPast'), `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing before this day yet. Your past days collect here as you go.'}</div>`); return; }
+    const weeks = [];
+    let curWk = null;
+    shown.forEach(d => {
+      const wk = weekKey(d);
+      if (wk !== curWk) { weeks.push({wk, days:[]}); curWk = wk; }
+      weeks[weeks.length - 1].days.push(d);
+    });
+    safeHTML($('lgPast'), weeks.map(w => `<div class="past-week"><div class="past-wk-label">Week ${Number(w.wk.slice(6))}</div>${w.days.map(d => {
       const line = (monthDoc(monthKey(d)).lines || {})[d.slice(8)];
       return `<section class="bj-day"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button>
-        ${line ? `<div class="bj-quote">“${esc(line)}”</div>` : ''}<div class="bj-list">${dayEntries(d).map(e => entryHTML(e, d)).join('')}</div></section>`;
-    }).join('') : `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing before this day yet. Your past days collect here as you go.'}</div>`);
+        ${line ? `<div class="bj-quote">"${esc(line)}"</div>` : ''}<div class="bj-list">${dayEntries(d).map(e => entryHTML(e, d)).join('')}</div></section>`;
+    }).join('')}</div>`).join(''));
   }
+
   function renderLog(){
     $('lgDate').textContent = periodLabel('day', logDate);
     $('lgToday').hidden = logDate === isoToday;
@@ -1841,9 +1850,10 @@
     taps = {id:null, n:0, at:0};
     const t = items.find(i => i.id === id);
     if (!t || t.kind !== 'task' || t.done) return;
-    const from = t.due, movedBefore = t.moved || [], wasTop = !!t.top, to = nextDayOf(t);
+    const from = t.due, movedBefore = t.moved || [], wasTop = !!t.top;
+    const to = (from && from < isoToday) ? isoToday : nextDayOf(t);
     moveTask(id, to, true);
-    toast('Moved to ' + (to === isoTomorrow ? 'tomorrow' : shortDay(to)), () => patchItem(id, {due:from, moved:movedBefore, top:wasTop}));
+    toast('Moved to ' + (to === isoToday ? 'today' : to === isoTomorrow ? 'tomorrow' : shortDay(to)), () => patchItem(id, {due:from, moved:movedBefore, top:wasTop}));
   }
   function bindGestures(box){
     box.addEventListener('pointerdown', e => {
@@ -2004,20 +2014,95 @@
   /* ---------- monthly log: a two-page spread ----------
      left  = reflection: the month split into weeks, one line a day plus what got done
      right = planning: the month's tasks, personal beside work */
-  let mlMonth = monthKey(isoToday), mlOpen = null;
+  let mlMonth = monthKey(isoToday), mlOpen = null, mlTab = 'plan';
   const habitsDoc = () => items.find(i => i.kind === 'habits') || {};
   const habitList = () => Array.isArray(habitsDoc().list) ? habitsDoc().list.filter(h => h && h.id && h.name) : [];
   const habitLog = () => (habitsDoc().log && typeof habitsDoc().log === 'object') ? habitsDoc().log : {};
   const saveHabits = (list, log) => upsertDoc('habits', 'habits', {list, log});
   const monthDoc = key => items.find(i => i.id === 'month-' + key) || {};
   const areaOf = g => g.area === 'work' ? 'work' : 'personal';
-  function planRowHTML(g){
-    const kids = kidsOf(g.id), kd = kids.filter(k => k.done).length, open = mlOpen === g.id;
-    return `<div class="bj ${g.done ? 'done' : ''}">
+  function monthWeeks(key){
+    const [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
+    const seen = new Map();
+    for (let d = 1; d <= days; d++){
+      const iso = `${key}-${pad(d)}`, wk = weekKey(iso);
+      if (!seen.has(wk)){
+        const num = Number(wk.slice(6));
+        seen.set(wk, {wk, num, label:'Week ' + num});
+      }
+    }
+    return [...seen.values()];
+  }
+  function projectRowHTML(g, key){
+    const kids = kidsOf(g.id).sort(byDoneThenAge), kd = kids.filter(k => k.done).length, open = mlOpen === g.id;
+    const weeks = monthWeeks(key);
+    return `<div class="ml-project ${g.done ? 'done' : ''}"><div class="bj ${g.done ? 'done' : ''}">
       <button type="button" class="bj-g" data-ml-done="${esc(g.id)}" aria-pressed="${!!g.done}" aria-label="${g.done ? 'Reopen' : 'Mark done'}: ${esc(g.title)}">${g.done ? '✕' : '•'}</button>
-      <div class="bj-t"><span class="tx">${esc(g.title)}</span>${kids.length ? `<span class="bj-m">${kd} of ${kids.length} ${kids.length === 1 ? 'step' : 'steps'} done</span>` : ''}</div>
+      <div class="bj-t"><span class="tx">${esc(g.title)}</span>${kids.length ? `<span class="bj-m">${kd}/${kids.length} done</span>` : ''}</div>
       <button type="button" class="icon-btn bj-more" data-ml-more="${esc(g.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>
-      ${open ? `<div class="bj-strip">${g.done ? '' : `<button type="button" class="chip-btn" data-ml-step="${esc(g.id)}">＋ Do it today</button>`}<button type="button" class="chip-btn" data-ml-area="${esc(g.id)}">→ ${areaOf(g) === 'work' ? 'Personal' : 'Work'}</button><button type="button" class="chip-btn" data-act="edit" data-id="${esc(g.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(g.id)}">Delete</button></div>` : ''}</div>`;
+      ${open ? `<div class="bj-strip">${g.done ? '' : `<button type="button" class="chip-btn" data-ml-step="${esc(g.id)}">＋ Do it today</button>`}<button type="button" class="chip-btn" data-ml-area="${esc(g.id)}">→ ${areaOf(g) === 'work' ? 'Personal' : 'Work'}</button><button type="button" class="chip-btn" data-act="edit" data-id="${esc(g.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(g.id)}">Delete</button></div>` : ''}</div>
+      ${open ? `<div class="ml-kids">${kids.map(k => {
+        const wkLabel = k.targetWeek ? 'Week ' + Number(k.targetWeek.slice(6)) : '';
+        return `<div class="bj sub ${k.done ? 'done' : ''}">
+          <button type="button" class="bj-g" data-ml-done="${esc(k.id)}" aria-pressed="${!!k.done}">${k.done ? '✕' : '○'}</button>
+          <div class="bj-t"><span class="tx">${esc(k.title)}</span>${wkLabel ? `<span class="bj-m">${wkLabel}</span>` : ''}</div>
+          <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Week</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${w.label}</option>`).join('')}</select>
+        </div>`;
+      }).join('')}<form class="hz-add ml-kid-form" data-ml-parent="${esc(g.id)}"><input maxlength="120" required autocomplete="off" placeholder="Add a step" aria-label="Add a step to ${esc(g.title)}"><button class="icon-btn" type="submit">＋</button></form></div>` : ''}</div>`;
+  }
+
+  function renderMonthRight(key){
+    if (mlTab === 'done') { renderMonthDone(key); return; }
+    const weeks = monthWeeks(key);
+    const allGoals = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key);
+    const assigned = allGoals.filter(g => g.targetWeek);
+    safeHTML($('mlWeeks'), weeks.map(w => {
+      const wkItems = assigned.filter(g => g.targetWeek === w.wk).sort(byDoneThenAge);
+      return `<div class="ml-wk-bucket"><div class="ml-wk-head">${esc(w.label)}</div><div class="ml-wk-items">${wkItems.length ? wkItems.map(g => {
+        const parent = g.parent ? items.find(i => i.id === g.parent) : null;
+        return `<div class="bj ${g.done ? 'done' : ''}"><button type="button" class="bj-g" data-ml-done="${esc(g.id)}" aria-pressed="${!!g.done}">${g.done ? '✕' : '•'}</button><div class="bj-t"><span class="tx">${esc(g.title)}</span>${parent ? `<span class="bj-m">${esc(parent.title)}</span>` : ''}</div></div>`;
+      }).join('') : '<div class="ml-wk-empty"></div>'}</div></div>`;
+    }).join(''));
+    const goals = allGoals.filter(g => !g.parent).sort(byDoneThenAge);
+    if (mlOpen && !allGoals.some(g => g.id === mlOpen)) mlOpen = null;
+    [['personal','mlPersonal'],['work','mlWork']].forEach(([area, id]) => {
+      const list = goals.filter(g => areaOf(g) === area);
+      $(id).innerHTML = list.length ? list.map(g => projectRowHTML(g, key)).join('') : `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing yet.'}</div>`;
+    });
+    $('mlPlanSub').textContent = 'Plan your weeks, then work the plan';
+  }
+  function renderMonthDone(key){
+    const weeks = monthWeeks(key);
+    const doneItems = [];
+    ofKind('task').forEach(t => {
+      const on = t.doneOn || t.due;
+      if (t.done && !t.cancelled && monthKey(on) === key) doneItems.push({iso:on, html:`<div class="bj done"><span class="bj-g" aria-hidden="true">✕</span><div class="bj-t"><span class="tx">${esc(t.title)}</span></div></div>`});
+    });
+    ofKind('bullet').forEach(b => {
+      if (b.type === 'event' && monthKey(b.date) === key) doneItems.push({iso:b.date, html:`<div class="bj"><span class="bj-g" aria-hidden="true">○</span><div class="bj-t"><span class="tx">${esc((b.time ? b.time + ' ' : '') + b.text)}</span></div></div>`});
+      if (b.type === 'mood' && monthKey(b.date) === key) doneItems.push({iso:b.date, html:`<div class="bj"><span class="bj-g" aria-hidden="true">=</span><div class="bj-t"><span class="tx">${esc(b.text)}</span></div></div>`});
+    });
+    ofKind('goal').forEach(g => {
+      if (g.done && g.horizon === 'month' && g.period === key) {
+        const on = g.doneOn || key + '-01';
+        doneItems.push({iso:on, html:`<div class="bj done"><span class="bj-g" aria-hidden="true">✕</span><div class="bj-t"><span class="tx">${esc(g.title)}</span><span class="bj-m">project</span></div></div>`});
+      }
+    });
+    let total = doneItems.length;
+    let html = '';
+    weeks.forEach(w => {
+      const [y2, m2] = key.split('-').map(Number), days = new Date(y2, m2, 0).getDate();
+      const wkDates = [];
+      for (let d = 1; d <= days; d++){
+        const iso = `${key}-${pad(d)}`;
+        if (weekKey(iso) === w.wk) wkDates.push(iso);
+      }
+      const wkItems = doneItems.filter(di => wkDates.includes(di.iso)).sort((a,b) => a.iso.localeCompare(b.iso));
+      if (!wkItems.length) return;
+      html += `<div class="ml-done-week"><div class="ml-wk-head">${esc(w.label)}</div><div class="bj-list">${wkItems.map(di => di.html).join('')}</div></div>`;
+    });
+    $('mlPlanSub').textContent = total + ' completed ' + (total === 1 ? 'item' : 'items') + ' this month';
+    safeHTML($('mlDoneList'), html || `<div class="hz-empty">Nothing completed yet this month.</div>`);
   }
   function renderMonthLog(){
     const key = mlMonth, [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
@@ -2046,12 +2131,7 @@
         ${did[iso] ? `<div class="ml-did">${did[iso].map(esc).join(' &nbsp;·&nbsp; ')}</div>` : ''}</div>`;
     }
     safeHTML($('mlRows'), html + '</div>');
-    const goals = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key).sort(byDoneThenAge);
-    if (mlOpen && !goals.some(g => g.id === mlOpen)) mlOpen = null;
-    [['personal','mlPersonal'],['work','mlWork']].forEach(([area, id]) => {
-      const list = goals.filter(g => areaOf(g) === area);
-      $(id).innerHTML = list.length ? list.map(planRowHTML).join('') : `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing yet.'}</div>`;
-    });
+    renderMonthRight(key);
     $('mlHabits').innerHTML = habits.length ? habits.map(h => {
       const n = Object.keys(log).filter(dk => monthKey(dk) === key && (log[dk] || []).includes(h.id)).length;
       return `<div class="item"><div class="item-main"><div class="item-title">${esc(h.name.charAt(0).toUpperCase())} · ${esc(h.name)}</div><div class="item-meta">${n} ${n === 1 ? 'day' : 'days'} in ${esc(monthName(key))}</div></div><button type="button" class="icon-btn" data-habit-del="${esc(h.id)}" aria-label="Remove ${esc(h.name)}">✕</button></div>`;
@@ -2078,6 +2158,15 @@
   $('mlPrev').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, -1); mlOpen = null; renderMonthLog(); });
   $('mlNext').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, 1); mlOpen = null; renderMonthLog(); });
   $('mlToday').addEventListener('click', () => { mlMonth = monthKey(isoToday); mlOpen = null; renderMonthLog(); $('mlPrev').focus(); });
+  $('mlSubTabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-mltab]');
+    if (!b) return;
+    mlTab = b.dataset.mltab;
+    $('mlPlanView').hidden = mlTab !== 'plan';
+    $('mlDoneView').hidden = mlTab !== 'done';
+    document.querySelectorAll('#mlSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mltab === mlTab)));
+    renderMonthRight(mlMonth);
+  });
   document.querySelectorAll('.ml-goal-form').forEach(f => f.addEventListener('submit', e => {
     e.preventDefault();
     const input = f.querySelector('input'), title = input.value.trim();
@@ -2086,6 +2175,26 @@
     addItem('goal', {horizon:'month', period:mlMonth, title:title.slice(0,120), done:false, parent:'', area:f.dataset.area});
     input.focus();
   }));
+  document.querySelector('.ml-plan').addEventListener('submit', e => {
+    const f = e.target.closest('.ml-kid-form');
+    if (!f) return;
+    e.preventDefault();
+    const input = f.querySelector('input'), title = input.value.trim();
+    if (!title) return;
+    input.value = '';
+    addItem('goal', {horizon:'month', period:mlMonth, title:title.slice(0,120), done:false, parent:f.dataset.mlParent, area:''});
+    input.focus();
+  });
+  document.querySelector('.ml-plan').addEventListener('change', e => {
+    const sel = e.target.closest('[data-ml-week]');
+    if (!sel) return;
+    const id = sel.dataset.mlWeek, wk = sel.value || '';
+    patchItem(id, {targetWeek: wk});
+  });
+  $('mlWeeks').addEventListener('click', e => {
+    const b = e.target.closest('[data-ml-done]');
+    if (b) { const g = items.find(i => i.id === b.dataset.mlDone); if (g) patchItem(g.id, {done: !g.done}); }
+  });
   document.querySelector('.ml-plan').addEventListener('click', e => {
     const hit = name => { const b = e.target.closest(`[data-ml-${name}]`); return b ? items.find(i => i.id === b.getAttribute('data-ml-' + name)) : null; };
     const done = hit('done'), more = hit('more'), step = hit('step'), area = hit('area');
