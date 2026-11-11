@@ -250,34 +250,31 @@
       </div>
 
       <div id="jnMonth" hidden>
-        <div class="book">
-          <div class="page left">
-            <div class="cal-head"><div><div class="cal-title" id="mlTitle">This month</div><div class="sub">Reflection · one line a day, and what you got done</div></div>
-              <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
+        <div class="cal-head ml-top-head"><div><div class="cal-title" id="mlTitle">This month</div><div class="sub" id="mlPlanSub">Your month at a glance</div></div>
+          <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
+        <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
+
+        <div id="mlPlanView">
+          <div class="card ml-cal-card">
             <div id="mlRows"></div>
           </div>
-          <div class="page right">
-            <div class="cal-head"><div><div class="cal-title" id="mlPlanTitle">Planning</div><div class="sub" id="mlPlanSub">What you want to get done this month</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
-            <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
-            <div id="mlPlanView">
-              <div class="ml-weeks scroll-soft" id="mlWeeks"></div>
-              <div class="divider" style="margin:14px 0"></div>
-              <h3 class="ml-proj-head">Projects</h3>
-              <div class="sub" style="margin-bottom:12px">Create a project, add steps, and move them to weeks above</div>
-              <div class="ml-plan">
-                <div class="ml-col"><h3>Personal</h3><div class="bj-list" id="mlPersonal"></div>
-                  <form class="hz-add ml-goal-form" data-area="personal"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a personal project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
-                <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
-                  <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a work project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
-              </div>
-            </div>
-            <div id="mlDoneView" hidden>
-              <div id="mlDoneList"></div>
+          <div class="card" style="margin-top:14px">
+            <div class="card-head"><div><h2>Projects</h2><div class="sub">Create a project, add steps, drag them to a week</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
+            <div class="ml-plan">
+              <div class="ml-col"><h3>Personal</h3><div class="bj-list" id="mlPersonal"></div>
+                <form class="hz-add ml-goal-form" data-area="personal"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a personal project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+              <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
+                <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a work project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
             </div>
           </div>
         </div>
-        <div class="card" style="margin-top:18px">
-          <div class="card-head"><div><h2>Habits</h2><div class="sub">Each one gets a column of dots on the left page</div></div><span class="stat-icon" aria-hidden="true">●</span></div>
+
+        <div id="mlDoneView" hidden>
+          <div class="card"><div id="mlDoneList"></div></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="card-head"><div><h2>Habits</h2><div class="sub">Each one gets a column of dots in the calendar</div></div><span class="stat-icon" aria-hidden="true">●</span></div>
           <div class="list habit-list" id="mlHabits"></div>
           <form id="mlHabitForm" class="hz-add" style="margin-top:12px;max-width:420px"><input id="mlHabitText" maxlength="24" required autocomplete="off" placeholder="e.g. Workout, Read, Meditate" aria-label="New habit"><button class="btn small" type="submit">＋ Add</button></form>
         </div>
