@@ -596,3 +596,21 @@ button.bj-g:hover { background:var(--track) }
   .book.day .page.right { order:-1 }
   .book.day .page.left { border-bottom:0; border-top:1.5px solid var(--stroke) }
 }
+
+/* log gestures and the top 3 */
+.bj { grid-template-columns:30px minmax(0,1fr) auto auto }
+.bj-list { overflow-x:clip }
+.bj[data-row] { position:relative; touch-action:pan-y; -webkit-user-select:none; user-select:none; transition:transform .18s ease, background .12s }
+.bj.swiping { transition:none; z-index:1 }
+.bj[data-swipe]::after { position:absolute; top:50%; transform:translateY(-50%); font-size:12px; font-weight:600; white-space:nowrap; opacity:.5 }
+.bj[data-swipe="done"]::after { content:"✕ Done"; right:100%; margin-right:14px; color:var(--green) }
+.bj[data-swipe="reopen"]::after { content:"• Reopen"; right:100%; margin-right:14px; color:var(--text-2) }
+.bj[data-swipe="delete"]::after { content:"Delete"; left:100%; margin-left:14px; color:var(--red) }
+.bj.armed::after { opacity:1 }
+.bj.armed[data-swipe="done"] { background:color-mix(in srgb, var(--green) 18%, transparent) }
+.bj.armed[data-swipe="delete"] { background:var(--red-tint) }
+.bj-top { width:28px; height:28px; background:transparent; color:var(--faint); font-size:14px; margin-top:1px }
+.bj-top.on { background:var(--pop, var(--accent)); color:var(--on-pop, var(--on-accent)); font-size:12px; font-weight:700 }
+.bj.is-top .bj-t .tx { font-weight:600 }
+.bj.is-top:has(+ .bj:not(.is-top)) { border-bottom:1.5px solid var(--stroke); border-radius:12px 12px 0 0; padding-bottom:8px; margin-bottom:6px }
+@media (prefers-reduced-motion:reduce) { .bj[data-row] { transition:none } }

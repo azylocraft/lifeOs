@@ -1600,7 +1600,7 @@
     const t = items.find(i => i.id === id);
     if (!t || !isDate(to) || t.due === to) return;
     if (logOpen === id) logOpen = null;
-    patchItem(id, {due:to, at:Date.now(), moved:[...new Set([...(t.moved || []), t.due].filter(Boolean))]});
+    patchItem(id, {due:to, top:false, at:Date.now(), moved:[...new Set([...(t.moved || []), t.due].filter(Boolean))]});
     if (!quiet) toast('Moved to ' + (to === isoToday ? 'today' : to === isoTomorrow ? 'tomorrow' : shortDay(to)));
   }
   /* everything written on, or once planned for, a day — in the order it landed there */
@@ -1611,13 +1611,23 @@
       else if (i.kind === 'bullet' && i.date === d) out.push({i, role:i.type in GLYPH ? i.type : 'note', key:i.at || i.created || 0});
       else if ((i.kind === 'task' || i.kind === 'goal') && Array.isArray(i.moved) && i.moved.includes(d)) out.push({i, role:'ghost', key:i.created || 0});
     });
-    return out.sort((a,b) => a.key - b.key);
+    const top = e => (e.role === 'task' && e.i.top) ? 0 : 1;
+    return out.sort((a,b) => top(a) - top(b) || (top(a) ? 0 : (a.i.topAt || 0) - (b.i.topAt || 0)) || a.key - b.key);
   }
   const chip = (act, id, label, extra) => `<button type="button" class="chip-btn" data-lg="${act}" data-id="${esc(id)}"${extra || ''}>${label}</button>`;
   const laterSelect = id => `<select data-lg-later="${esc(id)}" aria-label="Move to a longer horizon" style="width:auto"><option value="">Later…</option><option value="week">Sometime this week</option><option value="month">Sometime this month</option><option value="year">Sometime this year</option><option value="life">Someday</option></select>`;
   function movedNote(i){
     const n = (i.moved || []).length;
     return !n ? '' : n >= 3 ? `<span class="red">moved ${n}× — still worth doing?</span>` : `moved ${n}×`;
+  }
+  /* top 3: up to three actions a day you promise yourself; they float to the top, numbered */
+  const topsOf = d => ofKind('task').filter(t => t.due === d && t.top).sort((a,b) => (a.topAt || 0) - (b.topAt || 0));
+  function toggleTop(id){
+    const t = items.find(i => i.id === id);
+    if (!t || t.kind !== 'task') return;
+    if (t.top) { patchItem(id, {top:false}); return; }
+    if (topsOf(t.due).length >= 3) { toast('You already have 3. Take one off the top 3 first.'); return; }
+    patchItem(id, {top:true, topAt:Date.now()});
   }
   function entryHTML({i, role}, d){
     const open = logOpen === i.id, more = `<button type="button" class="icon-btn bj-more" data-lg="more" data-id="${esc(i.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>`;
@@ -1637,15 +1647,17 @@
         + `<input type="date" data-lg-date="${esc(i.id)}" value="${esc(i.due)}" aria-label="Move to a date" style="width:auto">`
         + laterSelect(i.id)
         + chip('work', i.id, MODE_NAME[workOf(i)] + ' work ⇄', ` aria-label="${MODE_NAME[workOf(i)]} work. Switch to ${MODE_NAME[otherMode(workOf(i))]}"`)
-        + chip('high', i.id, i.priority === 'High' ? 'Not important' : '! Important')
+        + chip('top', i.id, i.top ? 'Take off top 3' : '★ Top 3')
         + chip('drop', i.id, 'Drop it')}
         ${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
-      return `<div class="bj ${i.done ? (i.cancelled ? 'cancel' : 'done') : ''} ${i.priority === 'High' && !i.done ? 'high' : ''} ${i.indent ? 'in' : ''}">
+      const rank = i.top ? topsOf(d).findIndex(t => t.id === i.id) + 1 : 0;
+      const star = (i.done && !rank) ? '' : `<button type="button" class="icon-btn bj-top ${rank ? 'on' : ''}" data-lg="top" data-id="${esc(i.id)}" aria-pressed="${!!rank}" aria-label="${rank ? 'Number ' + rank + ' of your top 3. Tap to remove' : 'Add to your top 3'}">${rank || '☆'}</button>`;
+      return `<div class="bj ${i.done ? (i.cancelled ? 'cancel' : 'done') : ''} ${i.priority === 'High' && !i.done ? 'high' : ''} ${i.indent ? 'in' : ''} ${rank ? 'is-top' : ''}" data-row="${esc(i.id)}">
         <button type="button" class="bj-g" data-lg="done" data-id="${esc(i.id)}" aria-pressed="${!!i.done}" aria-label="${i.done ? 'Reopen' : 'Mark done'}: ${esc(i.title)}">${i.done && !i.cancelled ? '✕' : '•'}</button>
-        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${more}${strip}</div>`;
+        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${more}${strip}</div>`;
     }
     const strip = !open ? '' : `<div class="bj-strip">${chip('todo', i.id, 'Make it a to-do today', ' data-when="today"')}${chip('todo', i.id, '…tomorrow', ' data-when="tomorrow"')}${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
-    return `<div class="bj ${role} ${i.indent ? 'in' : ''}"><span class="bj-g" role="img" aria-label="${role}">${GLYPH[role]}</span>
+    return `<div class="bj ${role} ${i.indent ? 'in' : ''}" data-row="${esc(i.id)}"><span class="bj-g" role="img" aria-label="${role}">${GLYPH[role]}</span>
       <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${i.made ? '<span class="bj-m">→ made into a to-do</span>' : ''}</div>${more}${strip}</div>`;
   }
   function reviewHTML(t){
@@ -1707,7 +1719,8 @@
     const entries = dayEntries(logDate);
     const acts = entries.filter(e => e.role === 'task'), openN = acts.filter(e => !e.i.done).length;
     const others = entries.filter(e => e.role !== 'task' && e.role !== 'ghost').length;
-    $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` : 'A blank page';
+    const tops = topsOf(logDate).length;
+    $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` + (acts.length ? ` · top 3: ${tops} picked` : '') : 'A blank page';
     if (logOpen && !items.some(x => x.id === logOpen)) logOpen = null;
     safeHTML($('lgList'), entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
       : `<div class="empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing logged yet. Jot the first thing below — a to-do, a thought, how you feel.'}</div>`);
@@ -1737,6 +1750,7 @@
     else if (act === 'today') moveTask(id, isoToday);
     else if (act === 'tomorrow') moveTask(id, isoTomorrow);
     else if (act === 'work') patchItem(id, {work: otherMode(workOf(i))});
+    else if (act === 'top') toggleTop(id);
     else if (act === 'high') patchItem(id, {priority: i.priority === 'High' ? 'Normal' : 'High'});
     else if (act === 'indent') patchItem(id, {indent: i.indent ? 0 : 1});
     else if (act === 'drop') { patchItem(id, {done:true, cancelled:true}); toast('Dropped', () => patchItem(id, {done:false, cancelled:false})); }
@@ -1816,6 +1830,67 @@
   }
   $('jnTabs').addEventListener('click', e => { const b = e.target.closest('[data-jtab]'); if (b) setJournalTab(b.dataset.jtab); });
 
+  /* ---------- gestures on log entries ----------
+     swipe right = done · swipe left = delete · triple tap = move to the next day */
+  let swipe = null, swallowClick = false, taps = {id:null, n:0, at:0};
+  const nextDayOf = t => (t.due && t.due > isoToday) ? addDays(t.due, 1) : isoTomorrow;
+  function countTap(id){
+    const now = Date.now();
+    taps = (taps.id === id && now - taps.at < 450) ? {id, n:taps.n + 1, at:now} : {id, n:1, at:now};
+    if (taps.n < 3) return;
+    taps = {id:null, n:0, at:0};
+    const t = items.find(i => i.id === id);
+    if (!t || t.kind !== 'task' || t.done) return;
+    const from = t.due, movedBefore = t.moved || [], wasTop = !!t.top, to = nextDayOf(t);
+    moveTask(id, to, true);
+    toast('Moved to ' + (to === isoTomorrow ? 'tomorrow' : shortDay(to)), () => patchItem(id, {due:from, moved:movedBefore, top:wasTop}));
+  }
+  function bindGestures(box){
+    box.addEventListener('pointerdown', e => {
+      const row = e.target.closest('.bj[data-row]');
+      if (!row || !box.contains(row) || e.target.closest('input,select,.bj-strip') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      swipe = {row, id:row.dataset.row, x:e.clientX, y:e.clientY, dx:0, active:false, onButton: !!e.target.closest('button')};
+    });
+    box.addEventListener('pointermove', e => {
+      if (!swipe) return;
+      const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+      if (!swipe.active) {
+        if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { swipe = null; return; }      // that's a scroll, leave it alone
+        if (Math.abs(dx) < 12) return;
+        swipe.active = true; swipe.row.classList.add('swiping');
+        try { swipe.row.setPointerCapture(e.pointerId); } catch(err) {}
+      }
+      swipe.dx = dx;
+      const item = items.find(i => i.id === swipe.id);
+      const can = dx < 0 || (item && item.kind === 'task');          // only actions can be completed
+      swipe.row.style.transform = `translateX(${can ? dx : dx / 5}px)`;
+      if (can) swipe.row.dataset.swipe = dx > 0 ? (item && item.done ? 'reopen' : 'done') : 'delete'; else delete swipe.row.dataset.swipe;
+      swipe.row.classList.toggle('armed', can && Math.abs(dx) > 90);
+    });
+    const end = e => {
+      if (!swipe) return;
+      const s = swipe; swipe = null;
+      if (!s.active) { if (e.type === 'pointerup' && !s.onButton) countTap(s.id); return; }
+      swallowClick = true; setTimeout(() => { swallowClick = false; }, 350);
+      s.row.classList.remove('swiping', 'armed');
+      const item = items.find(i => i.id === s.id), far = Math.abs(s.dx) > 90;
+      if (e.type === 'pointerup' && far && item && s.dx < 0) {
+        s.row.style.transform = 'translateX(-110%)';
+        removeItems([item.id], (item.kind === 'task' ? 'Action' : 'Entry') + ' deleted');
+        return;
+      }
+      s.row.style.transform = ''; delete s.row.dataset.swipe;
+      if (e.type === 'pointerup' && far && item && item.kind === 'task') {
+        if (item.done) patchItem(item.id, {done:false, cancelled:false});
+        else { patchItem(item.id, {done:true}); toast('Done', () => patchItem(item.id, {done:false})); }
+      }
+    };
+    box.addEventListener('pointerup', end);
+    box.addEventListener('pointercancel', end);
+    box.addEventListener('click', e => { if (swallowClick) { e.stopPropagation(); e.preventDefault(); } }, true);
+  }
+  ['lgList','lgPast'].forEach(id => bindGestures($(id)));
+
   /* ---------- focus session ---------- */
   const FOCUS_KEY = 'myLifeOS.focus';
   let focus = null, focusMins = 50, focusTick = null;
@@ -1883,6 +1958,7 @@
     const open = ofKind('task').filter(t => t.due === isoToday && !t.done);
     if (open.length && open.every(t => skipped.has(t.id))) skipped.clear();          // been through them all: start over
     const pick = open.filter(t => !skipped.has(t.id)).sort((a,b) =>
+      (a.top ? 0 : 1) - (b.top ? 0 : 1) || ((a.top && b.top) ? (a.topAt || 0) - (b.topAt || 0) : 0) ||
       (workOf(a) === mode ? 0 : 1) - (workOf(b) === mode ? 0 : 1) ||
       (a.priority === 'High' ? 0 : 1) - (b.priority === 'High' ? 0 : 1) || byDoneThenAge(a,b))[0] || null;
     return {mode, pick, count: open.length};
