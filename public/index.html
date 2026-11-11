@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Life OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+<div class="app">
+  <aside>
+    <div class="brand"><div class="brand-icon" aria-hidden="true">✦</div><div class="brand-text"><strong>My Life OS</strong><small>Your personal space</small></div></div>
+    <div class="nav-wrap">
+      <div class="nav-label">Workspace</div>
+      <nav class="nav" aria-label="Main navigation">
+        <button type="button" class="active" data-view="home" aria-current="page"><span class="ico" aria-hidden="true">⌂</span><span class="nav-text">Overview</span></button>
+        <button type="button" data-view="tasks"><span class="ico" aria-hidden="true">✓</span><span class="nav-text">Tasks &amp; notes</span></button>
+        <button type="button" data-view="expenses"><span class="ico" aria-hidden="true">◈</span><span class="nav-text">Expenses</span></button>
+        <button type="button" data-view="travel"><span class="ico" aria-hidden="true">⌁</span><span class="nav-text">Travel</span></button>
+      </nav>
+    </div>
+    <div class="sidebar-bottom"><strong id="saveTitle">Private by default</strong><span id="saveBody">Getting your saved items…</span></div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div><h1 id="pageTitle">Overview</h1><p class="eyebrow" id="pageSubtitle">A little more clarity, every day.</p></div>
+      <div class="top-actions"><button type="button" class="btn" data-go="tasks" data-focus="taskTitle">＋ Add task</button><div class="date-pill" id="todayDate">Today</div><button type="button" class="round-btn" id="themeBtn" aria-haspopup="true" aria-expanded="false" aria-controls="themePanel" aria-label="Choose a colour theme">◐</button>
+        <div class="theme-panel" id="themePanel" hidden><div class="theme-title">Colour theme</div><div class="theme-grid" id="themeGrid"></div><div class="theme-title" style="margin-top:12px">Accent colour</div><div class="pop-grid" id="popGrid"></div></div></div>
+    </div>
+
+    <div class="card glass reminder" id="reminderBar" hidden><div class="card-head"><div><h2>Reminders</h2><div class="sub">These are due now</div></div><span class="stat-icon" aria-hidden="true">◷</span></div><div class="list" id="reminderList"></div></div>
+
+    <section class="view active" id="view-home">
+      <div class="grid home-grid">
+        <div class="card dark overall"><div class="card-head"><h2>Overall</h2><span class="stat-icon" aria-hidden="true">✓</span></div>
+          <div class="big-row"><div><span class="big" id="statDone">0</span><span class="big-l">tasks done<br>so far</span></div><span class="sep" aria-hidden="true"></span><div><span class="big" id="statOverdue">0</span><span class="big-l">tasks are<br>overdue</span></div></div>
+          <div class="progress" style="margin-top:0"><span id="homeBar" style="width:0%"></span></div>
+          <div class="tiles3"><div class="t"><b id="statTasks">0</b><span>Open tasks</span></div><div class="t"><b id="statExpenses">₹0</b><span>Spent this month</span></div><div class="t"><b id="statTrips">0</b><span>Upcoming trips</span></div></div>
+        </div>
+        <div class="card glass"><div class="card-head"><div><h2>Spending</h2><div class="sub">Last 6 months against your budget</div></div></div><div class="cols compact" id="homeMonths"></div></div>
+        <div class="card"><div class="card-head"><div><h2>Month budget</h2><div class="sub">Total budget against all spending</div></div><span class="stat-icon" aria-hidden="true">₹</span></div>
+          <div class="ring-row"><div class="ring big" id="budgetRing" role="img" aria-label="Budget used"><div><b id="budgetRingText">0%</b><small>used</small></div></div>
+            <div class="ring-side"><div><span class="l">Spent</span><b id="homeSpent">₹0</b></div><div><span class="l">Budget</span><b id="homeBudget">Not set</b></div><div><span class="l" id="homeLeftLabel">Left to spend</span><b id="homeLeft">–</b></div></div></div>
+          <p class="sub" id="homeAside" style="margin-top:12px"></p>
+          <button type="button" class="btn secondary small" data-go="expenses" style="margin-top:18px">View expenses</button>
+        </div>
+      </div>
+      <div class="card" id="quickAdd" hidden style="margin-bottom:18px">
+        <div class="card-head"><div><h2>Quick add</h2><div class="sub">Write it the way you’d say it. Tasks and expenses get filed for you.</div></div><span class="stat-icon" aria-hidden="true">✎</span></div>
+        <form id="quickForm"><div class="field"><label for="quickText">What do you want to record?</label><textarea id="quickText" required maxlength="600" style="min-height:72px" placeholder="e.g. Spent 450 on groceries yesterday and remind me to pay the electricity bill on Friday"></textarea></div><button class="btn" type="submit" id="quickBtn">Add from text</button></form>
+        <div id="quickResult" hidden style="margin-top:16px"><div class="sub" style="margin:0 0 8px">Added just now</div><div class="list" id="quickList"></div></div>
+      </div>
+      <div class="grid two-col">
+        <div class="card"><div class="card-head"><div><h2>Today’s focus</h2><div class="sub">Your next few tasks</div></div><button type="button" class="btn secondary small" data-go="tasks">View tasks</button></div><div id="homeTasks" class="list"></div></div>
+        <div class="card"><div class="card-head"><div><h2>Recent expenses</h2><div class="sub">Latest entries</div></div><button type="button" class="btn secondary small" data-go="expenses">View all</button></div><div id="homeExpenses" class="list"></div></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-tasks">
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head"><div><h2>Mini projects</h2><div class="sub" id="projSub">Bigger things, broken into steps that land in your daily list</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
+        <form id="projForm" class="proj-new"><div class="field"><label for="projName">Start a project</label><input id="projName" required maxlength="60" placeholder="e.g. Buy a sofa, find a rental home" autocomplete="off"></div><div class="field"><label for="projDue">Finish by (optional)</label><input id="projDue" type="date"></div><button class="btn" type="submit">＋ Start</button></form>
+        <div class="proj-grid" id="projList"></div>
+      </div>
+      <div class="grid two-col">
+        <div class="stack">
+        <div class="card dark">
+          <div class="cal-head"><div class="cal-title" id="calTitle">Calendar</div><div class="cal-nav"><button type="button" class="btn secondary small" id="calToday">Today</button><button type="button" class="icon-btn" id="calPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="calNext" aria-label="Next month">›</button></div></div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="divider" style="margin:18px 0 14px"></div>
+          <h3 id="dayTitle" style="margin-bottom:10px">Today</h3>
+          <div class="list" id="dayList"></div>
+          <form id="dayForm" class="day-add"><div class="field"><label for="dayTask" id="dayTaskLabel">Add a task for this day</label><input id="dayTask" required maxlength="120" placeholder="e.g. Doctor appointment" autocomplete="off"></div><div class="field"><label for="dayTime">Remind at (optional)</label><input id="dayTime" type="time"></div><button class="btn" type="submit">＋ Add</button></form>
+        </div>
+        <div class="card"><div class="card-head"><div><h2>Add a task</h2><div class="sub">One step at a time</div></div><span class="stat-icon" aria-hidden="true">✓</span></div>
+          <form id="taskForm"><div class="field"><label for="taskTitle">Task</label><input id="taskTitle" required maxlength="120" placeholder="e.g. Pay electricity bill" autocomplete="off"></div><div class="form-grid"><div class="field"><label for="taskDue">Due date (optional)</label><input type="date" id="taskDue"></div><div class="field"><label for="taskPriority">Priority</label><select id="taskPriority"><option>Normal</option><option>High</option><option>Low</option></select></div><div class="field full"><label for="taskRemind">Reminder (optional)</label><input type="datetime-local" id="taskRemind"></div><div class="field full"><label for="taskProject">Part of a project (optional)</label><select id="taskProject"><option value="">No project</option></select></div></div><button class="btn" type="submit">＋ Add task</button></form>
+          <div class="divider"></div>
+          <h3>Quick note</h3><form id="noteForm"><div class="field"><label for="noteText">Note</label><textarea id="noteText" required maxlength="2000" placeholder="Save an idea, reminder, or something to remember..."></textarea></div><button class="btn secondary" type="submit">Save note</button></form>
+        </div>
+        </div>
+        <div class="card"><div class="card-head"><div><h2>Your tasks</h2><div class="sub" id="taskProgressText">0 completed</div></div><button type="button" class="btn secondary small" id="clearDone">Clear completed</button></div><div class="progress"><span id="taskProgress" style="width:0%"></span></div><div id="taskList" class="list" style="margin-top:14px"></div>
+          <div class="divider"></div><div class="card-head"><div><h2>Saved notes</h2><div class="sub">Your quick thoughts</div></div></div><div id="noteList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-expenses">
+      <div class="grid">
+        <div class="card"><div class="card-head"><div><h2>Add an expense</h2><div class="sub">A quick record, no spreadsheet needed</div></div></div>
+          <form id="expenseForm"><div class="field"><label for="expenseName">Description</label><input id="expenseName" required maxlength="100" placeholder="e.g. Groceries" autocomplete="off"></div><div class="form-grid"><div class="field"><label for="expenseAmount">Amount (₹)</label><input id="expenseAmount" required type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="450"></div><div class="field"><label for="expenseCategory">Category</label><select id="expenseCategory"></select><div class="item-meta" id="catGuess" hidden></div></div><div class="field"><label for="expenseSub">Subcategory (optional)</label><input id="expenseSub" list="subList" maxlength="30" placeholder="e.g. Cleaning supplies" autocomplete="off"><datalist id="subList"></datalist></div><div class="field full"><label for="expenseDate">Date</label><input id="expenseDate" required type="date"></div></div><button class="btn" type="submit">＋ Add expense</button></form>
+        </div>
+        <div class="card glass"><div class="card-head"><div><h2>Monthly budgets</h2><div class="sub" id="budgetSummary">Spent and left in each category</div></div></div>
+          <div class="cal-head"><div class="cal-title" id="budgetMonthLabel">This month</div><div class="cal-nav"><button type="button" class="btn secondary small" id="bmToday">This month</button><button type="button" class="icon-btn" id="bmPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="bmNext" aria-label="Next month">›</button></div></div>
+          <div class="budget-cols">
+          <div class="inner-panel">
+            <div class="money-hero" id="budgetHero"></div>
+            <div class="split" id="budgetSplit" role="img" aria-label="How this month’s budget is divided"></div>
+            <div class="chart-legend" id="budgetSplitKey" style="margin:10px 0 18px"></div>
+            <div class="mini-stats two" id="budgetTotals"></div>
+            <div class="mini-stats two" id="budgetTotals2" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft)"></div>
+          </div>
+          <div class="budget-side">
+          <div class="inner-panel glassy whole-box" id="budgetWhole"></div>
+          <div class="inner-panel glassy"><h3>Plans, instalments and the total</h3><div class="list" id="budgetUpcoming"></div><div class="list" id="budgetTotalRow"></div></div>
+          <div class="inner-panel solid"><div class="card-head" style="margin-bottom:14px"><h3 id="catListTitle" style="margin:0">Each category</h3><button type="button" class="btn secondary small" id="editCats">Edit monthly budget</button></div>
+          <div id="categoryBreakdown" class="list"></div>
+          <div id="catEditor" hidden>
+            <div class="cal-head" style="margin-bottom:14px"><div class="cal-title" id="editMonthLabel" style="font-size:16px">This month</div><div class="cal-nav"><button type="button" class="btn secondary small" id="emToday">This month</button><button type="button" class="icon-btn" id="emPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="emNext" aria-label="Next month">›</button></div></div>
+            <div class="seg" id="budgetMode" role="group" aria-label="How the total and the categories work together" style="margin-bottom:14px"><button type="button" data-bmode="sum">Categories add up to the total</button><button type="button" data-bmode="split">Split the total across categories</button></div>
+            <div class="cat-row" style="margin-bottom:14px"><label for="totalBudget" style="padding:0;font-size:13.5px;font-weight:600;color:var(--text)">Total monthly budget</label><input id="totalBudget" type="number" inputmode="numeric" min="0" step="1" aria-label="Total monthly budget in rupees"><span></span></div>
+            <div class="cat-head"><span>Category limit</span><span>Each month (₹)</span><span></span></div>
+            <div class="list" id="catRows"></div>
+            <form id="catForm" class="cat-add"><input id="catName" required maxlength="30" placeholder="New category" aria-label="New category name" autocomplete="off"><input id="catBudget" type="number" inputmode="numeric" min="0" step="1" placeholder="Budget" aria-label="Monthly budget in rupees"><button class="btn small" type="submit">＋ Add</button></form>
+            <p class="sub" style="margin:12px 0" id="editorNote"></p>
+            <div class="dlg-actions"><button type="button" class="btn secondary small" id="useSuggested">Use the suggested categories</button><button type="button" class="btn secondary small" id="saveDefault">Use for every month</button><button type="button" class="btn secondary small" id="resetMonth" hidden>Back to the usual budget</button></div>
+          </div></div>
+          </div></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="card-head" style="flex-wrap:wrap"><div><h2>Plans and instalments</h2><div class="sub" id="planSub">Money promised to something else, month by month</div></div>
+          <div class="seg" id="planType" role="group" aria-label="Kind of plan"><button type="button" data-ptype="save" aria-pressed="true">Saving up</button><button type="button" data-ptype="emi">Paying instalments</button></div></div>
+        <div class="grid two-col">
+          <form id="planForm"><div class="field"><label for="planName" id="planNameLabel">What are you saving for?</label><input id="planName" required maxlength="60" placeholder="e.g. Washing machine, family trip" autocomplete="off"></div>
+            <div class="form-grid"><div class="field"><label for="planAmount" id="planAmountLabel">Total cost (₹)</label><input id="planAmount" required type="number" inputmode="numeric" min="1" step="1" placeholder="25000"></div>
+            <div class="field"><label for="planMonth" id="planMonthLabel">Paying for it in</label><input id="planMonth" type="month" required></div>
+            <div class="field" id="planCountField" hidden><label for="planCount">How many instalments?</label><input id="planCount" type="number" inputmode="numeric" min="1" max="120" step="1" placeholder="12"></div>
+            <div class="field full"><label for="planCategory">Category</label><select id="planCategory"></select></div></div>
+            <button class="btn" type="submit" id="planBtn">＋ Start saving for this</button></form>
+          <div class="list" id="planList"></div>
+        </div>
+      </div>
+      <div class="card glass" style="margin-top:18px">
+        <div class="card-head" style="flex-wrap:wrap"><div><h2>Spending charts</h2><div class="sub" id="chartSub">What you spent against what you planned</div></div>
+          <div class="seg" id="chartRange" role="group" aria-label="Chart period"><button type="button" data-crange="day">Day</button><button type="button" data-crange="week">Week</button><button type="button" data-crange="month">Month</button><button type="button" data-crange="6m">6 months</button><button type="button" data-crange="all">All time</button></div></div>
+        <div class="chart-legend" id="chartLegend" style="margin-bottom:16px"></div>
+        <div class="mini-stats" id="chartStats"></div>
+        <div class="grid two-col chart-grid">
+          <div><h3 id="chartCatsTitle" style="margin-bottom:4px">By category</h3><p class="sub" id="chartCatsSub" style="margin:0 0 12px"></p><div class="cols compact scroll-soft" id="chartCats"></div></div>
+          <div><h3 id="chartTimeTitle">Over time</h3><div class="cols compact scroll-soft" id="chartMonths"></div><p class="sub" style="margin-top:10px" id="chartFoot"></p></div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-head"><div><h3 style="margin:0" id="subTitle">Inside a category</h3><div class="sub" id="subSub">What the money went on</div></div><button type="button" class="btn secondary small" id="subClear" hidden>Show all categories</button></div>
+        <div class="pie-legend" id="subPieLegend"></div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="card-head" style="flex-wrap:wrap"><div><h2 id="savingsHeading">Saved or overspent against your budget</h2><div class="sub" id="savingsSub">Pick a period below</div></div>
+          <div class="seg" id="savingsRange" role="group" aria-label="Chart period"><button type="button" data-range="day">Day</button><button type="button" data-range="week">Week</button><button type="button" data-range="month">Month</button><button type="button" data-range="6m">6 months</button><button type="button" data-range="all">All time</button></div></div>
+        <div class="grid two-col chart-grid">
+          <div><div class="chart-legend" id="savingsLegend" style="margin-bottom:14px"></div><div class="cols scroll-soft" id="savingsChart"></div></div>
+          <div><div class="card-head" style="margin-bottom:14px"><div><h3 style="margin:0">Where it went</h3><div class="sub" id="periodCatSub">Spending by category in this period</div></div><div class="item-side" id="periodCatTotal"></div></div>
+            <div class="list" id="periodCats"></div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="table-wrap scroll scroll-soft" id="savingsWrap"><table><thead id="savingsHead"></thead><tbody id="savingsTotal"></tbody><tbody id="savingsRows"></tbody></table></div>
+      </div>
+      <div class="card" style="margin-top:18px"><div class="card-head"><div><h2>Expense history</h2><div class="sub">Newest entries first</div></div><button type="button" class="btn secondary small" id="exportExpenses" hidden>Export CSV</button></div><div class="table-wrap scroll scroll-soft" id="expenseTable"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="amount">Amount</th><th></th></tr></thead><tbody id="expenseRows"></tbody></table></div><div id="expenseEmpty" class="empty" hidden>No expenses yet. Add your first one above.</div></div>
+    </section>
+
+    <section class="view" id="view-travel">
+      <div class="grid two-col">
+        <div class="card"><div class="card-head"><div><h2>Plan a trip</h2><div class="sub">Save the details before you go</div></div><span class="stat-icon" aria-hidden="true">⌁</span></div>
+          <form id="tripForm"><div class="field"><label for="tripName">Trip or destination</label><input id="tripName" required maxlength="100" placeholder="e.g. Weekend in Kodaikanal" autocomplete="off"></div><div class="form-grid"><div class="field"><label for="tripStart">Start date</label><input id="tripStart" type="date"></div><div class="field"><label for="tripEnd">End date</label><input id="tripEnd" type="date"></div><div class="field full"><label for="tripBudget">Estimated budget (₹)</label><input id="tripBudget" type="number" inputmode="numeric" min="0" step="1" placeholder="5000"></div></div><div class="field"><label for="tripNotes">Notes (optional)</label><textarea id="tripNotes" maxlength="1500" placeholder="Transport, stay, places to visit, booking references..."></textarea></div><button class="btn" type="submit">＋ Save trip</button></form>
+        </div>
+        <div class="card"><div class="card-head"><div><h2>Your trips</h2><div class="sub">Upcoming plans and saved ideas</div></div></div><div id="tripList" class="list"></div></div>
+      </div>
+    </section>
+    <footer id="footerNote">My Life OS</footer>
+  </main>
+</div>
+<dialog id="editDlg" aria-labelledby="editTitle"><h2 id="editTitle">Edit</h2><div id="editFields" style="margin-top:14px"></div>
+  <div class="dlg-actions"><button type="button" class="btn" id="editSave">Save changes</button><button type="button" class="btn secondary" id="editCancel">Cancel</button></div></dialog>
+<dialog id="remindDlg" aria-labelledby="remindTitle"><h2 id="remindTitle">Set a reminder</h2><p class="sub" id="remindFor" style="margin-bottom:14px"></p>
+  <div class="field"><label for="remindWhen">Remind me on</label><input type="datetime-local" id="remindWhen"></div>
+  <div class="dlg-actions"><button type="button" class="btn" id="remindSave">Save reminder</button><button type="button" class="btn secondary" id="remindClear">Remove reminder</button><button type="button" class="btn secondary" id="remindCancel">Cancel</button></div>
+  <p class="sub" style="margin-top:14px">Reminders appear inside this app when it is open. They do not send phone notifications.</p></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>Undo</button></div>
+
+<script src="store.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
