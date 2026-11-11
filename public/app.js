@@ -209,11 +209,11 @@
     downloads = browserDownloads; renderExpenses();
     const store = window.LifeOSStore;
     if (!store || typeof store.connect !== 'function') { setStatus('local'); return; }
+    let c;
+    try { c = await store.connect(); } catch(e) { c = null; }   // may wait while the person signs in
+    if (!c) { setStatus('local'); renderAll(); return; }
     loading = true; setStatus('connecting'); renderAll();
     const giveUp = setTimeout(() => { if (!col) { loading = false; setStatus('local'); renderAll(); } }, 10000);
-    let c;
-    try { c = await store.connect(); } catch(e) { c = null; }
-    if (!c) { clearTimeout(giveUp); loading = false; setStatus('local'); renderAll(); return; }
     let stopped = false;
     c.onSnapshot(snap => {
       if (stopped) return;
