@@ -23,6 +23,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # stamp this release into the file links so phones never mix new pages with old cached code
+      - name: Version the assets
+        run: sed -i "s/__V__/${GITHUB_SHA::8}/g" public/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
