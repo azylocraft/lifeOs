@@ -18,7 +18,9 @@
       <div class="nav-label">Workspace</div>
       <nav class="nav" aria-label="Main navigation">
         <button type="button" class="active" data-view="home" aria-current="page"><span class="ico" aria-hidden="true">⌂</span><span class="nav-text">Overview</span></button>
-        <button type="button" data-view="tasks"><span class="ico" aria-hidden="true">✓</span><span class="nav-text">Tasks &amp; notes</span></button>
+        <button type="button" data-view="planner"><span class="ico" aria-hidden="true">▦</span><span class="nav-text">Planner</span></button>
+        <button type="button" data-view="tasks"><span class="ico" aria-hidden="true">✓</span><span class="nav-text">Tasks<span class="nav-long"> &amp; notes</span></span></button>
+        <button type="button" data-view="journal"><span class="ico" aria-hidden="true">✎</span><span class="nav-text">Journal</span></button>
         <button type="button" data-view="expenses"><span class="ico" aria-hidden="true">◈</span><span class="nav-text">Expenses</span></button>
         <button type="button" data-view="travel"><span class="ico" aria-hidden="true">⌁</span><span class="nav-text">Travel</span></button>
       </nav>
@@ -34,6 +36,11 @@
     </div>
 
     <div class="card glass reminder" id="reminderBar" hidden><div class="card-head"><div><h2>Reminders</h2><div class="sub">These are due now</div></div><span class="stat-icon" aria-hidden="true">◷</span></div><div class="list" id="reminderList"></div></div>
+
+    <div class="card dark now-bar" id="nowBar" hidden>
+      <div class="now-main"><div class="sub" id="nowLabel">Right now</div><div class="now-title" id="nowTitle"></div></div>
+      <div class="now-actions" id="nowActions"></div>
+    </div>
 
     <section class="view active" id="view-home">
       <div class="grid home-grid">
@@ -168,6 +175,94 @@
           <form id="tripForm"><div class="field"><label for="tripName">Trip or destination</label><input id="tripName" required maxlength="100" placeholder="e.g. Weekend in Kodaikanal" autocomplete="off"></div><div class="form-grid"><div class="field"><label for="tripStart">Start date</label><input id="tripStart" type="date"></div><div class="field"><label for="tripEnd">End date</label><input id="tripEnd" type="date"></div><div class="field full"><label for="tripBudget">Estimated budget (₹)</label><input id="tripBudget" type="number" inputmode="numeric" min="0" step="1" placeholder="5000"></div></div><div class="field"><label for="tripNotes">Notes (optional)</label><textarea id="tripNotes" maxlength="1500" placeholder="Transport, stay, places to visit, booking references..."></textarea></div><button class="btn" type="submit">＋ Save trip</button></form>
         </div>
         <div class="card"><div class="card-head"><div><h2>Your trips</h2><div class="sub">Upcoming plans and saved ideas</div></div></div><div id="tripList" class="list"></div></div>
+      </div>
+    </section>
+    <section class="view" id="view-planner">
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head" style="flex-wrap:wrap"><div><h2>Horizons</h2><div class="sub">Big goals on the right, today on the left. Break a goal into steps and they land in the column before it.</div></div>
+          <button type="button" class="btn secondary small" id="hzToday">Back to today</button></div>
+        <div class="hz-board scroll-soft" id="hzBoard"></div>
+      </div>
+      <div class="card">
+        <div class="card-head" style="flex-wrap:wrap"><div><h2>Maker and manager rhythm</h2><div class="sub">Maker time is long, unbroken stretches for deep work. Manager time is for calls, messages and errands, batched together. Tap a half-day to switch it.</div></div><span class="stat-icon" aria-hidden="true">◐</span></div>
+        <div class="rh-grid" id="rhGrid"></div>
+        <div class="divider"></div>
+        <div class="mini-stats" id="rhStats" style="margin-bottom:0"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-journal">
+      <div class="seg jn-tabs" id="jnTabs" role="group" aria-label="Journal pages"><button type="button" data-jtab="day" aria-pressed="true">Daily log</button><button type="button" data-jtab="month" aria-pressed="false">Monthly log</button></div>
+
+      <div id="jnDay">
+        <div class="card glass reminder" id="lgReview" hidden>
+          <div class="card-head" style="margin-bottom:0"><div><h2 id="lgReviewTitle">Open actions from earlier</h2><div class="sub">Decide for each one: do it today, move it, or drop it.</div></div>
+            <div class="dlg-actions" style="margin:0"><button type="button" class="btn small" data-lg="all-today">Bring all to today</button><button type="button" class="btn secondary small" id="lgReviewToggle" aria-expanded="false" aria-controls="lgReviewList">Review one by one</button></div></div>
+          <div class="bj-list" id="lgReviewList" hidden style="margin-top:14px"></div>
+        </div>
+        <div class="grid two-col">
+          <div class="card">
+            <div class="cal-head"><div><div class="cal-title" id="lgDate">Today</div><div class="sub" id="lgSub"></div></div>
+              <div class="cal-nav"><button type="button" class="btn secondary small" id="lgToday">Today</button><button type="button" class="icon-btn" id="lgPrev" aria-label="Previous day">‹</button><button type="button" class="icon-btn" id="lgNext" aria-label="Next day">›</button></div></div>
+            <div class="bj-key" aria-label="What the bullets mean"><span><b>•</b>Action</span><span><b>–</b>Note</span><span><b>○</b>Event</span><span><b>=</b>Mood</span><span><b>✕</b>Done</span><span><b>&gt;</b>Moved</span></div>
+            <div class="bj-list" id="lgList"></div>
+            <form id="lgForm" class="bj-add">
+              <div class="seg bj-type" id="lgType" role="group" aria-label="Kind of entry"><button type="button" data-btype="task" aria-label="Action" title="Action">•</button><button type="button" data-btype="note" aria-label="Note" title="Note">–</button><button type="button" data-btype="event" aria-label="Event" title="Event">○</button><button type="button" data-btype="mood" aria-label="Mood" title="Mood">=</button></div>
+              <input id="lgText" maxlength="500" required autocomplete="off" placeholder="Jot it down and press Enter" aria-label="New entry">
+              <button class="btn" type="submit">Add</button>
+            </form>
+            <p class="sub" style="margin-top:10px">Shortcut: start with <b>-</b> for a note, <b>o</b> for an event (<i>o 4pm dentist</i>), <b>=</b> for a mood, <b>!</b> for an important action.</p>
+          </div>
+          <div class="stack">
+            <div class="card dark">
+              <div class="card-head"><div><h2>Shape of the day</h2><div class="sub" id="lgShapeSub">Maker time and manager time</div></div><span class="stat-icon" aria-hidden="true">◐</span></div>
+              <div class="list" id="lgShape"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div><h2>Focus session</h2><div class="sub" id="fcToday">Protect a stretch of maker time</div></div><span class="stat-icon" aria-hidden="true">◎</span></div>
+              <div id="fcIdle">
+                <div class="field"><label for="fcTask">Focus on</label><select id="fcTask"></select></div>
+                <div class="seg" id="fcMins" role="group" aria-label="Length of the session" style="margin-bottom:14px"><button type="button" data-mins="25" aria-pressed="false">25 min</button><button type="button" data-mins="50" aria-pressed="true">50 min</button><button type="button" data-mins="90" aria-pressed="false">90 min</button></div>
+                <button type="button" class="btn" id="fcStart">▶ Start focus</button>
+              </div>
+              <div id="fcRun" hidden>
+                <div class="fc-clock" id="fcClock" role="timer">50:00</div>
+                <div class="sub" id="fcWhat" style="margin-bottom:10px"></div>
+                <div class="progress"><span id="fcBar" style="width:0%"></span></div>
+                <button type="button" class="btn secondary small" id="fcStop" style="margin-top:14px">Stop and log it</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div><h2 id="lgTomTitle">Tomorrow</h2><div class="sub">What you’ve already lined up</div></div><span class="stat-icon" aria-hidden="true">→</span></div>
+              <div class="bj-list" id="lgTomorrow"></div>
+              <form id="lgTomForm" class="hz-add" style="margin-top:12px"><input id="lgTomText" maxlength="120" required autocomplete="off" placeholder="Add an action for tomorrow" aria-label="Add an action for tomorrow"><button class="btn small" type="submit">＋ Add</button></form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="jnMonth" hidden>
+        <div class="book">
+          <div class="page left">
+            <div class="cal-head"><div><div class="cal-title" id="mlTitle">This month</div><div class="sub">Reflection · one line a day, and what you got done</div></div>
+              <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
+            <div id="mlRows"></div>
+          </div>
+          <div class="page right">
+            <div class="cal-head"><div><div class="cal-title" id="mlPlanTitle">Planning</div><div class="sub">What you want to get done this month</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
+            <div class="ml-plan">
+              <div class="ml-col"><h3>Personal</h3><div class="bj-list" id="mlPersonal"></div>
+                <form class="hz-add ml-goal-form" data-area="personal"><input maxlength="120" required autocomplete="off" placeholder="Add a personal task" aria-label="Add a personal task for this month"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+              <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
+                <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="Add a work task" aria-label="Add a work task for this month"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:18px">
+          <div class="card-head"><div><h2>Habits</h2><div class="sub">Each one gets a column of dots on the left page</div></div><span class="stat-icon" aria-hidden="true">●</span></div>
+          <div class="list habit-list" id="mlHabits"></div>
+          <form id="mlHabitForm" class="hz-add" style="margin-top:12px;max-width:420px"><input id="mlHabitText" maxlength="24" required autocomplete="off" placeholder="e.g. Workout, Read, Meditate" aria-label="New habit"><button class="btn small" type="submit">＋ Add</button></form>
+        </div>
       </div>
     </section>
     <footer id="footerNote">My Life OS</footer>

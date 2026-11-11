@@ -1,12 +1,14 @@
 (() => {
   'use strict';
   const KEY = 'myLifeOS.v2';
-  const KINDS = new Set(['task','note','expense','trip','plan','project','settings']);
+  const KINDS = new Set(['task','note','expense','trip','plan','project','settings','bullet','goal','rhythm','habits','month']);
   const DEFAULT_CATS = ['Swiggy / outdoor food','Transport / fuel','Home / family','Friend / partner','Lifestyle','Health / gym','Vacation / travel','Entertainment','Subscriptions / utility bills','Other'];
   const VIEWS = {
     home:     ['Overview', 'A little more clarity, every day.'],
     tasks:    ['Tasks & notes', 'Capture what you need to do and what you don’t want to forget.'],
     expenses: ['Expense tracker', 'Record spending and see where your money goes. Amounts are in Indian rupees (₹).'],
+    planner:  ['Planner', 'Day, week, month, year and life on one board, with your maker and manager time.'],
+    journal:  ['Journal', 'Jot everything in one place. Decide what matters afterwards.'],
     travel:   ['Travel planner', 'Keep destinations, dates, budgets, and trip notes together.']
   };
 
@@ -180,6 +182,9 @@
     return made;
   }
   function patchItem(id, patch){
+    /* remember the day something was finished, for the monthly reflection page */
+    if (patch.done === true && !('doneOn' in patch)) patch = {...patch, doneOn: isoToday};
+    else if (patch.done === false) patch = {...patch, doneOn: ''};
     items = items.map(i => i.id === id ? {...i, ...patch} : i);
     commit(c => c.doc(id).update(patch));
   }
@@ -762,7 +767,7 @@
       return `<div class="item ${isPast(t) ? 'past' : ''}"><div class="item-main"><div class="item-title">${esc(t.name)} ${isPast(t) ? '<span class="tag">Past</span>' : ''}</div><div class="item-meta">${esc(when)}${budget}</div>${t.notes ? `<div class="item-body" style="margin-top:8px;font-size:12px">${esc(t.notes)}</div>` : ''}</div>${delBtn(t.id, 'Delete trip')}</div>`;
     }).join('') : empty('No trips yet. Plan your first one on the left.');
   }
-  function renderAll(){ migrateCats(); renderHome(); renderTasks(); renderExpenses(); renderTrips(); renderReminders(); }
+  function renderAll(){ migrateCats(); renderHome(); renderTasks(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); }
 
   /* ---------- navigation ---------- */
   function showView(name){
@@ -814,7 +819,7 @@
       return;
     }
     if (el.dataset.act === 'delete') {
-      const word = {task:'Task', note:'Note', expense:'Expense', trip:'Trip', plan:'Plan'}[item.kind];
+      const word = {task:'Task', note:'Note', expense:'Expense', trip:'Trip', plan:'Plan', goal:'Goal', bullet:'Entry'}[item.kind] || 'Item';
       removeItems([id], word + ' deleted');
     }
   });
@@ -1157,6 +1162,8 @@
     expense: [['name','Description','text'],['amount','Amount (\u20b9)','number'],['category','Category','cat'],['sub','Subcategory','text'],['date','Date','date']],
     task:    [['title','Task','text'],['due','Due date','date'],['priority','Priority','priority'],['remind','Reminder','datetime-local'],['project','Part of a project','proj']],
     project: [['name','Project','text'],['due','Finish by','date']],
+    goal:    [['title','Goal','text']],
+    bullet:  [['text','Entry','text'],['time','Time (events)','time']],
     note:    [['text','Note','textarea']],
     trip:    [['name','Trip or destination','text'],['start','Start date','date'],['end','End date','date'],['budget','Budget (\u20b9)','number'],['notes','Notes','textarea']],
     plan:    [['name','What it is','text'],['amount','Amount (\u20b9)','number'],['months','How many instalments','number'],['month','Month','month'],['category','Category','cat']]
@@ -1166,7 +1173,7 @@
     const fields = (EDIT_FIELDS[item.kind] || []).filter(f => !(item.kind === 'plan' && f[0] === 'months' && item.type !== 'emi'));
     if (!fields.length) return;
     editId = item.id;
-    $('editTitle').textContent = {expense:'Edit expense', task:'Edit task', note:'Edit note', trip:'Edit trip', plan:'Edit plan', project:'Edit project'}[item.kind] || 'Edit';
+    $('editTitle').textContent = {expense:'Edit expense', task:'Edit task', note:'Edit note', trip:'Edit trip', plan:'Edit plan', project:'Edit project', goal:'Edit goal', bullet:'Edit entry'}[item.kind] || 'Edit';
     $('editFields').innerHTML = fields.map(([key, label, type]) => {
       const v = item[key] == null ? '' : String(item[key]);
       const id = 'edit_' + key;
@@ -1207,6 +1214,8 @@
     if (item.kind === 'project' && !patch.name) { toast('Give the project a name.'); return; }
     if (item.kind === 'note' && !patch.text) { toast('The note cannot be empty.'); return; }
     if (item.kind === 'trip' && !patch.name) { toast('Give the trip a name.'); return; }
+    if (item.kind === 'goal' && !patch.title) { toast('Give the goal a name.'); return; }
+    if (item.kind === 'bullet' && !patch.text) { toast('The entry cannot be empty.'); return; }
     if (item.kind === 'plan') {
       if (!patch.name) { toast('Give it a name.'); return; }
       if (!(patch.amount > 0)) { toast('Enter an amount above zero.'); return; }
@@ -1353,6 +1362,656 @@
     const again = $('savingsRange').querySelector('[aria-pressed="true"]');
     if (again) again.focus();
   });
+
+  /* =====================================================================
+     Journal (bullet log) · Horizons · Maker / manager
+     One idea ties them together: an action you jot in the journal is an
+     ordinary task, so it also shows in the planner's Day column and in
+     Tasks. Goals live in longer horizons and break down into steps.
+     ===================================================================== */
+  const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return isoOf(d); };
+  const isoTomorrow = addDays(isoToday, 1);
+  const shortDay = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+  const dayMonth = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const isTyping = a => !!a && (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || (a.tagName === 'INPUT' && a.type !== 'checkbox'));
+  /* redraw a list, but never underneath someone who is typing in it */
+  function safeHTML(el, html){
+    if (el.contains(document.activeElement) && isTyping(document.activeElement)) {
+      el._pending = html;
+      if (!el._wait) {
+        el._wait = true;
+        el.addEventListener('focusout', () => setTimeout(() => {
+          if (el._pending != null && !(el.contains(document.activeElement) && isTyping(document.activeElement))) { el.innerHTML = el._pending; el._pending = null; }
+        }, 0));
+      }
+      return;
+    }
+    el._pending = null; el.innerHTML = html;
+  }
+  function upsertDoc(id, kind, fields){
+    if (items.some(i => i.id === id)) { patchItem(id, fields); return; }
+    const item = {id, kind, created:Date.now(), ...fields};
+    items = [item, ...items];
+    commit(c => c.doc(id).set(item));
+  }
+  const newTask = (title, due, extra) => addItem('task', {title:String(title).slice(0,120), due, priority:'Normal', done:false, remind:'', reminded:false, project:'', at:Date.now(), ...(extra || {})});
+
+  /* ---------- horizons ---------- */
+  const HORIZONS = ['day','week','month','year','life'];
+  const HZ_NAME = {day:'Day', week:'Week', month:'Month', year:'Year', life:'Life'};
+  const HZ_ADD = {day:'Add an action', week:'Add a goal for the week', month:'Add a goal for the month', year:'Add a goal for the year', life:'Add a life goal'};
+  const mondayOf = iso => addDays(iso, -((new Date(iso + 'T12:00:00').getDay() + 6) % 7));
+  function weekKey(iso){
+    const mon = mondayOf(iso), y = Number(addDays(mon, 3).slice(0,4));      // the Thursday decides the year
+    const first = mondayOf(`${y}-01-04`);
+    const w = 1 + Math.round((new Date(mon + 'T12:00:00') - new Date(first + 'T12:00:00')) / 6048e5);
+    return `${y}-W${pad(w)}`;
+  }
+  const periodFor = (h, iso) => h === 'day' ? iso : h === 'week' ? weekKey(iso) : h === 'month' ? iso.slice(0,7) : h === 'year' ? iso.slice(0,4) : 'life';
+  function periodLabel(h, iso){
+    if (h === 'day') return (iso === isoToday ? 'Today · ' : iso === isoTomorrow ? 'Tomorrow · ' : '') + shortDay(iso);
+    if (h === 'week') { const mon = mondayOf(iso); return `Week ${Number(weekKey(iso).slice(6))} · ${dayMonth(mon)} – ${dayMonth(addDays(mon, 6))}`; }
+    if (h === 'month') return monthName(iso.slice(0,7));
+    if (h === 'year') return iso.slice(0,4);
+    return 'Someday, no deadline';
+  }
+  /* where a goal or action lives, in words */
+  function whereLabel(i){
+    if (i.kind === 'task') return i.due ? shortDay(i.due) : 'no date';
+    if (i.horizon === 'life') return 'Life';
+    if (i.horizon === 'year') return String(i.period);
+    if (i.horizon === 'month') return monthName(i.period);
+    return 'Week ' + Number(String(i.period).slice(6));
+  }
+  let hzDate = isoToday, hzOpen = null;
+  const kidsOf = id => items.filter(i => i.parent === id && (i.kind === 'goal' || i.kind === 'task'));
+  const byDoneThenAge = (a,b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.at || a.created || 0) - (b.at || b.created || 0);
+  const hzItems = h => (h === 'day'
+    ? ofKind('task').filter(t => t.due === hzDate)
+    : ofKind('goal').filter(g => g.horizon === h && g.period === periodFor(h, hzDate))).sort(byDoneThenAge);
+  /* unfinished things left behind in an earlier day, week, month or year */
+  const leftBehind = h => h === 'life' ? []
+    : h === 'day' ? ofKind('task').filter(t => !t.done && t.due && t.due < isoToday)
+    : ofKind('goal').filter(g => !g.done && g.horizon === h && String(g.period) < periodFor(h, isoToday));
+  function shiftHz(h, n){
+    if (h === 'day') hzDate = addDays(hzDate, n);
+    else if (h === 'week') hzDate = addDays(hzDate, 7 * n);
+    else {
+      const d = new Date(hzDate + 'T12:00:00'), day = d.getDate();
+      d.setDate(1);
+      if (h === 'month') d.setMonth(d.getMonth() + n); else d.setFullYear(d.getFullYear() + n);
+      d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+      hzDate = isoOf(d);
+    }
+  }
+  function hzItemHTML(i, h){
+    const kids = kidsOf(i.id), kd = kids.filter(k => k.done).length, open = hzOpen === i.id;
+    const parent = i.parent ? items.find(x => x.id === i.parent && x.kind === 'goal') : null;
+    const lower = HORIZONS[HORIZONS.indexOf(h) - 1];
+    const panel = !open ? '' : `<div class="hz-panel">
+      ${kids.sort(byDoneThenAge).map(k => `<label class="hz-kid"><input type="checkbox" class="check" data-act="toggle" data-id="${esc(k.id)}" ${k.done ? 'checked' : ''}><span>${esc(k.title)} <small>· ${esc(whereLabel(k))}</small></span></label>`).join('')}
+      ${lower ? `<form class="hz-step" data-hz-step="${esc(i.id)}"><input maxlength="120" required autocomplete="off" placeholder="Add a step for ${lower === 'day' ? 'this day' : 'this ' + lower}" aria-label="Add a step for ${lower === 'day' ? 'this day' : 'this ' + lower}"><button class="btn small" type="submit">＋ Step</button></form>` : ''}
+      <div class="dlg-actions" style="margin:0"><select data-hz-move="${esc(i.id)}" aria-label="Move to another horizon" style="width:auto"><option value="">Move to…</option>${HORIZONS.filter(x => x !== h).map(x => `<option value="${x}">${HZ_NAME[x]}</option>`).join('')}</select>
+        <button type="button" class="btn secondary small" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="btn secondary small" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>
+    </div>`;
+    return `<div class="hz-item ${i.done ? 'completed' : ''} ${open ? 'open' : ''}">
+      <div class="hz-row"><input type="checkbox" class="check" data-act="toggle" data-id="${esc(i.id)}" ${i.done ? 'checked' : ''} aria-label="Done: ${esc(i.title)}">
+        <button type="button" class="hz-title" data-hz-open="${esc(i.id)}" aria-expanded="${open}">${esc(i.title)}</button>
+        ${kids.length ? `<span class="hz-count">${kd}/${kids.length}</span>` : ''}</div>
+      ${parent ? `<div class="hz-parent">↑ ${esc(parent.title)}</div>` : ''}
+      ${kids.length ? `<div class="progress"><span style="width:${Math.round(kd / kids.length * 100)}%"></span></div>` : ''}
+      ${panel}</div>`;
+  }
+  let hzBuilt = false;
+  function buildHorizons(){
+    hzBuilt = true;
+    $('hzBoard').innerHTML = HORIZONS.map(h => `<div class="hz-col" data-h="${h}">
+      <div class="hz-head"><div><div class="hz-name">${HZ_NAME[h]}</div><div class="hz-period" id="hzP-${h}"></div></div>
+        ${h === 'life' ? '' : `<div class="cal-nav"><button type="button" class="icon-btn" data-hz-shift="-1" aria-label="Earlier ${h}">‹</button><button type="button" class="icon-btn" data-hz-shift="1" aria-label="Later ${h}">›</button></div>`}</div>
+      <div id="hzC-${h}"></div>
+      <div class="list" id="hzL-${h}"></div>
+      <form class="hz-add" data-hz-add="${h}"><input maxlength="120" required autocomplete="off" placeholder="${HZ_ADD[h]}" aria-label="${HZ_ADD[h]}"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form>
+    </div>`).join('');
+  }
+  function renderHorizons(){
+    if (!hzBuilt) buildHorizons();
+    $('hzToday').hidden = hzDate === isoToday;
+    HORIZONS.forEach(h => {
+      $('hzP-' + h).textContent = periodLabel(h, hzDate);
+      const list = hzItems(h);
+      if (hzOpen && !items.some(i => i.id === hzOpen)) hzOpen = null;
+      safeHTML($('hzL-' + h), list.length ? list.map(i => hzItemHTML(i, h)).join('') : `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : h === 'day' ? 'Nothing planned.' : 'No goals yet.'}</div>`);
+      const here = periodFor(h, hzDate) === periodFor(h, isoToday), left = here ? leftBehind(h).length : 0;
+      $('hzC-' + h).innerHTML = left ? `<button type="button" class="chip-btn" data-hz-carry="${h}">Bring ${left} unfinished from earlier here</button>` : '';
+    });
+  }
+  function moveToHorizon(i, to){
+    const period = periodFor(to, hzDate);
+    if (i.kind === 'task' && to !== 'day') patchItem(i.id, {kind:'goal', horizon:to, period, due:'', moved:[...new Set([...(i.moved || []), i.due].filter(Boolean))]});
+    else if (i.kind === 'goal' && to === 'day') patchItem(i.id, {kind:'task', due:hzDate, horizon:'', period:'', priority:i.priority || 'Normal', remind:'', reminded:false, project:'', at:Date.now()});
+    else if (i.kind === 'goal') patchItem(i.id, {horizon:to, period});
+    toast('Moved to ' + (to === 'day' ? shortDay(hzDate) : to === 'life' ? 'Life' : periodLabel(to, hzDate)));
+  }
+  $('hzBoard').addEventListener('click', e => {
+    const col = e.target.closest('.hz-col'), h = col && col.dataset.h;
+    const opener = e.target.closest('[data-hz-open]'), shift = e.target.closest('[data-hz-shift]'), carry = e.target.closest('[data-hz-carry]');
+    if (opener) { hzOpen = hzOpen === opener.dataset.hzOpen ? null : opener.dataset.hzOpen; renderHorizons(); const again = $('hzBoard').querySelector(`[data-hz-open="${CSS.escape(opener.dataset.hzOpen)}"]`); if (again) again.focus(); }
+    else if (shift && h) { shiftHz(h, Number(shift.dataset.hzShift)); hzOpen = null; renderHorizons(); const again = col.querySelector(`[data-hz-shift="${shift.dataset.hzShift}"]`); if (again) again.focus(); }
+    else if (carry) {
+      const list = leftBehind(carry.dataset.hzCarry);
+      if (carry.dataset.hzCarry === 'day') list.forEach(t => moveTask(t.id, isoToday, true));
+      else list.forEach(g => patchItem(g.id, {period: periodFor(g.horizon, isoToday), carried:(g.carried || 0) + 1}));
+      toast(list.length === 1 ? '1 item brought forward' : list.length + ' items brought forward');
+    }
+  });
+  $('hzBoard').addEventListener('submit', e => {
+    const add = e.target.closest('[data-hz-add]'), step = e.target.closest('[data-hz-step]');
+    if (!add && !step) return;
+    e.preventDefault();
+    const input = e.target.querySelector('input'), title = input.value.trim();
+    if (!title) return;
+    input.value = '';
+    if (add) {
+      const h = add.dataset.hzAdd;
+      if (h === 'day') newTask(title, hzDate); else addItem('goal', {horizon:h, period:periodFor(h, hzDate), title:title.slice(0,120), done:false, parent:''});
+      return;
+    }
+    const parent = items.find(i => i.id === step.dataset.hzStep);
+    if (!parent) return;
+    const lower = HORIZONS[HORIZONS.indexOf(parent.horizon) - 1];
+    input.blur();
+    if (lower === 'day') newTask(title, hzDate, {parent:parent.id}); else addItem('goal', {horizon:lower, period:periodFor(lower, hzDate), title:title.slice(0,120), done:false, parent:parent.id});
+    const again = $('hzBoard').querySelector(`[data-hz-step="${CSS.escape(parent.id)}"] input`); if (again) again.focus();
+  });
+  $('hzBoard').addEventListener('change', e => {
+    const sel = e.target.closest('[data-hz-move]');
+    if (!sel || !sel.value) return;
+    const item = items.find(i => i.id === sel.dataset.hzMove), to = sel.value;
+    sel.blur(); hzOpen = null;
+    if (item) moveToHorizon(item, to);
+  });
+  $('hzToday').addEventListener('click', () => { hzDate = isoToday; hzOpen = null; renderHorizons(); });
+
+  /* ---------- maker / manager ---------- */
+  const MODE_NAME = {maker:'Maker', manager:'Manager'};
+  const otherMode = m => m === 'maker' ? 'manager' : 'maker';
+  const MAKER_WORDS = ['write','build','design','code','study','learn','read','draft','create','research','practice','practise','edit','develop','prepare','plan','think','analy','paint','draw','record','compose','revise','outline','prototype','solve'];
+  const MANAGER_WORDS = ['call','phone','email','mail','reply','message','text ','meet','pay','bill','book','buy','order','pick','drop','schedule','appointment','renew','bank','visit','send','submit','follow','shop','clean','laundry','recharge','return','collect','remind','ask','confirm','cancel','sign','print','post'];
+  function workOf(t){
+    if (t.work === 'maker' || t.work === 'manager') return t.work;
+    const q = ' ' + String(t.title || '').toLowerCase();
+    if (MANAGER_WORDS.some(w => q.includes(' ' + w))) return 'manager';
+    if (MAKER_WORDS.some(w => q.includes(' ' + w))) return 'maker';
+    return 'manager';
+  }
+  const defaultHalf = dow => (dow === 0 || dow === 6) ? {am:'manager', pm:'manager'} : {am:'maker', pm:'manager'};
+  const rhythmDoc = () => items.find(i => i.kind === 'rhythm') || {};
+  function weekShape(dow){ const w = (rhythmDoc().week || {})[dow]; return {...defaultHalf(dow), ...(w || {})}; }
+  function shapeFor(iso){
+    const dow = new Date(iso + 'T12:00:00').getDay(), over = (rhythmDoc().days || {})[iso];
+    return {...weekShape(dow), ...(over || {})};
+  }
+  function saveRhythm(week, days){ upsertDoc('rhythm', 'rhythm', {week, days}); }
+  function renderRhythm(){
+    const order = [1,2,3,4,5,6,0], names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], todayDow = today.getDay();
+    const cell = (dow, half) => { const m = weekShape(dow)[half]; return `<button type="button" class="rh-cell ${m}" data-rh="${dow}" data-half="${half}" aria-label="${names[dow]} ${half === 'am' ? 'morning' : 'afternoon'}: ${MODE_NAME[m]} time. Tap to switch"><span class="l">${MODE_NAME[m]}</span><span class="s">${m === 'maker' ? 'Mk' : 'Mg'}</span></button>`; };
+    $('rhGrid').innerHTML = '<span></span>' + order.map(d => `<span class="h ${d === todayDow ? 'now' : ''}">${names[d]}</span>`).join('')
+      + '<span class="h side">Morning</span>' + order.map(d => cell(d, 'am')).join('')
+      + '<span class="h side">Afternoon</span>' + order.map(d => cell(d, 'pm')).join('');
+    const mon = mondayOf(isoToday), sun = addDays(mon, 6);
+    const inWeek = d => d >= mon && d <= sun;
+    const focus = ofKind('bullet').filter(b => b.focus && inWeek(b.date)).reduce((t,b) => t + (Number(b.focus) || 0), 0);
+    const done = ofKind('task').filter(t => t.done && !t.cancelled && inWeek(t.due));
+    const mk = done.filter(t => workOf(t) === 'maker').length;
+    const hrs = focus >= 60 ? `${Math.floor(focus / 60)}h ${focus % 60}m` : focus + ' min';
+    $('rhStats').innerHTML = `<div><div class="l">Focus time this week</div><div class="n">${hrs}</div></div><div><div class="l">Maker actions done</div><div class="n">${mk}</div></div><div><div class="l">Manager actions done</div><div class="n">${done.length - mk}</div></div>`;
+  }
+  $('rhGrid').addEventListener('click', e => {
+    const b = e.target.closest('[data-rh]');
+    if (!b) return;
+    const dow = Number(b.dataset.rh), half = b.dataset.half, r = rhythmDoc();
+    const week = {...(r.week || {})};
+    week[dow] = {...weekShape(dow), [half]: otherMode(weekShape(dow)[half])};
+    saveRhythm(week, r.days || {});
+    const again = $('rhGrid').querySelector(`[data-rh="${dow}"][data-half="${half}"]`); if (again) again.focus();
+  });
+
+  /* ---------- daily log ---------- */
+  const GLYPH = {task:'•', note:'–', event:'○', mood:'='};
+  const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood'};
+  let logDate = isoToday, logOpen = null, logType = 'task', reviewOpen = false, jnTab = 'day';
+  function parseEntry(raw, type){
+    let text = String(raw).trim(), t = type, high = false, time = '';
+    const m = text.match(/^([-–.*•oO○=])\s+(.+)$/);
+    if (m) { t = PREFIX[m[1]]; text = m[2].trim(); }
+    if (/^!+/.test(text)) { high = true; text = text.replace(/^!+\s*/, ''); if (!m) t = 'task'; }
+    if (t === 'event') {
+      const tm = text.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?\s+(.+)$/i);
+      if (tm && (tm[2] || tm[3])) {
+        let hh = Number(tm[1]); const mm = Number(tm[2] || 0), ap = (tm[3] || '').toLowerCase();
+        if (ap === 'pm' && hh < 12) hh += 12;
+        if (ap === 'am' && hh === 12) hh = 0;
+        if (hh < 24 && mm < 60) { time = `${pad(hh)}:${pad(mm)}`; text = tm[4].trim(); }
+      }
+    }
+    return {type:t, text, high, time};
+  }
+  function moveTask(id, to, quiet){
+    const t = items.find(i => i.id === id);
+    if (!t || !isDate(to) || t.due === to) return;
+    patchItem(id, {due:to, at:Date.now(), moved:[...new Set([...(t.moved || []), t.due].filter(Boolean))]});
+    if (!quiet) toast('Moved to ' + (to === isoToday ? 'today' : to === isoTomorrow ? 'tomorrow' : shortDay(to)));
+  }
+  /* everything written on, or once planned for, a day — in the order it landed there */
+  function dayEntries(d){
+    const out = [];
+    items.forEach(i => {
+      if (i.kind === 'task' && i.due === d) out.push({i, role:'task', key:i.at || i.created || 0});
+      else if (i.kind === 'bullet' && i.date === d) out.push({i, role:i.type in GLYPH ? i.type : 'note', key:i.at || i.created || 0});
+      else if ((i.kind === 'task' || i.kind === 'goal') && Array.isArray(i.moved) && i.moved.includes(d)) out.push({i, role:'ghost', key:i.created || 0});
+    });
+    return out.sort((a,b) => a.key - b.key);
+  }
+  const chip = (act, id, label, extra) => `<button type="button" class="chip-btn" data-lg="${act}" data-id="${esc(id)}"${extra || ''}>${label}</button>`;
+  const laterSelect = id => `<select data-lg-later="${esc(id)}" aria-label="Move to a longer horizon" style="width:auto"><option value="">Later…</option><option value="week">Sometime this week</option><option value="month">Sometime this month</option><option value="year">Sometime this year</option><option value="life">Someday</option></select>`;
+  function movedNote(i){
+    const n = (i.moved || []).length;
+    return !n ? '' : n >= 3 ? `<span class="red">moved ${n}× — still worth doing?</span>` : `moved ${n}×`;
+  }
+  function entryHTML({i, role}, d){
+    const open = logOpen === i.id, more = `<button type="button" class="icon-btn bj-more" data-lg="more" data-id="${esc(i.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>`;
+    if (role === 'ghost') {
+      const goal = i.kind === 'goal';
+      return `<div class="bj ghost"><span class="bj-g" aria-hidden="true">${goal ? '&lt;' : '&gt;'}</span><div class="bj-t"><span class="tx">${esc(i.title)}</span><span class="bj-m">${goal ? 'scheduled for ' + esc(whereLabel(i)) : 'moved to ' + esc(shortDay(i.due))}${i.done ? ' · done' : ''}</span></div></div>`;
+    }
+    if (role === 'task') {
+      const meta = [];
+      if (isStamp(i.remind) && !i.done) meta.push('◷ ' + esc(fmtRemind(i.remind)));
+      const parent = i.parent ? items.find(x => x.id === i.parent && x.kind === 'goal') : null;
+      if (parent) meta.push('↑ ' + esc(parent.title));
+      if (!i.done && movedNote(i)) meta.push(movedNote(i));
+      if (i.done && i.cancelled) meta.push('dropped');
+      const strip = !open ? '' : `<div class="bj-strip">${i.done ? '' :
+        (d === isoToday ? chip('tomorrow', i.id, '→ Tomorrow') : chip('today', i.id, '→ Today'))
+        + `<input type="date" data-lg-date="${esc(i.id)}" value="${esc(i.due)}" aria-label="Move to a date" style="width:auto">`
+        + laterSelect(i.id)
+        + chip('work', i.id, MODE_NAME[workOf(i)] + ' work ⇄', ` aria-label="${MODE_NAME[workOf(i)]} work. Switch to ${MODE_NAME[otherMode(workOf(i))]}"`)
+        + chip('high', i.id, i.priority === 'High' ? 'Not important' : '! Important')
+        + chip('drop', i.id, 'Drop it')}
+        ${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
+      return `<div class="bj ${i.done ? (i.cancelled ? 'cancel' : 'done') : ''} ${i.priority === 'High' && !i.done ? 'high' : ''} ${i.indent ? 'in' : ''}">
+        <button type="button" class="bj-g" data-lg="done" data-id="${esc(i.id)}" aria-pressed="${!!i.done}" aria-label="${i.done ? 'Reopen' : 'Mark done'}: ${esc(i.title)}">${i.done && !i.cancelled ? '✕' : '•'}</button>
+        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${more}${strip}</div>`;
+    }
+    const strip = !open ? '' : `<div class="bj-strip">${chip('todo', i.id, 'Make it a to-do today', ' data-when="today"')}${chip('todo', i.id, '…tomorrow', ' data-when="tomorrow"')}${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
+    return `<div class="bj ${role} ${i.indent ? 'in' : ''}"><span class="bj-g" role="img" aria-label="${role}">${GLYPH[role]}</span>
+      <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${i.made ? '<span class="bj-m">→ made into a to-do</span>' : ''}</div>${more}${strip}</div>`;
+  }
+  function reviewHTML(t){
+    return `<div class="bj"><span class="bj-g" aria-hidden="true">•</span><div class="bj-t"><span class="tx">${esc(t.title)}</span><span class="bj-m">from ${esc(shortDay(t.due))}${movedNote(t) ? ' · ' + movedNote(t) : ''}</span></div>
+      <div class="bj-strip">${chip('today', t.id, 'Today')}${chip('tomorrow', t.id, 'Tomorrow')}${laterSelect(t.id)}${chip('drop', t.id, 'Drop it')}</div></div>`;
+  }
+  function renderShape(){
+    const d = logDate, shape = shapeFor(d);
+    const open = ofKind('task').filter(t => t.due === d && !t.done);
+    const timedTask = t => isStamp(t.remind) && t.remind.slice(0,10) === d;
+    const timed = [
+      ...ofKind('bullet').filter(b => b.date === d && b.type === 'event' && b.time).map(b => ({time:b.time, title:b.text, event:true})),
+      ...open.filter(timedTask).map(t => ({time:t.remind.slice(11), title:t.title, event:false}))
+    ].sort((a,b) => a.time.localeCompare(b.time));
+    const loose = open.filter(t => !timedTask(t)).sort(byDoneThenAge);
+    const halves = [['am','Morning'],['pm','Afternoon and evening']];
+    const homeOf = mode => (halves.find(([k]) => shape[k] === mode) || [])[0];
+    const row = t => `<div class="shape-row"><span>• ${esc(t.title)}</span>${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))], ` aria-label="Count ${esc(t.title)} as ${MODE_NAME[otherMode(workOf(t))]} work"`)}</div>`;
+    let html = halves.map(([k, name]) => {
+      const mode = shape[k];
+      const here = timed.filter(x => (x.time < '12:00') === (k === 'am'));
+      const mine = loose.filter(t => workOf(t) === mode && homeOf(mode) === k);
+      const body = here.map(x => `<div class="shape-row"><span><b class="tm">${esc(x.time)}</b> ${esc(x.title)}</span>${mode === 'maker' && x.event ? '<span class="tag warn">breaks maker time</span>' : ''}</div>`).join('') + mine.map(row).join('');
+      return `<div class="shape-half"><div class="shape-head"><b>${name}</b><button type="button" class="mode-btn ${mode}" data-shape="${k}" aria-label="${name}: ${MODE_NAME[mode]} time. Tap to switch">${MODE_NAME[mode]} ⇄</button></div>
+        ${body || `<div class="shape-hint">${mode === 'maker' ? 'Free. Protect it for one piece of deep work.' : 'Free. Batch calls, messages and errands here.'}</div>`}</div>`;
+    }).join('');
+    ['maker','manager'].forEach(mode => {
+      const orphans = homeOf(mode) ? [] : loose.filter(t => workOf(t) === mode);
+      if (orphans.length) html += `<div class="shape-half"><div class="shape-head"><b class="red">No ${mode} time today</b></div>${orphans.map(row).join('')}<div class="shape-hint">Switch a half of the day above, or move these to another day.</div></div>`;
+    });
+    $('lgShape').innerHTML = html;
+    const mk = loose.filter(t => workOf(t) === 'maker').length;
+    $('lgShapeSub').textContent = open.length ? `${mk} deep · ${open.length - mk} quick · for ${d === isoToday ? 'today' : shortDay(d)}` : 'Maker time and manager time';
+  }
+  function renderLog(){
+    $('lgDate').textContent = periodLabel('day', logDate);
+    $('lgToday').hidden = logDate === isoToday;
+    const entries = dayEntries(logDate);
+    const acts = entries.filter(e => e.role === 'task'), openN = acts.filter(e => !e.i.done).length;
+    const others = entries.filter(e => e.role !== 'task' && e.role !== 'ghost').length;
+    $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` : 'A blank page';
+    if (logOpen && !entries.some(e => e.i.id === logOpen)) logOpen = null;
+    safeHTML($('lgList'), entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
+      : `<div class="empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing logged yet. Jot the first thing below — a to-do, a thought, how you feel.'}</div>`);
+    document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType)));
+    /* the daily ritual: clear out what earlier days left open */
+    const stale = leftBehind('day').sort((a,b) => a.due.localeCompare(b.due));
+    $('lgReview').hidden = !(stale.length && logDate === isoToday);
+    $('lgReviewTitle').textContent = stale.length === 1 ? '1 open action from earlier' : stale.length + ' open actions from earlier';
+    $('lgReviewList').hidden = !reviewOpen;
+    $('lgReviewToggle').setAttribute('aria-expanded', String(reviewOpen));
+    $('lgReviewToggle').textContent = reviewOpen ? 'Hide' : 'Review one by one';
+    safeHTML($('lgReviewList'), stale.map(reviewHTML).join(''));
+    renderShape();
+    const tom = ofKind('task').filter(t => t.due === isoTomorrow).sort(byDoneThenAge);
+    $('lgTomTitle').textContent = 'Tomorrow · ' + dayMonth(isoTomorrow);
+    $('lgTomorrow').innerHTML = tom.length ? tom.map(t => `<div class="bj ${t.done ? 'done' : ''}"><span class="bj-g" aria-hidden="true">${t.done ? '✕' : '•'}</span><div class="bj-t"><span class="tx">${esc(t.title)}</span></div>${t.done ? '' : chip('today', t.id, '← Today')}</div>`).join('')
+      : '<div class="empty">Nothing yet. Open ⋯ on any entry to send it here.</div>';
+    renderFocus();
+  }
+  function logAction(act, id, el){
+    const i = items.find(x => x.id === id);
+    if (act === 'all-today') { const list = leftBehind('day'); list.forEach(t => moveTask(t.id, isoToday, true)); toast(list.length === 1 ? '1 action brought to today' : list.length + ' actions brought to today'); return; }
+    if (!i) return;
+    if (act === 'more') { logOpen = logOpen === id ? null : id; renderLog(); const again = $('lgList').querySelector(`[data-lg="more"][data-id="${CSS.escape(id)}"]`); if (again) again.focus(); }
+    else if (act === 'done') patchItem(id, i.cancelled ? {done:false, cancelled:false} : {done:!i.done});
+    else if (act === 'today') moveTask(id, isoToday);
+    else if (act === 'tomorrow') moveTask(id, isoTomorrow);
+    else if (act === 'work') patchItem(id, {work: otherMode(workOf(i))});
+    else if (act === 'high') patchItem(id, {priority: i.priority === 'High' ? 'Normal' : 'High'});
+    else if (act === 'indent') patchItem(id, {indent: i.indent ? 0 : 1});
+    else if (act === 'drop') { patchItem(id, {done:true, cancelled:true}); toast('Dropped', () => patchItem(id, {done:false, cancelled:false})); }
+    else if (act === 'todo') {
+      const when = el && el.dataset.when === 'tomorrow' ? isoTomorrow : isoToday;
+      newTask(i.text, when);
+      patchItem(id, {made:true});
+      toast('Added to ' + (when === isoToday ? 'today' : 'tomorrow') + '’s actions');
+    }
+  }
+  function onLogClick(e){
+    const b = e.target.closest('[data-lg]');
+    if (b) logAction(b.dataset.lg, b.dataset.id, b);
+  }
+  function onLogChange(e){
+    const date = e.target.closest('[data-lg-date]'), later = e.target.closest('[data-lg-later]');
+    if (date && isDate(date.value)) { date.blur(); moveTask(date.dataset.lgDate, date.value); }
+    if (later && later.value) {
+      const t = items.find(i => i.id === later.dataset.lgLater), h = later.value;
+      later.blur();
+      if (t && t.kind === 'task') {
+        patchItem(t.id, {kind:'goal', horizon:h, period:periodFor(h, isoToday), due:'', moved:[...new Set([...(t.moved || []), t.due].filter(Boolean))]});
+        toast('Moved to ' + (h === 'life' ? 'Someday' : 'this ' + h) + ' in your planner');
+      }
+    }
+  }
+  ['lgList','lgReview','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
+  $('lgShape').addEventListener('click', e => {
+    const b = e.target.closest('[data-shape]');
+    if (!b) return;
+    const half = b.dataset.shape, r = rhythmDoc(), days = {...(r.days || {})}, shape = shapeFor(logDate);
+    const next = {...shape, [half]: otherMode(shape[half])}, usual = weekShape(new Date(logDate + 'T12:00:00').getDay());
+    if (next.am === usual.am && next.pm === usual.pm) delete days[logDate]; else days[logDate] = next;
+    saveRhythm(r.week || {}, days);
+    const again = $('lgShape').querySelector(`[data-shape="${half}"]`); if (again) again.focus();
+  });
+  $('lgReviewToggle').addEventListener('click', () => { reviewOpen = !reviewOpen; renderLog(); });
+  $('lgType').addEventListener('click', e => {
+    const b = e.target.closest('[data-btype]');
+    if (!b) return;
+    logType = b.dataset.btype; renderLog(); $('lgText').focus();
+  });
+  $('lgText').addEventListener('input', e => {
+    const m = e.target.value.match(/^([-–.*•oO○=])\s/);
+    const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : null;
+    if (t && t !== logType) { logType = t; document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType))); }
+  });
+  $('lgForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const p = parseEntry($('lgText').value, logType);
+    if (!p.text) return;
+    $('lgText').value = '';
+    if (p.type === 'task') newTask(p.text, logDate, p.high ? {priority:'High'} : null);
+    else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
+    $('lgText').focus();
+    const last = $('lgList').lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({block:'nearest'});
+  });
+  $('lgTomForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const title = $('lgTomText').value.trim();
+    if (!title) return;
+    $('lgTomText').value = '';
+    newTask(title, isoTomorrow);
+    toast('Lined up for tomorrow');
+  });
+  const setLogDate = d => { logDate = d; logOpen = null; renderLog(); };
+  $('lgPrev').addEventListener('click', () => setLogDate(addDays(logDate, -1)));
+  $('lgNext').addEventListener('click', () => setLogDate(addDays(logDate, 1)));
+  $('lgToday').addEventListener('click', () => { setLogDate(isoToday); $('lgPrev').focus(); });
+  function setJournalTab(t){
+    jnTab = t === 'month' ? 'month' : 'day';
+    $('jnDay').hidden = jnTab !== 'day'; $('jnMonth').hidden = jnTab !== 'month';
+    document.querySelectorAll('#jnTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === jnTab)));
+  }
+  $('jnTabs').addEventListener('click', e => { const b = e.target.closest('[data-jtab]'); if (b) setJournalTab(b.dataset.jtab); });
+
+  /* ---------- focus session ---------- */
+  const FOCUS_KEY = 'myLifeOS.focus';
+  let focus = null, focusMins = 50, focusTick = null;
+  try { const f = JSON.parse(localStorage.getItem(FOCUS_KEY) || 'null'); if (f && f.start && f.mins) focus = f; } catch(err) {}
+  const saveFocus = () => { try { if (focus) localStorage.setItem(FOCUS_KEY, JSON.stringify(focus)); else localStorage.removeItem(FOCUS_KEY); } catch(err) {} };
+  function endFocus(done){
+    if (!focus) return;
+    const mins = done ? focus.mins : Math.min(focus.mins, Math.round((Date.now() - focus.start) / 60000));
+    const title = focus.title;
+    focus = null; saveFocus(); clearInterval(focusTick); focusTick = null;
+    if (mins >= 1) {
+      addItem('bullet', {date:isoToday, type:'note', text:`Focused ${mins} min${title ? ' on ' + title : ''}`, focus:mins, time:'', at:Date.now()});
+      toast(done ? 'Focus session complete — logged in your journal' : `${mins} min of focus logged`);
+    } else { toast('Session cancelled'); renderFocus(); }
+  }
+  function drawFocus(){
+    if (!focus) return;
+    const total = focus.mins * 60, left = Math.max(0, Math.round(total - (Date.now() - focus.start) / 1000));
+    $('fcClock').textContent = `${pad(Math.floor(left / 60))}:${pad(left % 60)}`;
+    const nc = $('nowClock'); if (nc) nc.textContent = $('fcClock').textContent;
+    $('fcBar').style.width = Math.min(100, (total - left) / total * 100).toFixed(1) + '%';
+    if (left <= 0) endFocus(true);
+  }
+  function renderFocus(){
+    renderNow();
+    $('fcIdle').hidden = !!focus; $('fcRun').hidden = !focus;
+    const mins = ofKind('bullet').filter(b => b.focus && b.date === isoToday).reduce((t,b) => t + (Number(b.focus) || 0), 0);
+    $('fcToday').textContent = mins ? `${mins} min of focus today` : 'Protect a stretch of maker time';
+    if (focus) {
+      $('fcWhat').textContent = (focus.title ? 'On ' + focus.title : 'Deep work') + ` · ${focus.mins} min`;
+      if (!focusTick) focusTick = setInterval(drawFocus, 1000);
+      drawFocus();
+      return;
+    }
+    const sel = $('fcTask');
+    const open = ofKind('task').filter(t => t.due === isoToday && !t.done).sort((a,b) => (workOf(a) === 'maker' ? 0 : 1) - (workOf(b) === 'maker' ? 0 : 1) || byDoneThenAge(a,b));
+    const sig = open.map(t => t.id + t.title).join('|');
+    if (sel.dataset.sig !== sig && document.activeElement !== sel) {
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Nothing in particular</option>' + open.map(t => `<option value="${esc(t.id)}">${esc(t.title)}</option>`).join('');
+      if (open.some(t => t.id === cur)) sel.value = cur;
+      sel.dataset.sig = sig;
+    }
+  }
+  $('fcMins').addEventListener('click', e => {
+    const b = e.target.closest('[data-mins]');
+    if (!b) return;
+    focusMins = Number(b.dataset.mins);
+    document.querySelectorAll('#fcMins button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    renderNow();
+  });
+  $('fcStart').addEventListener('click', () => {
+    const t = items.find(i => i.id === $('fcTask').value);
+    focus = {title: t ? t.title : '', mins: focusMins, start: Date.now()};
+    saveFocus(); renderFocus(); $('fcStop').focus();
+  });
+  $('fcStop').addEventListener('click', () => endFocus(false));
+
+  /* ---------- right now: the one thing to do next ----------
+     The app's job is to get you acting, so the top of Overview and Journal always
+     names a single next action, picked for the kind of time it is (maker or manager). */
+  const skipped = new Set();
+  function nextAction(){
+    const mode = shapeFor(isoToday)[new Date().getHours() < 12 ? 'am' : 'pm'];
+    const open = ofKind('task').filter(t => t.due === isoToday && !t.done);
+    if (open.length && open.every(t => skipped.has(t.id))) skipped.clear();          // been through them all: start over
+    const pick = open.filter(t => !skipped.has(t.id)).sort((a,b) =>
+      (workOf(a) === mode ? 0 : 1) - (workOf(b) === mode ? 0 : 1) ||
+      (a.priority === 'High' ? 0 : 1) - (b.priority === 'High' ? 0 : 1) || byDoneThenAge(a,b))[0] || null;
+    return {mode, pick, count: open.length};
+  }
+  function renderNow(){
+    const view = (document.querySelector('.view.active') || {}).id;
+    const bar = $('nowBar');
+    bar.hidden = !(view === 'view-home' || view === 'view-journal');
+    if (bar.hidden) return;
+    const {mode, pick, count} = nextAction();
+    const btn = (act, label, cls) => `<button type="button" class="btn ${cls || ''} small" data-now="${act}">${label}</button>`;
+    if (focus) {
+      $('nowLabel').textContent = 'Focusing now';
+      $('nowTitle').textContent = focus.title || 'Deep work';
+      $('nowActions').innerHTML = `<span id="nowClock" role="timer"></span>` + btn('stop', 'Stop and log it', 'secondary');
+      drawFocus();
+    } else if (pick) {
+      $('nowLabel').textContent = `Right now · ${MODE_NAME[mode]} time · ${count} open today`;
+      $('nowTitle').textContent = pick.title;
+      $('nowActions').innerHTML = btn('start', `▶ Start ${focusMins} min`) + btn('done', '✕ Done', 'secondary') + (count > 1 ? btn('skip', 'Skip', 'secondary') : '');
+      bar.dataset.id = pick.id;
+    } else {
+      const stale = leftBehind('day').length;
+      $('nowLabel').textContent = 'Right now';
+      $('nowTitle').textContent = stale ? `${stale} open ${stale === 1 ? 'action' : 'actions'} from earlier days` : 'Nothing lined up for today';
+      $('nowActions').innerHTML = stale ? btn('review', 'Decide what to do with them') : btn('jot', 'Jot one action and start');
+    }
+  }
+  $('nowBar').addEventListener('click', e => {
+    const b = e.target.closest('[data-now]');
+    if (!b) return;
+    const act = b.dataset.now, t = items.find(i => i.id === $('nowBar').dataset.id);
+    if (act === 'stop') endFocus(false);
+    else if (act === 'review' || act === 'jot') { go('journal'); setJournalTab('day'); setLogDate(isoToday); if (act === 'review') { reviewOpen = true; renderLog(); } else $('lgText').focus(); }
+    else if (!t) return;
+    else if (act === 'start') { focus = {title:t.title, mins:focusMins, start:Date.now()}; saveFocus(); renderFocus(); }
+    else if (act === 'done') { patchItem(t.id, {done:true}); toast('Done. Next one is up.', () => patchItem(t.id, {done:false})); }
+    else if (act === 'skip') { skipped.add(t.id); renderNow(); }
+    const again = $('nowBar').querySelector('button'); if (again) again.focus();
+  });
+  window.addEventListener('hashchange', () => setTimeout(renderNow, 0));
+
+  /* ---------- monthly log: a two-page spread ----------
+     left  = reflection: the month split into weeks, one line a day plus what got done
+     right = planning: the month's tasks, personal beside work */
+  let mlMonth = monthKey(isoToday), mlOpen = null;
+  const habitsDoc = () => items.find(i => i.kind === 'habits') || {};
+  const habitList = () => Array.isArray(habitsDoc().list) ? habitsDoc().list.filter(h => h && h.id && h.name) : [];
+  const habitLog = () => (habitsDoc().log && typeof habitsDoc().log === 'object') ? habitsDoc().log : {};
+  const saveHabits = (list, log) => upsertDoc('habits', 'habits', {list, log});
+  const monthDoc = key => items.find(i => i.id === 'month-' + key) || {};
+  const areaOf = g => g.area === 'work' ? 'work' : 'personal';
+  function planRowHTML(g){
+    const kids = kidsOf(g.id), kd = kids.filter(k => k.done).length, open = mlOpen === g.id;
+    return `<div class="bj ${g.done ? 'done' : ''}">
+      <button type="button" class="bj-g" data-ml-done="${esc(g.id)}" aria-pressed="${!!g.done}" aria-label="${g.done ? 'Reopen' : 'Mark done'}: ${esc(g.title)}">${g.done ? '✕' : '•'}</button>
+      <div class="bj-t"><span class="tx">${esc(g.title)}</span>${kids.length ? `<span class="bj-m">${kd} of ${kids.length} ${kids.length === 1 ? 'step' : 'steps'} done</span>` : ''}</div>
+      <button type="button" class="icon-btn bj-more" data-ml-more="${esc(g.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>
+      ${open ? `<div class="bj-strip">${g.done ? '' : `<button type="button" class="chip-btn" data-ml-step="${esc(g.id)}">＋ Do it today</button>`}<button type="button" class="chip-btn" data-ml-area="${esc(g.id)}">→ ${areaOf(g) === 'work' ? 'Personal' : 'Work'}</button><button type="button" class="chip-btn" data-act="edit" data-id="${esc(g.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(g.id)}">Delete</button></div>` : ''}</div>`;
+  }
+  function renderMonthLog(){
+    const key = mlMonth, [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
+    $('mlTitle').textContent = monthName(key);
+    $('mlPlanTitle').textContent = 'Planning · ' + new Date(key + '-01T12:00:00').toLocaleDateString('en-IN',{month:'long'});
+    $('mlToday').hidden = key === monthKey(isoToday);
+    const habits = habitList(), log = habitLog(), lines = monthDoc(key).lines || {};
+    const did = {}, counts = {};
+    const note = (iso, text) => (did[iso] || (did[iso] = [])).push(text);
+    ofKind('bullet').forEach(b => { if (b.type === 'event' && monthKey(b.date) === key) note(b.date, '○ ' + (b.time ? b.time + ' ' : '') + b.text); });
+    ofKind('task').forEach(t => {
+      const on = t.doneOn || t.due;
+      if (t.done && !t.cancelled && monthKey(on) === key) note(on, '✕ ' + t.title);
+      else if (!t.done && monthKey(t.due) === key) counts[t.due] = (counts[t.due] || 0) + 1;
+    });
+    let html = `<div class="ml-row ml-head"><span></span><span></span><div class="ml-habits">${habits.map(h => `<span class="ml-hl" title="${esc(h.name)}">${esc(h.name.charAt(0).toUpperCase())}</span>`).join('')}</div></div>`;
+    for (let d = 1; d <= days; d++) {
+      const iso = `${key}-${pad(d)}`, dow = new Date(iso + 'T12:00:00').getDay();
+      if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week"><div class="ml-wk">Week ${Number(weekKey(iso).slice(6))}</div>`;
+      const done = new Set(log[iso] || []);
+      const hint = iso === isoToday ? 'One line about today' : counts[iso] ? `${counts[iso]} open ${counts[iso] === 1 ? 'action' : 'actions'}` : '';
+      html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}">
+        <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
+        <input class="ml-line" data-ml-line="${pad(d)}" maxlength="140" value="${esc(lines[pad(d)] || '')}" placeholder="${esc(hint)}" aria-label="One line for ${esc(dayLabel(iso))}" autocomplete="off">
+        <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
+        ${did[iso] ? `<div class="ml-did">${did[iso].map(esc).join(' &nbsp;·&nbsp; ')}</div>` : ''}</div>`;
+    }
+    safeHTML($('mlRows'), html + '</div>');
+    const goals = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key).sort(byDoneThenAge);
+    if (mlOpen && !goals.some(g => g.id === mlOpen)) mlOpen = null;
+    [['personal','mlPersonal'],['work','mlWork']].forEach(([area, id]) => {
+      const list = goals.filter(g => areaOf(g) === area);
+      $(id).innerHTML = list.length ? list.map(planRowHTML).join('') : `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing yet.'}</div>`;
+    });
+    $('mlHabits').innerHTML = habits.length ? habits.map(h => {
+      const n = Object.keys(log).filter(dk => monthKey(dk) === key && (log[dk] || []).includes(h.id)).length;
+      return `<div class="item"><div class="item-main"><div class="item-title">${esc(h.name.charAt(0).toUpperCase())} · ${esc(h.name)}</div><div class="item-meta">${n} ${n === 1 ? 'day' : 'days'} in ${esc(monthName(key))}</div></div><button type="button" class="icon-btn" data-habit-del="${esc(h.id)}" aria-label="Remove ${esc(h.name)}">✕</button></div>`;
+    }).join('') : empty('No habits yet. Add one and tick it off each day in the month.');
+  }
+  $('mlRows').addEventListener('click', e => {
+    const open = e.target.closest('[data-ml-open]'), dot = e.target.closest('[data-ml-habit]');
+    if (open) { setJournalTab('day'); setLogDate(open.dataset.mlOpen); window.scrollTo(0, 0); }
+    else if (dot) {
+      const log = {...habitLog()}, day = dot.dataset.day, id = dot.dataset.mlHabit, set = new Set(log[day] || []);
+      if (set.has(id)) set.delete(id); else set.add(id);
+      if (set.size) log[day] = [...set]; else delete log[day];
+      saveHabits(habitList(), log);
+      const again = $('mlRows').querySelector(`[data-ml-habit="${CSS.escape(id)}"][data-day="${day}"]`); if (again) again.focus();
+    }
+  });
+  $('mlRows').addEventListener('change', e => {
+    const el = e.target.closest('[data-ml-line]');
+    if (!el) return;
+    const lines = {...(monthDoc(mlMonth).lines || {})}, v = el.value.trim();
+    if (v) lines[el.dataset.mlLine] = v; else delete lines[el.dataset.mlLine];
+    upsertDoc('month-' + mlMonth, 'month', {key: mlMonth, lines});
+  });
+  $('mlPrev').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, -1); mlOpen = null; renderMonthLog(); });
+  $('mlNext').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, 1); mlOpen = null; renderMonthLog(); });
+  $('mlToday').addEventListener('click', () => { mlMonth = monthKey(isoToday); mlOpen = null; renderMonthLog(); $('mlPrev').focus(); });
+  document.querySelectorAll('.ml-goal-form').forEach(f => f.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = f.querySelector('input'), title = input.value.trim();
+    if (!title) return;
+    input.value = '';
+    addItem('goal', {horizon:'month', period:mlMonth, title:title.slice(0,120), done:false, parent:'', area:f.dataset.area});
+    input.focus();
+  }));
+  document.querySelector('.ml-plan').addEventListener('click', e => {
+    const hit = name => { const b = e.target.closest(`[data-ml-${name}]`); return b ? items.find(i => i.id === b.getAttribute('data-ml-' + name)) : null; };
+    const done = hit('done'), more = hit('more'), step = hit('step'), area = hit('area');
+    const refocus = (name, id) => { const again = document.querySelector(`.ml-plan [data-ml-${name}="${CSS.escape(id)}"]`); if (again) again.focus(); };
+    if (done) { patchItem(done.id, {done: !done.done}); refocus('done', done.id); }
+    else if (more) { mlOpen = mlOpen === more.id ? null : more.id; renderMonthLog(); refocus('more', more.id); }
+    else if (step) { newTask(step.title, isoToday, {parent: step.id}); toast('Added to today’s actions'); }
+    else if (area) { patchItem(area.id, {area: areaOf(area) === 'work' ? 'personal' : 'work'}); refocus('more', area.id); }
+  });
+  $('mlHabitForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('mlHabitText').value.trim().slice(0,24), list = habitList();
+    if (!name) return;
+    if (list.length >= 6) { toast('Six habits is plenty. Remove one first.'); return; }
+    if (list.some(h => h.name.toLowerCase() === name.toLowerCase())) { toast('You already track ' + name + '.'); return; }
+    $('mlHabitText').value = '';
+    saveHabits([...list, {id:uid(), name}], habitLog());
+  });
+  $('mlHabits').addEventListener('click', e => {
+    const b = e.target.closest('[data-habit-del]');
+    if (!b) return;
+    const before = habitList(), log = habitLog();
+    saveHabits(before.filter(h => h.id !== b.dataset.habitDel), log);
+    toast('Habit removed', () => saveHabits(before, log));
+  });
+
+  function renderPlanner(){ renderHorizons(); renderRhythm(); }
+  function renderJournal(){ renderLog(); renderMonthLog(); }
 
   /* ---------- colour themes ---------- */
   const THEME_KEY = 'myLifeOS.theme2';
