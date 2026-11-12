@@ -56,22 +56,13 @@
           <button type="button" class="btn secondary small" data-go="expenses" style="margin-top:18px">View expenses</button>
         </div>
       </div>
-      <div class="card" style="margin-bottom:18px">
-        <div class="card-head"><div><h2>Today's log</h2><div class="sub">Jot it down — goes straight to today's daily log</div></div></div>
-        <form id="homeLgForm" class="bj-add">
-          <div class="seg bj-type" id="homeLgType" role="group" aria-label="Kind of entry"><button type="button" data-hbtype="task" aria-label="Action" title="Action">•</button><button type="button" data-hbtype="note" aria-label="Note" title="Note">–</button><button type="button" data-hbtype="event" aria-label="Event" title="Event">○</button><button type="button" data-hbtype="mood" aria-label="Mood" title="Mood">=</button><button type="button" data-hbtype="idea" aria-label="Idea" title="Idea">✦</button><button type="button" data-hbtype="problem" aria-label="Problem" title="Problem">△</button><button type="button" data-hbtype="mistake" aria-label="Mistake" title="Mistake">✘</button><button type="button" data-hbtype="observation" aria-label="Observation" title="Observation">◎</button></div>
-          <input id="homeLgText" maxlength="500" required autocomplete="off" placeholder="Jot it down and press Enter" aria-label="New entry">
+      <div class="card" id="quickAdd" style="margin-bottom:18px">
+        <div class="card-head"><div><h2>Today's log</h2><div class="sub">Pick what it is, type it, press Enter — it lands in today's log</div></div><span class="stat-icon" aria-hidden="true">✎</span></div>
+        <form id="homeLgForm" class="bj-add bj-add-stack">
+          <div class="type-pills" id="homeLgType" role="group" aria-label="Kind of entry"><button type="button" class="type-pill" data-hbtype="task" aria-pressed="true" title="Action"><span class="type-pill-g" aria-hidden="true">•</span><span class="type-pill-l">Action</span></button><button type="button" class="type-pill" data-hbtype="expense" aria-pressed="false" title="Expense"><span class="type-pill-g" aria-hidden="true">₹</span><span class="type-pill-l">Expense</span></button><button type="button" class="type-pill" data-hbtype="note" aria-pressed="false" title="Note"><span class="type-pill-g" aria-hidden="true">–</span><span class="type-pill-l">Note</span></button><button type="button" class="type-pill" data-hbtype="event" aria-pressed="false" title="Event"><span class="type-pill-g" aria-hidden="true">○</span><span class="type-pill-l">Event</span></button><button type="button" class="type-pill" data-hbtype="mood" aria-pressed="false" title="Mood"><span class="type-pill-g" aria-hidden="true">=</span><span class="type-pill-l">Mood</span></button><button type="button" class="type-pill" data-hbtype="idea" aria-pressed="false" title="Idea"><span class="type-pill-g" aria-hidden="true">✦</span><span class="type-pill-l">Idea</span></button><button type="button" class="type-pill" data-hbtype="problem" aria-pressed="false" title="Problem"><span class="type-pill-g" aria-hidden="true">△</span><span class="type-pill-l">Problem</span></button><button type="button" class="type-pill" data-hbtype="mistake" aria-pressed="false" title="Mistake"><span class="type-pill-g" aria-hidden="true">✘</span><span class="type-pill-l">Mistake</span></button><button type="button" class="type-pill" data-hbtype="observation" aria-pressed="false" title="Observation"><span class="type-pill-g" aria-hidden="true">◎</span><span class="type-pill-l">Observation</span></button></div>
+          <input id="homeLgText" maxlength="500" required autocomplete="off" placeholder="e.g. buy milk tomorrow" aria-label="New entry">
           <button class="btn" type="submit">Add</button>
         </form>
-      </div>
-      <div class="card" id="quickAdd" style="margin-bottom:18px">
-        <div class="card-head"><div><h2>Quick add</h2><div class="sub">Task, expense, or note — just type it</div></div><span class="stat-icon" aria-hidden="true">✎</span></div>
-        <form id="quickForm" class="bj-add" style="margin-bottom:8px">
-          <div class="seg bj-type" id="quickType" role="group" aria-label="Kind of entry"><button type="button" data-qtype="task" aria-label="Action" title="Action" aria-pressed="true">•</button><button type="button" data-qtype="expense" aria-label="Expense" title="Expense" aria-pressed="false">₹</button><button type="button" data-qtype="note" aria-label="Note" title="Note" aria-pressed="false">–</button></div>
-          <input id="quickText" maxlength="300" required autocomplete="off" placeholder="e.g. spent 450 on groceries, buy milk tomorrow" aria-label="Quick add">
-          <button class="btn" type="submit" id="quickBtn">Add</button>
-        </form>
-        <div id="quickResult" hidden style="margin-top:8px"><div class="sub" style="margin:0 0 6px">Added just now</div><div class="list" id="quickList"></div></div>
       </div>
       <div class="grid two-col">
         <div class="card"><div class="card-head"><div><h2>Today’s focus</h2><div class="sub" id="homeFocusSub">Your next few tasks</div></div><button type="button" class="btn secondary small" data-go="journal">Open log</button></div><div id="homeTasks" class="list"></div></div>
@@ -242,6 +233,7 @@
         <div class="cal-head ml-top-head"><div><div class="cal-title" id="mlTitle">This month</div><div class="sub" id="mlPlanSub">Your month at a glance</div></div>
           <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
         <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
+        <div class="ml-filters" id="mlFilters" role="group" aria-label="Also show on each day" hidden></div>
 
         <div class="card ml-cal-card" id="mlCalCard">
           <div id="mlRows"></div>
@@ -260,7 +252,9 @@
         </div>
 
         <div id="mlDoneView" hidden>
-          <div class="card ml-cal-card"><div id="mlDoneList"></div></div>
+          <div class="ml-legend"><span><i class="g-task">✓</i> task done</span><span><i class="g-event">○</i> event</span><span><i class="g-goal">◆</i> project</span></div>
+          <div class="card ml-cal-card"><div id="mlDoneList"></div>
+          </div>
         </div>
 
         <div class="card" style="margin-top:14px">

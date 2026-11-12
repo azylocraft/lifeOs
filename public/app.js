@@ -335,7 +335,8 @@
     $('statExpenses').textContent = money(sum(exps.filter(e => monthKey(e.date) === monthKey(isoToday))));
     $('statTrips').textContent = ofKind('trip').filter(t => !isPast(t)).length;
     const tops = topsOf(isoToday).filter(t => !t.done);
-    const rest = open.filter(t => !tops.some(x => x.id === t.id));
+    /* only today's work fills the card — overdue tasks are counted above, not listed here */
+    const rest = open.filter(t => !tops.some(x => x.id === t.id) && !(t.due && t.due < isoToday));
     const focus = [...tops, ...rest.slice(0, Math.max(0, 4 - tops.length))];
     $('homeFocusSub').textContent = tops.length ? `Your top ${tops.length} for today` : 'Pick your top 3 in the daily log';
     $('homeTasks').innerHTML = focus.length
@@ -896,42 +897,21 @@
     const cats = catNames();
     return cats.includes('Other') ? 'Other' : cats[0] || 'Other';
   }
-  let quickMode = 'task';
-  $('quickType').addEventListener('click', e => {
-    const b = e.target.closest('[data-qtype]');
-    if (!b) return;
-    quickMode = b.dataset.qtype;
-    document.querySelectorAll('#quickType button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.qtype === quickMode)));
-    $('quickText').placeholder = quickMode === 'expense' ? 'e.g. 450 groceries, 200 coffee' : quickMode === 'note' ? 'A thought or observation' : 'e.g. buy milk tomorrow';
-    $('quickText').focus();
-  });
-  $('quickForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const text = $('quickText').value.trim();
-    if (!text) return;
-    if (quickMode === 'expense') {
-      const list = quickParse('spent ' + text);
-      const expenses = list.filter(x => x.kind === 'expense');
-      if (!expenses.length) {
-        const parts = text.match(/^(d[d,.k]*)s+(.+)$/);
-        if (parts) {
-          let amount = parseFloat(parts[1].replace(/,/g, ''));
-          if (/k$/i.test(parts[1])) amount = parseFloat(parts[1]) * 1000;
-          if (amount > 0) expenses.push({kind:'expense', name:parts[2].trim(), amount, category:quickCat(parts[2]), sub:'', date:isoToday});
-        }
+  /* expense text like "450 groceries" typed into the log card */
+  function addQuickExpense(text){
+    const list = quickParse('spent ' + text).filter(x => x.kind === 'expense');
+    if (!list.length) {
+      const parts = text.match(/^(\d[\d,.k]*)\s+(.+)$/);
+      if (parts) {
+        let amount = parseFloat(parts[1].replace(/,/g, ''));
+        if (/k$/i.test(parts[1])) amount = parseFloat(parts[1]) * 1000;
+        if (amount > 0) list.push({kind:'expense', name:parts[2].trim(), amount, category:quickCat(parts[2]), sub:'', date:isoToday});
       }
-      if (expenses.length) { addMany(expenses); $('quickText').value = ''; toast('Added ' + expenses.length + (expenses.length === 1 ? ' expense' : ' expenses')); }
-      else toast('Try: 450 groceries or 200 coffee');
-    } else if (quickMode === 'note') {
-      addItem('bullet', {type:'note', text:text.slice(0,500), date:isoToday, time:''});
-      $('quickText').value = '';
-      toast('Note added');
-    } else {
-      const list = quickParse(text);
-      if (list.length) { addMany(list); $('quickText').value = ''; toast('Added ' + list.length + (list.length === 1 ? ' item' : ' items')); }
-      else toast('Try: buy milk tomorrow, call dentist friday');
     }
-  });
+    if (!list.length) return 0;
+    addMany(list);
+    return list.length;
+  }
 
   /* ---------- categories and budgets ---------- */
   let editingCats = false, budgetMonth = monthKey(isoToday);
@@ -1956,28 +1936,47 @@
     $('lgText').focus();
     const last = $('lgList').lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({block:'nearest'});
   });
+  const HOME_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
   let homeLgType = 'task', homeLgPicked = 'task';
+  const paintHomeType = () => document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType)));
   $('homeLgType').addEventListener('click', e => {
     const b = e.target.closest('[data-hbtype]');
     if (!b) return;
     homeLgType = homeLgPicked = b.dataset.hbtype;
-    document.querySelectorAll('#homeLgType button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.hbtype === homeLgType)));
+    paintHomeType();
+    $('homeLgText').placeholder = HOME_PH[homeLgType] || 'Jot it down and press Enter';
     $('homeLgText').focus();
   });
   $('homeLgText').addEventListener('input', e => {
+    if (homeLgPicked === 'expense') return;
     const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
     const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : homeLgPicked;
-    if (t !== homeLgType) { homeLgType = t; document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType))); }
+    if (t !== homeLgType) { homeLgType = t; paintHomeType(); }
   });
   $('homeLgForm').addEventListener('submit', e => {
     e.preventDefault();
-    const p = parseEntry($('homeLgText').value, homeLgType);
+    const raw = $('homeLgText').value.trim();
+    if (!raw) return;
+    if (homeLgType === 'expense') {
+      const n = addQuickExpense(raw);
+      if (!n) { toast('Try: 450 groceries or 200 coffee'); return; }
+      $('homeLgText').value = '';
+      toast('Added ' + n + (n === 1 ? ' expense' : ' expenses'));
+      $('homeLgText').focus();
+      return;
+    }
+    const p = parseEntry(raw, homeLgType);
     if (!p.text) return;
     $('homeLgText').value = '';
     homeLgType = homeLgPicked;
-    document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType)));
-    if (p.type === 'task') newTask(p.text, isoToday, p.high ? {priority:'High'} : null);
-    else addItem('bullet', {date:isoToday, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
+    paintHomeType();
+    if (p.type === 'task') {
+      if (p.high) newTask(p.text, isoToday, {priority:'High'});
+      else {
+        const list = quickParse(p.text);
+        if (list.length) addMany(list); else newTask(p.text, isoToday);
+      }
+    } else addItem('bullet', {date:isoToday, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
     $('homeLgText').focus();
     toast('Added to today’s log');
   });
@@ -2185,6 +2184,9 @@
      left  = reflection: the month split into weeks, one line a day plus what got done
      right = planning: the month's tasks, personal beside work */
   let mlMonth = monthKey(isoToday), mlOpen = null, mlTab = 'plan';
+  /* extra entry types that can be laid over the Done calendar, one small icon each */
+  const ML_SHOW = {mood:'Mood', idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
+  let mlShow = new Set();
   const habitsDoc = () => items.find(i => i.kind === 'habits') || {};
   const habitList = () => Array.isArray(habitsDoc().list) ? habitsDoc().list.filter(h => h && h.id && h.name) : [];
   const habitLog = () => (habitsDoc().log && typeof habitsDoc().log === 'object') ? habitsDoc().log : {};
@@ -2239,26 +2241,39 @@
     });
     $('mlPlanSub').textContent = 'Plan your weeks, then work the plan';
   }
+  function renderMlFilters(){
+    const row = $('mlFilters');
+    row.hidden = mlTab !== 'done';
+    if (row.hidden) return;
+    const counts = {};
+    ofKind('bullet').forEach(b => { if (monthKey(b.date) === mlMonth && b.type in ML_SHOW) counts[b.type] = (counts[b.type] || 0) + 1; });
+    row.innerHTML = Object.keys(ML_SHOW).map(t => {
+      const n = counts[t] || 0;
+      return `<button type="button" class="ml-filter g-${t}" data-mlshow="${t}" aria-pressed="${mlShow.has(t)}" ${n ? '' : 'data-none="1"'} title="${ML_SHOW[t]} logged in ${esc(monthName(mlMonth))}">
+        <span class="ml-filter-g" aria-hidden="true">${GLYPH[t]}</span><span class="ml-filter-l">${ML_SHOW[t]}</span>${n ? `<span class="ml-filter-n">${n}</span>` : ''}</button>`;
+    }).join('');
+  }
   function renderMonthDone(key){
     const [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
     const doneItems = [];
     ofKind('task').forEach(t => {
       const on = t.doneOn || t.due;
-      if (t.done && !t.cancelled && monthKey(on) === key) doneItems.push({iso:on, glyph:'✕', text:t.title});
+      /* a tick, not the bullet-journal ✕ — on this line it would read as the ✘ of a mistake */
+      if (t.done && !t.cancelled && monthKey(on) === key) doneItems.push({iso:on, glyph:'✓', text:t.title, type:'task'});
     });
     ofKind('bullet').forEach(b => {
       if (monthKey(b.date) !== key) return;
-      if (b.type === 'event') doneItems.push({iso:b.date, glyph:'○', text:(b.time ? b.time + ' ' : '') + b.text});
-      if (b.type === 'mood') doneItems.push({iso:b.date, glyph:'~', text:b.text});
-      if (b.type in REFLECT) doneItems.push({iso:b.date, glyph:GLYPH[b.type], text:b.text});
+      if (b.type === 'event') doneItems.push({iso:b.date, glyph:'○', text:(b.time ? b.time + ' ' : '') + b.text, type:'event'});
+      else if (mlShow.has(b.type)) doneItems.push({iso:b.date, glyph:GLYPH[b.type], text:b.text, type:b.type});
     });
     ofKind('goal').forEach(g => {
       if (g.done && g.horizon === 'month' && g.period === key) {
         const on = g.doneOn || key + '-01';
-        doneItems.push({iso:on, glyph:'◆', text:g.title});
+        doneItems.push({iso:on, glyph:'◆', text:g.title, type:'goal'});
       }
     });
-    const byDay = {};
+    const byDay = {}, rank = di => (di.type in ML_SHOW ? 1 : 0);
+    doneItems.sort((a, b) => rank(a) - rank(b));
     doneItems.forEach(di => (byDay[di.iso] || (byDay[di.iso] = [])).push(di));
     let total = doneItems.length;
     let html = '';
@@ -2267,14 +2282,16 @@
       const wk = weekKey(iso);
       if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week" data-ml-wk="${wk}"><div class="ml-wk">Week ${Number(wk.slice(6))}</div>`;
       const dayDone = byDay[iso] || [];
-      const didStr = dayDone.map(di => `<span class="ml-done-g">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
+      const didStr = dayDone.map(di => `<span class="ml-done-g g-${di.type || 'task'}">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
         <div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>
         <div class="ml-dot-col"></div></div>`;
     }
     html += '</div>';
-    $('mlPlanSub').textContent = total + ' completed ' + (total === 1 ? 'item' : 'items') + ' this month';
+    const extra = doneItems.filter(di => di.type in ML_SHOW).length, base = total - extra;
+    $('mlPlanSub').textContent = base + ' completed ' + (base === 1 ? 'item' : 'items') + ' this month' +
+      (extra ? ' · ' + extra + ' ' + (extra === 1 ? 'note' : 'notes') : '');
     safeHTML($('mlDoneList'), html || `<div class="hz-empty">Nothing completed yet this month.</div>`);
   }
   function renderMonthLog(){
@@ -2287,7 +2304,7 @@
     ofKind('bullet').forEach(b => { if (b.type === 'event' && monthKey(b.date) === key) note(b.date, '○ ' + (b.time ? b.time + ' ' : '') + b.text); });
     ofKind('task').forEach(t => {
       const on = t.doneOn || t.due;
-      if (t.done && !t.cancelled && monthKey(on) === key) note(on, '✕ ' + t.title);
+      if (t.done && !t.cancelled && monthKey(on) === key) note(on, '✓ ' + t.title);
       else if (!t.done && monthKey(t.due) === key) counts[t.due] = (counts[t.due] || 0) + 1;
     });
     const planned = {};
@@ -2320,6 +2337,8 @@
     $('mlPlanView').hidden = mlTab !== 'plan';
     $('mlDoneView').hidden = mlTab !== 'done';
     $('mlCalCard').classList.toggle('hide-habits', mlTab === 'plan');
+    $('mlCalCard').classList.toggle('done-tab', mlTab === 'done');
+    renderMlFilters();
     $('mlHabits').innerHTML = habits.length ? habits.map(h => {
       const n = Object.keys(log).filter(dk => monthKey(dk) === key && (log[dk] || []).includes(h.id)).length;
       return `<div class="item"><div class="item-main"><div class="item-title">${esc(h.name.charAt(0).toUpperCase())} · ${esc(h.name)}</div><div class="item-meta">${n} ${n === 1 ? 'day' : 'days'} in ${esc(monthName(key))}</div></div><button type="button" class="icon-btn" data-habit-del="${esc(h.id)}" aria-label="Remove ${esc(h.name)}">✕</button></div>`;
@@ -2349,6 +2368,15 @@
       const again = $('mlRows').querySelector(`[data-ml-habit="${CSS.escape(id)}"][data-day="${day}"]`); if (again) again.focus();
     }
   });
+  $('mlFilters').addEventListener('click', e => {
+    const b = e.target.closest('[data-mlshow]');
+    if (!b) return;
+    const t = b.dataset.mlshow;
+    if (mlShow.has(t)) mlShow.delete(t); else mlShow.add(t);
+    renderMlFilters();
+    renderMonthDone(mlMonth);
+    const again = $('mlFilters').querySelector(`[data-mlshow="${t}"]`); if (again) again.focus();
+  });
   $('mlPrev').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, -1); mlOpen = null; renderMonthLog(); });
   $('mlNext').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, 1); mlOpen = null; renderMonthLog(); });
   $('mlToday').addEventListener('click', () => { mlMonth = monthKey(isoToday); mlOpen = null; renderMonthLog(); $('mlPrev').focus(); });
@@ -2359,6 +2387,8 @@
     $('mlPlanView').hidden = mlTab !== 'plan';
     $('mlDoneView').hidden = mlTab !== 'done';
     $('mlCalCard').classList.toggle('hide-habits', mlTab === 'plan');
+    $('mlCalCard').classList.toggle('done-tab', mlTab === 'done');
+    renderMlFilters();
     document.querySelectorAll('#mlSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mltab === mlTab)));
     renderMonthRight(mlMonth);
   });
@@ -2494,7 +2524,8 @@
     ['forest','Forest','linear-gradient(135deg,#9dbb8c,#243228)'],
     ['sunset','Sunset','linear-gradient(135deg,#f0a58c,#5a2a44)'],
     ['midnight','Midnight','linear-gradient(135deg,#9c92ee,#191a2e)'],
-    ['graphite','Graphite','linear-gradient(135deg,#b4b7bc,#27292c)']
+    ['graphite','Graphite','linear-gradient(135deg,#b4b7bc,#27292c)'],
+    ['japan','Japan','linear-gradient(135deg,#ffffff 0%,#ffffff 52%,#dc2626 52%,#dc2626 100%)']
   ];
   let theme = 'mono';
   function applyTheme(id){
