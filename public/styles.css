@@ -291,7 +291,7 @@
   .cols.compact .col-note { font-size:10px }
 
   .table-wrap { overflow-x:auto }
-  .table-wrap.scroll { overflow-y:auto; overscroll-behavior:contain }
+  .table-wrap.scroll { overflow-y:auto; overscroll-behavior-y:auto }
   @supports not selector(::-webkit-scrollbar) { .scroll-soft { scrollbar-width:thin; scrollbar-color:var(--stroke) transparent } }
   .table-wrap.scroll.scroll-soft { scrollbar-gutter:stable }
   .scroll-soft::-webkit-scrollbar { width:12px; height:12px }
@@ -432,7 +432,8 @@
     input,textarea,select { font-size:16px }
     .icon-btn { width:36px; height:36px }
     th,td { padding-left:5px; padding-right:5px }
-    .table-wrap.scroll { --th-h:32px }
+    /* on a phone the table runs with the page instead of being a box inside it */
+    .table-wrap.scroll { --th-h:32px; max-height:none !important; overflow-y:visible }
     table { font-size:12.5px }
     .day-add { grid-template-columns:minmax(0,1fr) auto }
     .day-add .field:first-child { grid-column:1/-1 }
@@ -522,6 +523,21 @@ button.bj-g:hover { background:var(--track) }
 .shape-row > span:first-child { min-width:0; overflow-wrap:anywhere }
 .shape-row .tm { font-variant-numeric:tabular-nums }
 .shape-hint { font-size:11px; color:var(--muted); font-style:italic; padding:2px 0 }
+/* the cheat sheet: folded away, and laid out as a key beside its meaning when opened */
+.bj-help { margin-top:12px; padding-top:10px; border-top:1px solid var(--line-soft) }
+.bj-help summary { font-size:11.5px; color:var(--muted); cursor:pointer; list-style:none; display:flex; align-items:center; gap:5px }
+.bj-help summary::-webkit-details-marker { display:none }
+.bj-help summary::before { content:"›"; display:inline-block; transition:transform .15s; font-size:13px; line-height:1 }
+.bj-help[open] summary::before { transform:rotate(90deg) }
+.bj-help summary:hover { color:var(--text-2) }
+.bj-help-h { font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--faint); margin:10px 0 5px }
+.bj-help-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:5px 12px; font-size:11.5px; color:var(--text-2) }
+.bj-help-grid.wide { grid-template-columns:repeat(auto-fill, minmax(168px, 1fr)) }
+.bj-help-grid span { display:flex; align-items:center; gap:6px; min-width:0 }
+.bj-help kbd { font:inherit; font-size:10.5px; font-weight:600; min-width:19px; height:19px; padding:0 6px; flex-shrink:0;
+  display:inline-grid; place-items:center; border-radius:6px; background:var(--tile); border:1px solid var(--line-soft); color:var(--text) }
+.bj-help-note { font-size:10.5px; color:var(--muted); margin-top:6px }
+.bj-help-note i { color:var(--text-2) }
 .shape-top { color:var(--pop, var(--accent)); font-size:11px; margin-right:2px }
 .shape-row.is-top { font-weight:600 }
 .shape-block.unassigned { border-style:dashed; opacity:.7 }

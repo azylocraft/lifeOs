@@ -431,9 +431,11 @@
     }
     return out.map(b => ({...b, saved: b.budget - b.spent}));
   }
-  /* keep a long table to 7 rows, the rest behind a scrollbar */
+  /* keep a long table to 7 rows, the rest behind a scrollbar — on a phone it just runs on */
+  const narrow = () => { try { return window.matchMedia('(max-width:560px)').matches; } catch(e) { return false; } };
   function fitRows(wrap, rowSel, n, headCell, totalRow){
     try {
+      if (narrow()) { wrap.style.maxHeight = ''; return; }
       const rows = wrap.querySelectorAll(rowSel);
       const head = headCell ? headCell.getBoundingClientRect().height : 0;
       if (headCell) wrap.style.setProperty('--th-h', head + 'px');

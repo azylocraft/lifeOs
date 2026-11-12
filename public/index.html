@@ -194,8 +194,14 @@
               <input id="lgText" maxlength="500" required autocomplete="off" placeholder="Jot it down and press Enter" aria-label="New entry">
               <button class="btn" type="submit">Add</button>
             </form>
-            <p class="sub" style="margin-top:10px"><b>Swipe right</b> to complete, <b>swipe left</b> to delete, <b>triple-tap</b> to move to the next day, <b>☆</b> to pick your top 3.</p>
-            <p class="sub" style="margin-top:10px">Shortcut: start with <b>-</b> for a note, <b>o</b> for an event (<i>o 4pm dentist</i>), <b>=</b> for a mood, <b>+</b> for an idea, <b>?</b> for a problem, <b>x</b> for a mistake, <b>@</b> for an observation, <b>!</b> for an important action.</p>
+            <details class="bj-help">
+              <summary>Shortcuts &amp; gestures</summary>
+              <div class="bj-help-h">Start a line with</div>
+              <div class="bj-help-grid"><span><kbd>-</kbd>Note</span><span><kbd>o</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>+</kbd>Idea</span><span><kbd>?</kbd>Problem</span><span><kbd>x</kbd>Mistake</span><span><kbd>@</kbd>Observation</span><span><kbd>!</kbd>Important</span></div>
+              <div class="bj-help-note">A time after the letter is kept — <i>o 4pm dentist</i>.</div>
+              <div class="bj-help-h">On any entry</div>
+              <div class="bj-help-grid wide"><span><kbd>Swipe right</kbd>Complete it</span><span><kbd>Swipe left</kbd>Delete it</span><span><kbd>Triple-tap</kbd>Move to tomorrow</span><span><kbd>☆</kbd>Pick your top 3</span></div>
+            </details>
           </div>
         </div>
         <div class="grid day-cards" style="margin-top:18px">
