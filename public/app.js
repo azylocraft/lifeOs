@@ -1673,13 +1673,14 @@
     const out = [];
     for (let i = 0; i < 8; i++) {
       const s = (dayStart + i * 3) % 24, e = (s + 3) % 24;
-      out.push({ key: 'b' + i, label: fmtHour(s) + ' – ' + fmtHour(e), start: s, sleep: i >= 6 });
+      out.push({ key: 'b' + i, label: fmtHour(s) + ' – ' + fmtHour(e), start: s });
     }
     return out;
   }
   let dayStart = 9, BLOCKS = makeBlocks(9);
   function getDayStart() { return (rhythmDoc().dayStart != null) ? rhythmDoc().dayStart : 9; }
   function refreshBlocks() { dayStart = getDayStart(); BLOCKS = makeBlocks(dayStart); }
+  function nextMode(m) { return m === 'maker' ? 'manager' : m === 'manager' ? 'sleep' : 'maker'; }
   const defaultBlocks = dow => {
     const wkend = dow === 0 || dow === 6;
     return {b0:'maker',b1:'maker',b2:'manager',b3:'manager',b4:wkend?'manager':'maker',b5:'manager',b6:'sleep',b7:'sleep'};
@@ -1710,9 +1711,8 @@
     if (!b) return;
     const dow = Number(b.dataset.rh), bk = b.dataset.half, r = rhythmDoc();
     const week = {...(r.week || {})};
-    const cur = weekShape(dow)[bk];
-    if (cur === 'sleep') return;
-    week[dow] = {...weekShape(dow), [bk]: otherMode(cur)};
+    const cur = weekShape(dow)[bk] || 'maker';
+    week[dow] = {...weekShape(dow), [bk]: nextMode(cur)};
     saveRhythm(week, r.days || {});
     const again = $('rhGrid').querySelector(`[data-rh="${dow}"][data-half="${bk}"]`); if (again) again.focus();
   });
@@ -1818,11 +1818,13 @@
     return `<div class="bj"><span class="bj-g" aria-hidden="true">•</span><div class="bj-t"><span class="tx">${esc(t.title)}</span><span class="bj-m">from ${esc(shortDay(t.due))}${movedNote(t) ? ' · ' + movedNote(t) : ''}</span></div>
       <div class="bj-strip">${chip('done', t.id, 'Done')}${chip('today', t.id, 'Today')}${chip('tomorrow', t.id, 'Tomorrow')}${laterSelect(t.id)}${chip('drop', t.id, 'Drop it')}</div></div>`;
   }
+  const MODE_LABEL = {maker:'Maker', manager:'Manager', sleep:'Sleep'};
   function renderShape(){
     refreshBlocks();
     const pick = $('dayStartPick');
-    if (!pick.options.length) {
-      for (let h = 0; h < 24; h += 3) pick.add(new Option(fmtHour(h), h));
+    if (pick.options.length !== 24) {
+      pick.innerHTML = '';
+      for (let h = 0; h < 24; h++) pick.add(new Option(fmtHour(h), h));
     }
     pick.value = dayStart;
     const d = logDate, shape = shapeFor(d);
@@ -1833,25 +1835,25 @@
       ...open.filter(timedTask).map(t => ({time:t.remind.slice(11), title:t.title, event:false}))
     ].sort((a,b) => a.time.localeCompare(b.time));
     const loose = open.filter(t => !timedTask(t)).sort(byDoneThenAge);
-    const activeBlocks = BLOCKS.filter(b => !b.sleep);
+    const activeBlocks = BLOCKS.filter(b => (shape[b.key] || 'maker') !== 'sleep');
     const homeBlock = t => {
       if (t.block && activeBlocks.some(b => b.key === t.block)) return t.block;
       const mode = workOf(t);
       const pool = activeBlocks.filter(b => shape[b.key] === mode);
-      return pool.length ? pool[0].key : activeBlocks[0].key;
+      return pool.length ? pool[0].key : (activeBlocks[0] || BLOCKS[0]).key;
     };
     const row = t => `<div class="shape-row" draggable="true" data-drag-id="${esc(t.id)}"><span>• ${esc(t.title)}</span>${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))])}</div>`;
     let html = BLOCKS.map(bl => {
-      const mode = shape[bl.key] || 'sleep';
-      if (bl.sleep) return `<div class="shape-block sleep"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><span class="shape-sleep-tag">Sleep</span></div></div>`;
+      const mode = shape[bl.key] || 'maker';
+      if (mode === 'sleep') return `<div class="shape-block sleep"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn sleep" data-shape="${bl.key}">Sleep ⇄</button></div></div>`;
       const here = timed.filter(x => {
         const h = parseInt(x.time.split(':')[0], 10);
         return h >= bl.start && h < bl.start + 3;
       });
       const mine = loose.filter(t => homeBlock(t) === bl.key);
       const body = here.map(x => `<div class="shape-row"><span><b class="tm">${esc(x.time)}</b> ${esc(x.title)}</span></div>`).join('') + mine.map(row).join('');
-      return `<div class="shape-block" data-block="${bl.key}"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn ${mode}" data-shape="${bl.key}" aria-label="${esc(bl.label)}: ${MODE_NAME[mode]} time. Tap to switch">${MODE_NAME[mode]} ⇄</button></div>
-        ${body || `<div class="shape-hint">${mode === 'maker' ? 'Deep work' : 'Quick tasks'}</div>`}</div>`;
+      return `<div class="shape-block" data-block="${bl.key}"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn ${mode}" data-shape="${bl.key}">${MODE_LABEL[mode]} ⇄</button></div>
+        ${body}</div>`;
     }).join('');
     $('lgShape').innerHTML = html;
     const mk = open.filter(t => workOf(t) === 'maker').length;
@@ -1966,9 +1968,10 @@
     const b = e.target.closest('[data-shape]');
     if (!b) return;
     const bk = b.dataset.shape, r = rhythmDoc(), days = {...(r.days || {})}, shape = shapeFor(logDate);
-    const next = {...shape, [bk]: otherMode(shape[bk])};
+    const cur = shape[bk] || 'maker';
+    const next = {...shape, [bk]: nextMode(cur)};
     const usual = weekShape(new Date(logDate + 'T12:00:00').getDay());
-    const same = BLOCKS.every(bl => (next[bl.key] || 'sleep') === (usual[bl.key] || 'sleep'));
+    const same = BLOCKS.every(bl => (next[bl.key] || 'maker') === (usual[bl.key] || 'maker'));
     if (same) delete days[logDate]; else days[logDate] = next;
     saveRhythm(r.week || {}, days);
     const again = $('lgShape').querySelector(`[data-shape="${bk}"]`); if (again) again.focus();
