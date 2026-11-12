@@ -2108,9 +2108,10 @@
         <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Wk</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${'W' + w.num}</option>`).join('')}</select>
       </div>`;
     }).join('');
+    const countLabel = kids.length ? `${kd}/${kids.length} done` : '';
     return `<div class="ml-project ${g.done ? 'done' : ''}"><div class="bj ${g.done ? 'done' : ''}">
       <button type="button" class="bj-g" data-ml-done="${esc(g.id)}" aria-pressed="${!!g.done}" aria-label="${g.done ? 'Reopen' : 'Mark done'}: ${esc(g.title)}">${g.done ? '✕' : '•'}</button>
-      <div class="bj-t"><span class="tx">${esc(g.title)}</span>${kids.length ? `<span class="bj-m">${kd}/${kids.length}</span>` : ''}</div>
+      <div class="bj-t"><span class="tx">${esc(g.title)}</span>${countLabel ? `<span class="bj-m">${countLabel}</span>` : ''}</div>
       <button type="button" class="icon-btn bj-more" data-ml-more="${esc(g.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>
       ${open ? `<div class="bj-strip">${g.done ? '' : `<button type="button" class="chip-btn" data-ml-step="${esc(g.id)}">＋ Do it today</button>`}<button type="button" class="chip-btn" data-ml-area="${esc(g.id)}">→ ${areaOf(g) === 'work' ? 'Personal' : 'Work'}</button><button type="button" class="chip-btn" data-act="edit" data-id="${esc(g.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(g.id)}">Delete</button></div>` : ''}</div>
       <div class="ml-kids">${stepsHTML}${!g.done ? `<form class="hz-add ml-kid-form" data-ml-parent="${esc(g.id)}"><input maxlength="120" required autocomplete="off" placeholder="Add a step" aria-label="Add a step to ${esc(g.title)}"><button class="icon-btn" type="submit">＋</button></form>` : ''}</div></div>`;
@@ -2192,9 +2193,9 @@
     }
     safeHTML($('mlRows'), html + '</div>');
     monthWeeks(key).forEach(w => {
-      const cnt = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key && g.targetWeek === w.wk && !g.done).length;
+      const planned = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key && g.targetWeek === w.wk && !g.done);
       const el = document.querySelector(`[data-wk-count="${w.wk}"]`);
-      if (el) el.textContent = cnt ? ` · ${cnt} planned` : '';
+      if (el) el.textContent = planned.length ? ` · ${planned.map(g => g.title).join(', ')}` : '';
     });
     renderMonthRight(key);
     document.querySelectorAll('#mlSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mltab === mlTab)));

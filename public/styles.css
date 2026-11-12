@@ -554,17 +554,12 @@ button.bj-g:hover { background:var(--track) }
 .ml-week .ml-row:last-child { border-bottom:0 }
 .ml-wk { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:5px 4px 1px; cursor:default; border-radius:6px; transition:background .15s }
 .ml-wk.drop-over { background:color-mix(in srgb, var(--accent) 22%, transparent) }
-.ml-wk-count { font-weight:400; font-size:10px; letter-spacing:0 }
-.ml-plan { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) }
-.ml-col { min-width:0; padding:0 0 0 14px; display:grid; gap:10px; align-content:start }
-.ml-col:first-child { padding:0 14px 0 0; border-right:1.5px solid var(--stroke) }
-.ml-col h3 { text-align:center; margin:0 }
-.ml-col .hz-add input { padding:8px 12px }
-@media (max-width:480px) {
-  .ml-plan { grid-template-columns:minmax(0,1fr) }
-  .ml-col, .ml-col:first-child { padding:0 }
-  .ml-col:first-child { border-right:0; border-bottom:1.5px solid var(--stroke); padding-bottom:16px; margin-bottom:16px }
-}
+.ml-wk-count { font-weight:400; font-size:10px; letter-spacing:0; text-transform:none; color:var(--text-2) }
+.ml-plan { display:grid; grid-template-columns:minmax(0,1fr); gap:0 }
+.ml-col { min-width:0; padding:0; display:grid; gap:6px; align-content:start }
+.ml-col:first-child { padding:0 0 12px; border-bottom:1.5px solid var(--stroke); margin-bottom:12px }
+.ml-col h3 { text-align:left; margin:0; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted) }
+.ml-col .hz-add input { padding:6px 10px }
 
 /* an open notebook: two dot-grid pages joined at the spine */
 .book { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); background:var(--card); border-radius:26px; box-shadow:var(--card-shadow); overflow:hidden }
