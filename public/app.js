@@ -1797,12 +1797,11 @@
     $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` + (acts.length ? ` · top 3: ${tops} picked` : '') : (mlLine ? '' : 'A blank page');
     if (logOpen && !items.some(x => x.id === logOpen)) logOpen = null;
     const quoteHTML = mlLine ? `<div class="bj-quote" style="margin-bottom:10px">"${esc(mlLine)}"</div>` : '';
-    const planEntries = entries.filter(e => !(e.role === 'task' && e.i.done && !e.i.cancelled));
-    const doneEntries = entries.filter(e => (e.role === 'task' && e.i.done) || e.role === 'ghost');
+    const planEntries = entries.filter(e => e.role === 'task' && !e.i.done);
     safeHTML($('lgList'), quoteHTML + (planEntries.length ? planEntries.map(e => entryHTML(e, logDate)).join('')
-      : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing planned yet. Jot the first thing below.'}</div>`));
-    safeHTML($('lgDoneList'), doneEntries.length ? doneEntries.map(e => entryHTML(e, logDate)).join('')
-      : `<div class="empty">Nothing completed yet today.</div>`);
+      : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing planned for this day.'}</div>`));
+    safeHTML($('lgDoneList'), quoteHTML + (entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
+      : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing logged yet. Jot the first thing below.'}</div>`));
     document.querySelectorAll('#lgSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lgtab === lgTab)));
     $('lgPlanView').hidden = lgTab !== 'plan';
     $('lgDoneView').hidden = lgTab !== 'done';
