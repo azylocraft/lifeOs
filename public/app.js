@@ -2094,6 +2094,31 @@
     $('lgText').focus();
     const last = $('lgList').lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({block:'nearest'});
   });
+  let homeLgType = 'task', homeLgPicked = 'task';
+  $('homeLgType').addEventListener('click', e => {
+    const b = e.target.closest('[data-hbtype]');
+    if (!b) return;
+    homeLgType = homeLgPicked = b.dataset.hbtype;
+    document.querySelectorAll('#homeLgType button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.hbtype === homeLgType)));
+    $('homeLgText').focus();
+  });
+  $('homeLgText').addEventListener('input', e => {
+    const m = e.target.value.match(/^([-–.*•oO○=])\s/);
+    const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : homeLgPicked;
+    if (t !== homeLgType) { homeLgType = t; document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType))); }
+  });
+  $('homeLgForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const p = parseEntry($('homeLgText').value, homeLgType);
+    if (!p.text) return;
+    $('homeLgText').value = '';
+    homeLgType = homeLgPicked;
+    document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType)));
+    if (p.type === 'task') newTask(p.text, isoToday, p.high ? {priority:'High'} : null);
+    else addItem('bullet', {date:isoToday, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
+    $('homeLgText').focus();
+    toast('Added to today's log');
+  });
   $('lgTomForm').addEventListener('submit', e => {
     e.preventDefault();
     const title = $('lgTomText').value.trim();

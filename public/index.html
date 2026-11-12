@@ -57,6 +57,14 @@
           <button type="button" class="btn secondary small" data-go="expenses" style="margin-top:18px">View expenses</button>
         </div>
       </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head"><div><h2>Today's log</h2><div class="sub">Jot it down — goes straight to today's daily log</div></div></div>
+        <form id="homeLgForm" class="bj-add">
+          <div class="seg bj-type" id="homeLgType" role="group" aria-label="Kind of entry"><button type="button" data-hbtype="task" aria-label="Action" title="Action">•</button><button type="button" data-hbtype="note" aria-label="Note" title="Note">–</button><button type="button" data-hbtype="event" aria-label="Event" title="Event">○</button><button type="button" data-hbtype="mood" aria-label="Mood" title="Mood">=</button></div>
+          <input id="homeLgText" maxlength="500" required autocomplete="off" placeholder="Jot it down and press Enter" aria-label="New entry">
+          <button class="btn" type="submit">Add</button>
+        </form>
+      </div>
       <div class="card" id="quickAdd" style="margin-bottom:18px">
         <div class="card-head"><div><h2>Quick add</h2><div class="sub">Task, expense, or note — just type it</div></div><span class="stat-icon" aria-hidden="true">✎</span></div>
         <form id="quickForm" class="bj-add" style="margin-bottom:8px">
