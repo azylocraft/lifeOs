@@ -57,9 +57,9 @@
           <button type="button" class="btn secondary small" data-go="expenses" style="margin-top:18px">View expenses</button>
         </div>
       </div>
-      <div class="card" id="quickAdd" hidden style="margin-bottom:18px">
+      <div class="card" id="quickAdd" style="margin-bottom:18px">
         <div class="card-head"><div><h2>Quick add</h2><div class="sub">Write it the way you’d say it. Tasks and expenses get filed for you.</div></div><span class="stat-icon" aria-hidden="true">✎</span></div>
-        <form id="quickForm"><div class="field"><label for="quickText">What do you want to record?</label><textarea id="quickText" required maxlength="600" style="min-height:72px" placeholder="e.g. Spent 450 on groceries yesterday and remind me to pay the electricity bill on Friday"></textarea></div><button class="btn" type="submit" id="quickBtn">Add from text</button></form>
+        <form id="quickForm"><div class="field"><label for="quickText">What do you want to record?</label><textarea id="quickText" required maxlength="600" rows="2" placeholder="e.g. spent 450 on groceries, buy milk tomorrow, meeting 3pm"></textarea></div><button class="btn" type="submit" id="quickBtn">Add</button></form>
         <div id="quickResult" hidden style="margin-top:16px"><div class="sub" style="margin:0 0 8px">Added just now</div><div class="list" id="quickList"></div></div>
       </div>
       <div class="grid two-col">

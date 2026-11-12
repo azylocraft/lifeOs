@@ -911,21 +911,78 @@
     }
     return list;
   }
+  function resolveDate(word) {
+    const w = word.toLowerCase().trim();
+    if (w === 'today' || w === 'now') return isoToday;
+    if (w === 'tomorrow' || w === 'tmr' || w === 'tmrw') return isoTomorrow;
+    if (w === 'yesterday') return addDays(isoToday, -1);
+    const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const di = days.indexOf(w);
+    if (di >= 0) { const td = today.getDay(); let diff = di - td; if (diff <= 0) diff += 7; return addDays(isoToday, diff); }
+    const short = ['sun','mon','tue','wed','thu','fri','sat'];
+    const si = short.indexOf(w);
+    if (si >= 0) { const td = today.getDay(); let diff = si - td; if (diff <= 0) diff += 7; return addDays(isoToday, diff); }
+    return '';
+  }
+  function quickParse(text) {
+    const results = [];
+    const lines = text.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+    for (const line of lines) {
+      const expMatch = line.match(/^(?:spent|paid|bought)\s+(\d[\d,.k]*)\s+(?:on|for)\s+(.+)$/i)
+        || line.match(/^(.+?)\s+(\d[\d,.k]*)\s*(?:rs|rupees|inr)?$/i);
+      if (expMatch) {
+        let amtStr, name;
+        if (/^\d/.test(expMatch[1])) { amtStr = expMatch[1]; name = expMatch[2]; }
+        else { name = expMatch[1]; amtStr = expMatch[2]; }
+        let amount = parseFloat(amtStr.replace(/,/g, ''));
+        if (/k$/i.test(amtStr)) amount = parseFloat(amtStr) * 1000;
+        if (amount > 0 && isFinite(amount)) {
+          const dateWords = name.match(/\b(today|yesterday|tomorrow|tmr|tmrw|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i);
+          let date = isoToday;
+          if (dateWords) { date = resolveDate(dateWords[1]) || isoToday; name = name.replace(dateWords[0], '').trim(); }
+          name = name.replace(/\s+/g, ' ').trim();
+          if (name) {
+            const cat = quickCat(name);
+            results.push({kind: 'expense', name: name.charAt(0).toUpperCase() + name.slice(1), amount: Math.round(amount * 100) / 100, category: cat, sub: '', date});
+          }
+        }
+        continue;
+      }
+      let due = '', title = line;
+      const dateWords = line.match(/\b(today|tomorrow|tmr|tmrw|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i);
+      if (dateWords) { due = resolveDate(dateWords[1]) || ''; title = title.replace(dateWords[0], '').trim(); }
+      if (!due) due = isoToday;
+      title = title.replace(/\s+/g, ' ').trim();
+      if (title) results.push({kind: 'task', title: title.charAt(0).toUpperCase() + title.slice(1), due, priority: /\burgent\b|\bimportant\b/i.test(line) ? 'High' : 'Normal', done: false, remind: '', reminded: false, project: ''});
+    }
+    return results;
+  }
+  function quickCat(name) {
+    const g = guessCategory(name);
+    if (g) return g.category;
+    const cats = catNames();
+    return cats.includes('Other') ? 'Other' : cats[0] || 'Other';
+  }
   let quickBusy = false;
   $('quickForm').addEventListener('submit', async e => {
     e.preventDefault();
     const text = $('quickText').value.trim();
-    if (!text || !sample || quickBusy) return;
+    if (!text || quickBusy) return;
     const btn = $('quickBtn');
-    quickBusy = true; btn.disabled = true; btn.textContent = 'Reading…';
+    quickBusy = true; btn.disabled = true; btn.textContent = 'Adding...';
     try {
-      const list = cleanParsed(await sample.json(quickPrompt(text), {modelTier:'quick', cache:false}));
-      if (!list.length) { toast('No task or expense found in that. Try rewording it.'); return; }
+      let list;
+      if (sample) {
+        list = cleanParsed(await sample.json(quickPrompt(text), {modelTier:'quick', cache:false}));
+      } else {
+        list = quickParse(text);
+      }
+      if (!list.length) { toast('Could not parse that. Try: "spent 200 on groceries" or "buy milk tomorrow"'); return; }
       const made = addMany(list);
       $('quickText').value = '';
       $('quickList').innerHTML = made.map(m => m.kind === 'task'
-        ? `<div class="item"><div class="item-main"><div class="item-title">${esc(m.title)}</div><div class="item-meta">Task &nbsp; ${m.due ? 'Due ' + esc(prettyDate(m.due)) : 'No due date'}${m.priority !== 'Normal' ? ' &nbsp; ' + esc(m.priority) + ' priority' : ''}${m.remind ? ' &nbsp; ◷ ' + esc(fmtRemind(m.remind)) : ''}</div></div></div>`
-        : (() => { const tp = m.plan && items.find(i => i.id === m.plan); return `<div class="item"><div class="item-main"><div class="item-title">${esc(m.name)}</div><div class="item-meta">Expense &nbsp; ${esc(prettyDate(m.date))} &nbsp; <span class="tag">${esc(m.category)}</span>${m.sub ? ` <span class="tag">${esc(m.sub)}</span>` : ''}${tp ? ` <span class="tag track">${esc(tp.name)}</span>` : ''}</div></div><div class="item-side">${esc(money(m.amount))}</div></div>`; })()).join('');
+        ? `<div class="item"><div class="item-main"><div class="item-title">${esc(m.title)}</div><div class="item-meta">Task   ${m.due ? 'Due ' + esc(prettyDate(m.due)) : 'No due date'}${m.priority !== 'Normal' ? '   ' + esc(m.priority) + ' priority' : ''}</div></div></div>`
+        : (() => { const tp = m.plan && items.find(i => i.id === m.plan); return `<div class="item"><div class="item-main"><div class="item-title">${esc(m.name)}</div><div class="item-meta">Expense   ${esc(prettyDate(m.date))}   <span class="tag">${esc(m.category)}</span>${tp ? ` <span class="tag track">${esc(tp.name)}</span>` : ''}</div></div><div class="item-side">${esc(money(m.amount))}</div></div>`; })()).join('');
       $('quickResult').hidden = false;
       const t = made.filter(m => m.kind === 'task').length, x = made.length - t;
       const parts = [];
@@ -933,13 +990,9 @@
       if (x) parts.push(x === 1 ? '1 expense' : x + ' expenses');
       toast('Added ' + parts.join(' and '), () => { removeItems(made.map(m => m.id), ''); $('quickResult').hidden = true; $('quickText').value = text; });
     } catch(err) {
-      const code = err && err.code;
-      if (code === 'not_granted') { $('quickAdd').hidden = true; toast('Quick add is off. Use the forms under Tasks & notes and Expenses.'); }
-      else if (code === 'rate_limited') toast('Too many requests. Wait a moment, then try again.');
-      else if (code === 'invalid_json') toast('Could not read that. Try rewording it.');
-      else toast('Quick add did not work this time. Try again.');
+      toast('Could not parse that. Try: "spent 200 on groceries" or "buy milk tomorrow"');
     } finally {
-      quickBusy = false; btn.disabled = false; btn.textContent = 'Add from text';
+      quickBusy = false; btn.disabled = false; btn.textContent = 'Add';
     }
   });
   $('quickText').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('quickForm').requestSubmit(); } });
