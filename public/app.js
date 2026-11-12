@@ -1671,6 +1671,7 @@
     const out = [];
     items.forEach(i => {
       if (i.kind === 'task' && i.due === d) out.push({i, role:'task', key:i.at || i.created || 0});
+      else if (i.kind === 'goal' && i.due === d && !i.done) out.push({i, role:'task', key:i.at || i.created || 0});
       else if (i.kind === 'bullet' && i.date === d) out.push({i, role:i.type in GLYPH ? i.type : 'note', key:i.at || i.created || 0});
       else if ((i.kind === 'task' || i.kind === 'goal') && Array.isArray(i.moved) && i.moved.includes(d)) out.push({i, role:'ghost', key:i.created || 0});
     });
@@ -1792,10 +1793,12 @@
     const acts = entries.filter(e => e.role === 'task'), openN = acts.filter(e => !e.i.done).length;
     const others = entries.filter(e => e.role !== 'task' && e.role !== 'ghost').length;
     const tops = topsOf(logDate).length;
-    $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` + (acts.length ? ` · top 3: ${tops} picked` : '') : 'A blank page';
+    const mlLine = (monthDoc(monthKey(logDate)).lines || {})[logDate.slice(8)];
+    $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` + (acts.length ? ` · top 3: ${tops} picked` : '') : (mlLine ? '' : 'A blank page');
     if (logOpen && !items.some(x => x.id === logOpen)) logOpen = null;
-    safeHTML($('lgList'), entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
-      : `<div class="empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing logged yet. Jot the first thing below — a to-do, a thought, how you feel.'}</div>`);
+    const quoteHTML = mlLine ? `<div class="bj-quote" style="margin-bottom:10px">"${esc(mlLine)}"</div>` : '';
+    safeHTML($('lgList'), quoteHTML + (entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
+      : `<div class="empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing logged yet. Jot the first thing below — a to-do, a thought, how you feel.'}</div>`));
     document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType)));
     /* the daily ritual: clear out what earlier days left open */
     const stale = leftBehind('day').sort((a,b) => a.due.localeCompare(b.due));
@@ -2185,7 +2188,7 @@
       const done = new Set(log[iso] || []);
       const hint = iso === isoToday ? 'One line about today' : counts[iso] ? `${counts[iso]} open` : '';
       const didStr = did[iso] ? did[iso].map(esc).join(' · ') : '';
-      html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}">
+      html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
         <input class="ml-line" data-ml-line="${pad(d)}" maxlength="140" value="${esc(lines[pad(d)] || '')}" placeholder="${esc(hint)}" aria-label="One line for ${esc(dayLabel(iso))}" autocomplete="off">
         <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
@@ -2262,11 +2265,15 @@
   });
   (function initDragDrop(){
     let dragId = null, dragEl = null, ghostEl = null;
-    const findDrop = (x, y) => {
+    const findTarget = (x, y) => {
       const els = document.elementsFromPoint(x, y);
-      for (const el of els) { if (el.dataset && el.dataset.mlDrop) return el; }
+      for (const el of els) {
+        if (el.dataset && el.dataset.mlDropDay) return {type:'day', el, day:el.dataset.mlDropDay};
+        if (el.dataset && el.dataset.mlDrop) return {type:'week', el, wk:el.dataset.mlDrop};
+      }
       return null;
     };
+    const clearHL = () => { document.querySelectorAll('.drop-over').forEach(el => el.classList.remove('drop-over')); };
     document.querySelector('.ml-plan').addEventListener('pointerdown', e => {
       const row = e.target.closest('.ml-kids .bj.sub');
       if (!row || e.target.closest('button, select, input')) return;
@@ -2285,17 +2292,21 @@
     document.addEventListener('pointermove', e => {
       if (!dragId) return;
       if (ghostEl) { ghostEl.style.top = (e.clientY - 16) + 'px'; ghostEl.style.left = (e.clientX + 12) + 'px'; }
-      document.querySelectorAll('.ml-wk.drop-over').forEach(el => el.classList.remove('drop-over'));
-      const drop = findDrop(e.clientX, e.clientY);
-      if (drop) drop.classList.add('drop-over');
+      clearHL();
+      const t = findTarget(e.clientX, e.clientY);
+      if (t) t.el.classList.add('drop-over');
     });
     document.addEventListener('pointerup', e => {
       if (!dragId) return;
-      document.querySelectorAll('.ml-wk.drop-over').forEach(el => el.classList.remove('drop-over'));
-      const drop = findDrop(e.clientX, e.clientY);
-      if (drop && drop.dataset.mlDrop) {
-        patchItem(dragId, {targetWeek: drop.dataset.mlDrop});
-        toast('Moved to Week ' + Number(drop.dataset.mlDrop.slice(6)));
+      clearHL();
+      const t = findTarget(e.clientX, e.clientY);
+      if (t && t.type === 'day') {
+        const wk = weekKey(t.day);
+        patchItem(dragId, {targetWeek: wk, due: t.day});
+        toast('Planned for ' + shortDay(t.day));
+      } else if (t && t.type === 'week') {
+        patchItem(dragId, {targetWeek: t.wk});
+        toast('Moved to Week ' + Number(t.wk.slice(6)));
       }
       if (dragEl) dragEl.classList.remove('dragging');
       if (ghostEl) { ghostEl.remove(); ghostEl = null; }
