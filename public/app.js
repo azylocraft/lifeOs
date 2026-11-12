@@ -1663,16 +1663,23 @@
     if (MAKER_WORDS.some(w => q.includes(' ' + w))) return 'maker';
     return 'manager';
   }
-  const BLOCKS = [
-    {key:'b0', label:'6 – 9 am', start:6},
-    {key:'b1', label:'9 – 12 pm', start:9},
-    {key:'b2', label:'12 – 3 pm', start:12},
-    {key:'b3', label:'3 – 6 pm', start:15},
-    {key:'b4', label:'6 – 9 pm', start:18},
-    {key:'b5', label:'9 – 12 am', start:21},
-    {key:'b6', label:'12 – 3 am', start:0, sleep:true},
-    {key:'b7', label:'3 – 6 am', start:3, sleep:true}
-  ];
+  function fmtHour(h) {
+    h = ((h % 24) + 24) % 24;
+    if (h === 0) return '12 am';
+    if (h === 12) return '12 pm';
+    return h < 12 ? h + ' am' : (h - 12) + ' pm';
+  }
+  function makeBlocks(dayStart) {
+    const out = [];
+    for (let i = 0; i < 8; i++) {
+      const s = (dayStart + i * 3) % 24, e = (s + 3) % 24;
+      out.push({ key: 'b' + i, label: fmtHour(s) + ' – ' + fmtHour(e), start: s, sleep: i >= 6 });
+    }
+    return out;
+  }
+  let dayStart = 9, BLOCKS = makeBlocks(9);
+  function getDayStart() { return (rhythmDoc().dayStart != null) ? rhythmDoc().dayStart : 9; }
+  function refreshBlocks() { dayStart = getDayStart(); BLOCKS = makeBlocks(dayStart); }
   const defaultBlocks = dow => {
     const wkend = dow === 0 || dow === 6;
     return {b0:'maker',b1:'maker',b2:'manager',b3:'manager',b4:wkend?'manager':'maker',b5:'manager',b6:'sleep',b7:'sleep'};
@@ -1788,7 +1795,7 @@
       const parentSpan = parent ? ` <span class="bj-et">↑ ${esc(parent.title)}</span>` : '';
       if (!i.done && movedNote(i)) meta.push(movedNote(i));
       if (i.done && i.cancelled) meta.push('dropped');
-      const strip = !open ? '' : `<div class="bj-strip">${i.done ? '' :
+      const strip = !open ? '' : `<div class="bj-strip">${chip('done', i.id, i.done ? 'Reopen' : '✓ Done')}${i.done ? '' :
         (d === isoToday ? chip('tomorrow', i.id, '→ Tomorrow') : chip('today', i.id, '→ Today'))
         + `<input type="date" data-lg-date="${esc(i.id)}" value="${esc(i.due)}" aria-label="Move to a date" style="width:auto">`
         + laterSelect(i.id)
@@ -1812,6 +1819,12 @@
       <div class="bj-strip">${chip('done', t.id, 'Done')}${chip('today', t.id, 'Today')}${chip('tomorrow', t.id, 'Tomorrow')}${laterSelect(t.id)}${chip('drop', t.id, 'Drop it')}</div></div>`;
   }
   function renderShape(){
+    refreshBlocks();
+    const pick = $('dayStartPick');
+    if (!pick.options.length) {
+      for (let h = 0; h < 24; h += 3) pick.add(new Option(fmtHour(h), h));
+    }
+    pick.value = dayStart;
     const d = logDate, shape = shapeFor(d);
     const open = ofKind('task').filter(t => t.due === d && !t.done);
     const timedTask = t => isStamp(t.remind) && t.remind.slice(0,10) === d;
@@ -1820,28 +1833,36 @@
       ...open.filter(timedTask).map(t => ({time:t.remind.slice(11), title:t.title, event:false}))
     ].sort((a,b) => a.time.localeCompare(b.time));
     const loose = open.filter(t => !timedTask(t)).sort(byDoneThenAge);
-    const row = t => `<div class="shape-row"><span>• ${esc(t.title)}</span>${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))], ` aria-label="Count ${esc(t.title)} as ${MODE_NAME[otherMode(workOf(t))]} work"`)}</div>`;
     const activeBlocks = BLOCKS.filter(b => !b.sleep);
-    const makerBlocks = activeBlocks.filter(b => shape[b.key] === 'maker');
-    const managerBlocks = activeBlocks.filter(b => shape[b.key] === 'manager');
+    const blockOpts = (tid) => `<select class="block-pick" data-lg="block" data-id="${esc(tid)}">`
+      + activeBlocks.map(b => `<option value="${b.key}">${esc(b.label)}</option>`).join('') + '</select>';
     const homeBlock = t => {
+      if (t.block && activeBlocks.some(b => b.key === t.block)) return t.block;
       const mode = workOf(t);
-      const pool = mode === 'maker' ? makerBlocks : managerBlocks;
+      const pool = activeBlocks.filter(b => shape[b.key] === mode);
       return pool.length ? pool[0].key : activeBlocks[0].key;
+    };
+    const row = t => {
+      const hb = homeBlock(t);
+      return `<div class="shape-row"><span>• ${esc(t.title)}</span><div class="shape-actions">${blockOpts(t.id)}${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))])}</div></div>`;
     };
     let html = BLOCKS.map(bl => {
       const mode = shape[bl.key] || 'sleep';
-      if (bl.sleep) return `<div class="shape-block sleep"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><span class="shape-sleep-tag">Sleep</span></div></div>`;
+      if (bl.sleep) return `<div class="shape-block glass sleep"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><span class="shape-sleep-tag">Sleep</span></div></div>`;
       const here = timed.filter(x => {
         const h = parseInt(x.time.split(':')[0], 10);
         return h >= bl.start && h < bl.start + 3;
       });
       const mine = loose.filter(t => homeBlock(t) === bl.key);
-      const body = here.map(x => `<div class="shape-row"><span><b class="tm">${esc(x.time)}</b> ${esc(x.title)}</span>${mode === 'maker' && x.event ? '<span class="tag warn">breaks maker</span>' : ''}</div>`).join('') + mine.map(row).join('');
-      return `<div class="shape-block"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn ${mode}" data-shape="${bl.key}" aria-label="${esc(bl.label)}: ${MODE_NAME[mode]} time. Tap to switch">${MODE_NAME[mode]} ⇄</button></div>
+      const body = here.map(x => `<div class="shape-row"><span><b class="tm">${esc(x.time)}</b> ${esc(x.title)}</span></div>`).join('') + mine.map(row).join('');
+      return `<div class="shape-block glass"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn ${mode}" data-shape="${bl.key}" aria-label="${esc(bl.label)}: ${MODE_NAME[mode]} time. Tap to switch">${MODE_NAME[mode]} ⇄</button></div>
         ${body || `<div class="shape-hint">${mode === 'maker' ? 'Deep work' : 'Quick tasks'}</div>`}</div>`;
     }).join('');
     $('lgShape').innerHTML = html;
+    $('lgShape').querySelectorAll('.block-pick').forEach(sel => {
+      const tid = sel.dataset.id, t = items.find(x => x.id === tid);
+      if (t) sel.value = homeBlock(t);
+    });
     const mk = open.filter(t => workOf(t) === 'maker').length;
     $('lgShapeSub').textContent = open.length ? `${mk} deep · ${open.length - mk} quick · for ${d === isoToday ? 'today' : shortDay(d)}` : '3-hour blocks · maker & manager';
   }
@@ -1960,6 +1981,17 @@
     if (same) delete days[logDate]; else days[logDate] = next;
     saveRhythm(r.week || {}, days);
     const again = $('lgShape').querySelector(`[data-shape="${bk}"]`); if (again) again.focus();
+  });
+  $('lgShape').addEventListener('change', e => {
+    const sel = e.target.closest('.block-pick');
+    if (!sel) return;
+    patchItem(sel.dataset.id, { block: sel.value });
+  });
+  $('dayStartPick').addEventListener('change', e => {
+    const h = Number(e.target.value), r = rhythmDoc();
+    upsertDoc('rhythm', 'rhythm', { ...r, dayStart: h });
+    refreshBlocks();
+    renderShape();
   });
   $('lgReviewToggle').addEventListener('click', () => { reviewOpen = !reviewOpen; renderLog(); });
   $('lgSubTabs').addEventListener('click', e => {
