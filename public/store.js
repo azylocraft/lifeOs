@@ -213,6 +213,34 @@
     panel.appendChild(row);
   }
 
+  function showPasswordReset() {
+    if (document.getElementById('pwResetCard')) return;
+    const el = document.createElement('div');
+    el.className = 'auth-card'; el.id = 'pwResetCard';
+    el.innerHTML = `
+      <h2>Set your new password</h2>
+      <p class="sub">Choose a password for email sign-in.</p>
+      <form id="pwResetForm">
+        <div class="field"><label for="pwNew">New password</label><input id="pwNew" type="password" minlength="6" required autocomplete="new-password" placeholder="At least 6 characters"></div>
+        <div class="row"><button class="btn" type="submit">Save password</button><button class="btn secondary" type="button" id="pwSkip">Skip</button></div>
+        <div class="auth-msg" id="pwMsg" role="status" aria-live="polite"></div>
+      </form>`;
+    document.body.appendChild(el);
+    el.querySelector('#pwSkip').addEventListener('click', () => { el.remove(); history.replaceState(null, '', location.pathname); });
+    el.querySelector('#pwResetForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pw = el.querySelector('#pwNew').value;
+      if (pw.length < 6) { el.querySelector('#pwMsg').textContent = 'At least 6 characters.'; return; }
+      el.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      el.querySelector('#pwMsg').textContent = 'Saving…';
+      const { error } = await sb.auth.updateUser({ password: pw });
+      if (error) { el.querySelector('#pwMsg').textContent = 'Error: ' + error.message; el.querySelectorAll('button').forEach(b => { b.disabled = false; }); return; }
+      el.querySelector('#pwMsg').textContent = 'Password set! You can now sign in with email and password.';
+      history.replaceState(null, '', location.pathname);
+      setTimeout(() => el.remove(), 2500);
+    });
+  }
+
   /* ---------- what app.js calls ---------- */
   window.LifeOSStore = {
     label,
@@ -233,7 +261,11 @@
       label.title = 'Saved to your account';
       label.body = email ? 'Signed in as ' + email + '. Synced to your database.' : 'Synced to your database.';
       showAccount(email);
-      sb.auth.onAuthStateChange(evt => { if (evt === 'SIGNED_OUT') location.reload(); });
+      sb.auth.onAuthStateChange((evt) => {
+        if (evt === 'SIGNED_OUT') location.reload();
+        if (evt === 'PASSWORD_RECOVERY') showPasswordReset();
+      });
+      if (location.hash.includes('type=recovery') || location.search.includes('type=recovery')) showPasswordReset();
       return createSupabaseCollection(session.user.id);
     }
   };
