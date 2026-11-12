@@ -1842,7 +1842,12 @@
       const pool = activeBlocks.filter(b => shape[b.key] === mode);
       return pool.length ? pool[0].key : (activeBlocks[0] || BLOCKS[0]).key;
     };
-    const row = t => `<div class="shape-row" draggable="true" data-drag-id="${esc(t.id)}"><span>• ${esc(t.title)}</span>${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))])}</div>`;
+    const tops = topsOf(d);
+    const row = t => {
+      const rank = tops.findIndex(x => x.id === t.id) + 1;
+      const bullet = rank ? `<b class="shape-top">★${rank}</b>` : '•';
+      return `<div class="shape-row${rank ? ' is-top' : ''}" draggable="true" data-drag-id="${esc(t.id)}"><span>${bullet} ${esc(t.title)}</span>${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))])}</div>`;
+    };
     let html = BLOCKS.map(bl => {
       const mode = shape[bl.key] || 'maker';
       if (mode === 'sleep') return `<div class="shape-block sleep"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn sleep" data-shape="${bl.key}">Sleep ⇄</button></div></div>`;
