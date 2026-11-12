@@ -2393,13 +2393,13 @@
     $('mlTitle').textContent = monthName(key);
     $('mlToday').hidden = key === monthKey(isoToday);
     const habits = habitList(), log = habitLog(), lines = monthDoc(key).lines || {};
-    const did = {}, counts = {};
+    const did = {}, open = {}, counts = {};
     const note = (iso, text) => (did[iso] || (did[iso] = [])).push(text);
     ofKind('bullet').forEach(b => { if (b.type === 'event' && monthKey(b.date) === key) note(b.date, '○ ' + (b.time ? b.time + ' ' : '') + b.text); });
     ofKind('task').forEach(t => {
       const on = t.doneOn || t.due;
       if (t.done && !t.cancelled && monthKey(on) === key) note(on, '✕ ' + t.title);
-      else if (!t.done && monthKey(t.due) === key) counts[t.due] = (counts[t.due] || 0) + 1;
+      else if (!t.done && monthKey(t.due) === key) { counts[t.due] = (counts[t.due] || 0) + 1; (open[t.due] || (open[t.due] = [])).push(t.title); }
     });
     const planned = {};
     ofKind('goal').filter(g => g.horizon === 'month' && g.period === key && g.due && !g.done).forEach(g => {
@@ -2411,13 +2411,13 @@
       const wk = weekKey(iso);
       if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week" data-ml-wk="${wk}"><div class="ml-wk" data-ml-drop="${wk}">Week ${Number(wk.slice(6))}<span class="ml-wk-count" data-wk-count="${wk}"></span></div>`;
       const done = new Set(log[iso] || []);
-      const hint = iso === isoToday ? 'One line about today' : counts[iso] ? `${counts[iso]} open` : '';
+      const openStr = (open[iso] || []).map(t => `<span class="ml-day-task">□ ${esc(t)}</span>`).join(' ');
       const didStr = did[iso] ? did[iso].map(esc).join(' · ') : '';
       const planStr = (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join(' ');
-      const belowStr = [planStr, didStr].filter(Boolean).join(' ');
+      const belowStr = [openStr, planStr, didStr].filter(Boolean).join(' ');
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
-        <input class="ml-line" data-ml-line="${pad(d)}" maxlength="140" value="${esc(lines[pad(d)] || '')}" placeholder="${esc(hint)}" aria-label="One line for ${esc(dayLabel(iso))}" autocomplete="off">
+        <input class="ml-line" data-ml-add="${iso}" maxlength="140" placeholder="Add task…" aria-label="Add task for ${esc(dayLabel(iso))}" autocomplete="off">
         <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
         ${belowStr ? `<div class="ml-did">${belowStr}</div>` : ''}</div>`;
     }
@@ -2448,12 +2448,16 @@
       const again = $('mlRows').querySelector(`[data-ml-habit="${CSS.escape(id)}"][data-day="${day}"]`); if (again) again.focus();
     }
   });
-  $('mlRows').addEventListener('change', e => {
-    const el = e.target.closest('[data-ml-line]');
+  $('mlRows').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const el = e.target.closest('[data-ml-add]');
     if (!el) return;
-    const lines = {...(monthDoc(mlMonth).lines || {})}, v = el.value.trim();
-    if (v) lines[el.dataset.mlLine] = v; else delete lines[el.dataset.mlLine];
-    upsertDoc('month-' + mlMonth, 'month', {key: mlMonth, lines});
+    e.preventDefault();
+    const title = el.value.trim();
+    if (!title) return;
+    newTask(title, el.dataset.mlAdd);
+    el.value = '';
+    toast('Task added');
   });
   $('mlPrev').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, -1); mlOpen = null; renderMonthLog(); });
   $('mlNext').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, 1); mlOpen = null; renderMonthLog(); });
