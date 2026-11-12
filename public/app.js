@@ -1809,7 +1809,7 @@
   }
   function reviewHTML(t){
     return `<div class="bj"><span class="bj-g" aria-hidden="true">•</span><div class="bj-t"><span class="tx">${esc(t.title)}</span><span class="bj-m">from ${esc(shortDay(t.due))}${movedNote(t) ? ' · ' + movedNote(t) : ''}</span></div>
-      <div class="bj-strip">${chip('today', t.id, 'Today')}${chip('tomorrow', t.id, 'Tomorrow')}${laterSelect(t.id)}${chip('drop', t.id, 'Drop it')}</div></div>`;
+      <div class="bj-strip">${chip('done', t.id, 'Done')}${chip('today', t.id, 'Today')}${chip('tomorrow', t.id, 'Tomorrow')}${laterSelect(t.id)}${chip('drop', t.id, 'Drop it')}</div></div>`;
   }
   function renderShape(){
     const d = logDate, shape = shapeFor(d);
