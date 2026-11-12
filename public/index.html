@@ -99,7 +99,7 @@
     <section class="view" id="view-expenses">
       <div class="grid">
         <div class="card"><div class="card-head"><div><h2>Add an expense</h2><div class="sub">A quick record, no spreadsheet needed</div></div></div>
-          <form id="expenseForm"><div class="field"><label for="expenseName">Description</label><input id="expenseName" required maxlength="100" placeholder="e.g. Groceries" autocomplete="off"></div><div class="form-grid"><div class="field"><label for="expenseAmount">Amount (₹)</label><input id="expenseAmount" required type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="450"></div><div class="field"><label for="expenseCategory">Category</label><select id="expenseCategory"></select><div class="item-meta" id="catGuess" hidden></div></div><div class="field"><label for="expenseSub">Subcategory (optional)</label><input id="expenseSub" list="subList" maxlength="30" placeholder="e.g. Cleaning supplies" autocomplete="off"><datalist id="subList"></datalist></div><div class="field full"><label for="expenseDate">Date</label><input id="expenseDate" required type="date"></div></div><button class="btn" type="submit">＋ Add expense</button></form>
+          <form id="expenseForm"><div class="field"><label for="expenseName">Description</label><input id="expenseName" required maxlength="100" placeholder="e.g. Groceries" autocomplete="off"></div><div class="form-grid"><div class="field"><label for="expenseAmount">Amount (₹)</label><input id="expenseAmount" required type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="450"></div><div class="field"><label for="expenseCategory">Category</label><select id="expenseCategory"></select><div class="item-meta" id="catGuess" hidden></div></div><div class="field"><label for="expenseSub">Subcategory (optional)</label><input id="expenseSub" list="subList" maxlength="30" placeholder="e.g. Cleaning supplies" autocomplete="off"><datalist id="subList"></datalist></div><div class="field"><label for="expenseDate">Date</label><input id="expenseDate" required type="date"></div><div class="field" id="expensePlanField" hidden><label for="expensePlan">For a tracking plan</label><select id="expensePlan"><option value="">None</option></select></div></div><button class="btn" type="submit">＋ Add expense</button></form>
         </div>
         <div class="card glass"><div class="card-head"><div><h2>Monthly budgets</h2><div class="sub" id="budgetSummary">Spent and left in each category</div></div></div>
           <div class="cal-head"><div class="cal-title" id="budgetMonthLabel">This month</div><div class="cal-nav"><button type="button" class="btn secondary small" id="bmToday">This month</button><button type="button" class="icon-btn" id="bmPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="bmNext" aria-label="Next month">›</button></div></div>
@@ -131,12 +131,13 @@
       </div>
       <div class="card" style="margin-top:18px">
         <div class="card-head" style="flex-wrap:wrap"><div><h2>Plans and instalments</h2><div class="sub" id="planSub">Money promised to something else, month by month</div></div>
-          <div class="seg" id="planType" role="group" aria-label="Kind of plan"><button type="button" data-ptype="save" aria-pressed="true">Saving up</button><button type="button" data-ptype="emi">Paying instalments</button></div></div>
+          <div class="seg" id="planType" role="group" aria-label="Kind of plan"><button type="button" data-ptype="save" aria-pressed="true">Saving up</button><button type="button" data-ptype="emi">Paying instalments</button><button type="button" data-ptype="track">Tracking spending</button></div></div>
         <div class="grid two-col">
           <form id="planForm"><div class="field"><label for="planName" id="planNameLabel">What are you saving for?</label><input id="planName" required maxlength="60" placeholder="e.g. Washing machine, family trip" autocomplete="off"></div>
             <div class="form-grid"><div class="field"><label for="planAmount" id="planAmountLabel">Total cost (₹)</label><input id="planAmount" required type="number" inputmode="numeric" min="1" step="1" placeholder="25000"></div>
             <div class="field"><label for="planMonth" id="planMonthLabel">Paying for it in</label><input id="planMonth" type="month" required></div>
             <div class="field" id="planCountField" hidden><label for="planCount">How many instalments?</label><input id="planCount" type="number" inputmode="numeric" min="1" max="120" step="1" placeholder="12"></div>
+            <div class="field" id="planBudgetField" hidden><label for="planBudgetPm">Monthly budget (₹, optional)</label><input id="planBudgetPm" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 3000"></div>
             <div class="field full"><label for="planCategory">Category</label><select id="planCategory"></select></div></div>
             <button class="btn" type="submit" id="planBtn">＋ Start saving for this</button></form>
           <div class="list" id="planList"></div>
@@ -270,7 +271,7 @@
         </div>
 
         <div id="mlDoneView" hidden>
-          <div class="card"><div id="mlDoneList"></div></div>
+          <div class="card ml-cal-card"><div id="mlDoneList"></div></div>
         </div>
 
         <div class="card" style="margin-top:14px">

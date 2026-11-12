@@ -435,7 +435,7 @@
 /* ===================== journal · horizons · maker / manager ===================== */
 .chip-btn { border:1px solid var(--stroke); background:transparent; color:var(--text-2); border-radius:999px; padding:5px 11px; font-size:11.5px; white-space:nowrap; line-height:1.3 }
 .chip-btn:hover { background:var(--track); color:var(--text) }
-.jn-tabs { display:inline-flex; margin-bottom:18px; background:var(--card) }
+.jn-tabs { display:inline-flex; margin-bottom:10px; background:var(--card) }
 
 /* bullet log */
 .bj-key { display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12px; color:var(--muted); margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line-soft) }
@@ -542,8 +542,9 @@ button.bj-g:hover { background:var(--track) }
 }
 
 /* monthly spread: compact single-column, all weeks visible on phone */
-.ml-top-head { padding:18px 20px 10px }
-.ml-cal-card { padding:12px 10px 14px }
+.ml-top-head { padding:6px 20px 2px; margin-bottom:4px !important }
+.ml-cal-card { padding:12px 10px 14px;
+  background-image:radial-gradient(circle, color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1.3px); background-size:20px 20px; background-position:10px 10px }
 .ml-cal-card .ml-line:focus { background:var(--card) }
 .ml-cal-card .ml-row.today { background:color-mix(in srgb, var(--text) 7%, var(--card)) }
 .ml-row { grid-template-columns:38px minmax(0,1fr) auto }
@@ -628,11 +629,11 @@ button.bj-g:hover { background:var(--track) }
 .past-week:first-child .past-wk-label { border-top:0; padding-top:0 }
 
 /* monthly log tabs */
-.ml-tabs { margin:0 20px 12px }
+.ml-tabs { margin:0 20px 6px }
 
 /* compact day rows on phone */
 @media (max-width:620px) {
-  .ml-cal-card { padding:6px 6px 8px; max-height:75vh; overflow-y:auto; scrollbar-width:thin }
+  .ml-cal-card { padding:6px 6px 8px; max-height:80vh; overflow-y:auto; scrollbar-width:thin }
   .ml-row { padding:0 2px; gap:1px 3px; grid-template-columns:34px minmax(0,1fr) auto; border-bottom:0 }
   .ml-row .ml-line { font-size:11.5px; padding:3px 4px }
   .ml-row .ml-day { padding:1px 2px; font-size:10px; gap:4px }
@@ -648,25 +649,40 @@ button.bj-g:hover { background:var(--track) }
 }
 
 /* project rows in monthly plan */
-.ml-project { border:1px solid var(--line-soft); border-radius:12px; padding:4px 6px; margin-bottom:8px }
+.ml-project { border:1px solid var(--line-soft); border-radius:10px; padding:2px 4px; margin-bottom:6px }
 .ml-project.done { opacity:.6 }
-.ml-kids { padding:0 0 8px 30px }
-.ml-kids .bj { padding:3px 4px; cursor:grab }
-.ml-kids .bj .bj-g { font-size:11px }
+.ml-kids { padding:0 0 4px 24px }
+.ml-kids .bj { padding:2px 2px; cursor:grab }
+.ml-kids .bj .bj-g { width:22px; height:22px; font-size:10px }
+.ml-kids .bj .bj-t { padding:2px 0; font-size:12.5px }
+.ml-kids .bj .bj-m { font-size:10px }
 .ml-kids .bj.dragging { opacity:.35 }
-.ml-kid-form { margin-top:6px }
-.ml-kid-form input { padding:6px 10px; font-size:13px }
-.ml-wk-sel { font-size:11px; padding:2px 4px; border:1px solid var(--line-soft); border-radius:6px; background:var(--input-bg); color:var(--muted); cursor:pointer; max-width:80px }
+.ml-kid-form { margin-top:4px }
+.ml-kid-form input { padding:5px 8px; font-size:12px }
+.ml-wk-sel { font-size:10px; padding:1px 3px; border:1px solid var(--line-soft); border-radius:5px; background:var(--input-bg); color:var(--muted); cursor:pointer; max-width:50px }
 .ml-wk-sel:focus { border-color:var(--pop, var(--accent)) }
 
 /* drag ghost */
 .ml-drag-ghost { background:var(--card); border:1.5px solid var(--accent); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:500; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.18) }
 
-/* done view in monthly log */
-.ml-done-week { margin-bottom:14px; padding:0 6px }
-.ml-done-wk-head { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; padding:4px 0 4px; border-bottom:1px solid var(--line-soft); margin-bottom:4px }
-.ml-done-day { font-size:12px; line-height:1.5; padding:2px 0; overflow-wrap:anywhere }
-.ml-done-dt { font-weight:600; font-size:11px; color:var(--text-2); margin-right:6px; min-width:28px; display:inline-block }
+/* done view in monthly log — same calendar grid as Plan */
+.ml-done-inline { font-size:11.5px; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-2); padding:2px 0; min-width:0 }
+.ml-done-empty { display:block }
 .ml-done-g { margin-right:2px; opacity:.6 }
 .ml-done-sep { color:var(--muted); margin:0 3px }
-.ml-done-week .ml-wk-head { margin-bottom:4px }
+#mlDoneList .ml-row { grid-template-columns:38px minmax(0,1fr) 8px }
+#mlDoneList .ml-dot-col { width:8px; display:flex; align-items:center; justify-content:center }
+#mlDoneList .ml-dot-col::after { content:''; width:4px; height:4px; border-radius:50%; background:var(--line-soft) }
+#mlDoneList .ml-row:has(.ml-done-g) .ml-dot-col::after { background:var(--accent) }
+#mlDoneView .card { padding:12px 10px 14px;
+  background-image:radial-gradient(circle, color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1.3px); background-size:20px 20px; background-position:10px 10px }
+
+/* tracking plans */
+.tag.track { background:color-mix(in srgb, var(--accent) 18%, transparent); color:var(--accent) }
+.track-item .item-main { width:100% }
+.track-months { display:grid; gap:1px; margin-top:6px; padding:4px 0 }
+.track-month { display:flex; justify-content:space-between; align-items:center; padding:3px 6px; font-size:12px; border-bottom:1px solid var(--line-soft) }
+.track-month:last-child { border-bottom:0 }
+.track-month-name { color:var(--text-2); font-size:11px }
+.track-month-amt { font-weight:600; font-variant-numeric:tabular-nums }
+.track-month-amt.red { color:var(--red) }

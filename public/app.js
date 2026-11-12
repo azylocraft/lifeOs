@@ -98,7 +98,7 @@
   const saveCats = cats => saveSettings(cats, monthMap());
   /* a month's budget: the usual plan, any override for that month, plus planned purchases */
   function planFor(key, name){
-    return ofKind('plan').filter(p => p.type !== 'emi' && p.month === key && (!name || p.category === name))
+    return ofKind('plan').filter(p => p.type !== 'emi' && p.type !== 'track' && p.month === key && (!name || p.category === name))
       .reduce((t,p) => t + (Number(p.amount) || 0), 0);
   }
   function catsFor(key){
@@ -136,7 +136,7 @@
     return {emi:false, start, parts, share: Math.ceil(amount / parts), total: amount};
   }
   function commitList(key){
-    return ofKind('plan').map(p => {
+    return ofKind('plan').filter(p => p.type !== 'track').map(p => {
       const sh = planShape(p), part = apartM(sh.start, key) + 1;
       if (part < 1 || part > sh.parts) return null;
       return {...p, ...sh, part, done: Math.min(sh.total, sh.share * part)};
@@ -509,10 +509,24 @@
       wrap.style.maxHeight = Math.round(h + 2) + 'px';
     } catch(e) {}
   }
+  function trackingPlans(){ return ofKind('plan').filter(p => p.type === 'track'); }
+  function trackExpenses(planId){
+    return ofKind('expense').filter(e => e.plan === planId);
+  }
+  function trackMonthly(planId){
+    const exps = trackExpenses(planId), byMonth = {};
+    exps.forEach(e => { const k = monthKey(e.date || isoToday); byMonth[k] = (byMonth[k] || 0) + (Number(e.amount) || 0); });
+    return Object.entries(byMonth).sort((a,b) => a[0].localeCompare(b[0]));
+  }
   function renderPlans(){
     const nowKey = monthKey(isoToday);
-    const plans = ofKind('plan').slice().sort((a,b) => String(a.month||'').localeCompare(String(b.month||'')) || (b.created||0) - (a.created||0));
+    const plans = ofKind('plan').slice().sort((a,b) => {
+      const ta = a.type === 'track' ? 1 : 0, tb = b.type === 'track' ? 1 : 0;
+      if (ta !== tb) return ta - tb;
+      return String(a.month||'').localeCompare(String(b.month||'')) || (b.created||0) - (a.created||0);
+    });
     $('planList').innerHTML = plans.length ? plans.map(p => {
+      if (p.type === 'track') return renderTrackPlan(p, nowKey);
       const sh = planShape(p), part = apartM(sh.start, nowKey) + 1;
       const done = Math.max(0, Math.min(sh.total, sh.share * Math.min(part, sh.parts)));
       const meta = sh.emi
@@ -521,6 +535,30 @@
       const pct = sh.total ? Math.min(100, Math.round(done / sh.total * 100)) : 0;
       return `<div class="item"><div class="item-main"><div class="item-title">${esc(p.name)} <span class="tag ${sh.emi ? 'emi' : 'goal'}">${sh.emi ? 'Instalment' : 'Saving up'}</span></div><div class="item-meta">${esc(meta)} &nbsp; <span class="tag">${esc(p.category)}</span> &nbsp; ${esc(money(done))} of ${esc(money(sh.total))} (${pct}%)</div></div>${sh.emi ? '' : `<button type="button" class="btn secondary small" data-act="bought" data-id="${esc(p.id)}">Bought</button>`}${delBtn(p.id, sh.emi ? 'Delete instalment plan' : 'Delete plan')}</div>`;
     }).join('') : empty('Nothing here yet. Save up for something, or add instalments you already pay.');
+    populateExpensePlanDropdown();
+  }
+  function renderTrackPlan(p, nowKey){
+    const months = trackMonthly(p.id);
+    const total = months.reduce((t, [,v]) => t + v, 0);
+    const numMonths = months.length || 1;
+    const avg = total / numMonths;
+    const active = p.active !== false;
+    const startLabel = monthName(p.from || p.month);
+    const budgetNote = p.budget ? ` \u00b7 ${money(p.budget)}/month budget` : '';
+    const monthRows = months.length ? months.map(([k, v]) => {
+      const overBudget = p.budget && v > p.budget;
+      return `<div class="track-month"><span class="track-month-name">${esc(monthName(k))}</span><span class="track-month-amt${overBudget ? ' red' : ''}">${esc(money(v))}${p.budget ? ` <span class="item-meta">of ${esc(money(p.budget))}</span>` : ''}</span></div>`;
+    }).join('') : '<div class="item-meta" style="padding:4px 0">No expenses yet. Add one and tag it to this plan.</div>';
+    return `<div class="item track-item"><div class="item-main"><div class="item-title">${esc(p.name)} <span class="tag track">${active ? 'Tracking' : 'Stopped'}</span></div><div class="item-meta">Since ${esc(startLabel)} &nbsp; <span class="tag">${esc(p.category)}</span>${budgetNote} &nbsp; ${esc(money(total))} total &nbsp; avg ${esc(money(Math.round(avg)))}/month</div><div class="track-months">${monthRows}</div></div>${active ? `<button type="button" class="btn secondary small" data-act="stop-track" data-id="${esc(p.id)}">Stop</button>` : `<button type="button" class="btn secondary small" data-act="resume-track" data-id="${esc(p.id)}">Resume</button>`}${delBtn(p.id, 'Delete tracking plan')}</div>`;
+  }
+  function populateExpensePlanDropdown(){
+    const active = trackingPlans().filter(p => p.active !== false);
+    const sel = $('expensePlan'), field = $('expensePlanField');
+    field.hidden = !active.length;
+    if (!active.length) { sel.value = ''; return; }
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">None</option>` + active.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+    if (active.some(p => p.id === cur)) sel.value = cur;
   }
   function renderExpenses(){
     const exps = sortedExpenses();
@@ -749,7 +787,7 @@
     const subs = [...new Set(exps.map(e => String(e.sub || '').trim()).filter(Boolean))].sort();
     $('subList').innerHTML = subs.map(x => `<option value="${esc(x)}"></option>`).join('');
     $('expenseRows').innerHTML = exps.map(e =>
-      `<tr><td class="nowrap">${esc(prettyDate(e.date))}</td><td class="wrap">${esc(e.name)}</td><td class="wrap"><span class="tag">${esc(e.category)}</span>${e.sub ? ` <span class="tag">${esc(e.sub)}</span>` : ''}</td><td class="amount">${esc(money(e.amount))}</td><td class="amount">${delBtn(e.id, 'Delete expense')}</td></tr>`).join('');
+      (() => { const tp = e.plan && items.find(i => i.id === e.plan); return `<tr><td class="nowrap">${esc(prettyDate(e.date))}</td><td class="wrap">${esc(e.name)}</td><td class="wrap"><span class="tag">${esc(e.category)}</span>${e.sub ? ` <span class="tag">${esc(e.sub)}</span>` : ''}${tp ? ` <span class="tag track">${esc(tp.name)}</span>` : ''}</td><td class="amount">${esc(money(e.amount))}</td><td class="amount">${delBtn(e.id, 'Delete expense')}</td></tr>`; })()).join('');
     $('expenseTable').hidden = !exps.length;
     $('expenseEmpty').hidden = !!exps.length;
     $('expenseEmpty').textContent = loading && !items.length ? 'Getting your saved items…' : 'No expenses yet. Add your first one above.';
@@ -801,6 +839,8 @@
     if (el.dataset.act === 'remind') openRemind(item);
     if (el.dataset.act === 'ack') patchItem(id, {reminded:true});
     if (el.dataset.act === 'ack-done') patchItem(id, {done:true, reminded:true});
+    if (el.dataset.act === 'stop-track') { patchItem(id, {active:false}); toast('Tracking stopped'); return; }
+    if (el.dataset.act === 'resume-track') { patchItem(id, {active:true}); toast('Tracking resumed'); return; }
     if (el.dataset.act === 'bought') {
       const key = monthKey(isoToday), amount = Math.max(0, Number(item.amount) || 0);
       const months = {...monthMap()}, over = {...(months[key] || {})};
@@ -832,7 +872,7 @@
       'Today is ' + today.toLocaleDateString('en-GB',{weekday:'long'}) + ', ' + isoToday + '. Amounts are in Indian rupees.',
       'Reply with only a JSON array. Each element is one of:',
       '{"type":"task","title":string,"due":"YYYY-MM-DD" or "","priority":"Normal"|"High"|"Low","remind":"YYYY-MM-DDTHH:MM" or "","project":one of ' + JSON.stringify(ofKind('project').map(pr => pr.name)) + ' or ""}',
-      '{"type":"expense","name":string,"amount":number,"category":one of ' + JSON.stringify(catNames()) + ',"sub":string,"date":"YYYY-MM-DD"}',
+      '{"type":"expense","name":string,"amount":number,"category":one of ' + JSON.stringify(catNames()) + ',"sub":string,"date":"YYYY-MM-DD","plan":one of ' + JSON.stringify(trackingPlans().filter(p => p.active !== false).map(p => p.name)) + ' or ""}',
       'Rules:',
       '- Something to do, remember or be reminded of is a task. Money already spent or paid is an expense. A bill still to be paid is a task, not an expense.',
       '- One note can hold several entries. Return [] if it holds none.',
@@ -841,6 +881,7 @@
       '- category MUST be one of the list above, copied exactly. Never invent a category, never leave it out: pick the closest one, and put anything that does not fit neatly under "Other".',
       '- sub is where the specific thing goes: a short subcategory, one to three words, in title case, grouping similar things (a broom is category "Home / family" with sub "Cleaning supplies"; petrol is "Transport / fuel" with sub "Fuel"; a gym vest is "Health / gym" with sub "Gym wear"). Reuse one of these when it fits: ' + JSON.stringify(knownSubs()) + '. Use "" only if the note says too little.',
       '- project: if the task clearly belongs to one of the listed projects, copy that project name exactly; otherwise "". Never invent a project.',
+      '- plan: if the expense is for one of the listed tracking plans (ongoing things like a business, side project, etc.), copy that plan name exactly; otherwise "". The person may say "for X" to mean it belongs to plan X.',
       '- Read amounts like 2k as 2000, 1.5 lakh as 150000. Skip an expense that has no amount.',
       '- Priority is High only if the note says urgent, important or similar; Low only if it says so; otherwise Normal.',
       '- Keep titles and names short, in the language the person wrote in, starting with a capital letter, without the date or amount in them.',
@@ -864,7 +905,8 @@
         const name = String(x.name || '').trim().slice(0, 100);
         const amount = Math.round(Number(x.amount) * 100) / 100;
         if (!name || !(amount > 0) || !isFinite(amount)) continue;
-        list.push({kind:'expense', name, amount, category: names.includes(x.category) ? x.category : fallback, sub: String(x.sub || '').trim().slice(0, 30), date: isDate(x.date) ? x.date : isoToday});
+        const tp = trackingPlans().filter(p => p.active !== false).find(p => p.name.toLowerCase() === String(x.plan || '').toLowerCase().trim());
+        list.push({kind:'expense', name, amount, category: names.includes(x.category) ? x.category : fallback, sub: String(x.sub || '').trim().slice(0, 30), date: isDate(x.date) ? x.date : isoToday, ...(tp ? {plan: tp.id} : {})});
       }
     }
     return list;
@@ -883,7 +925,7 @@
       $('quickText').value = '';
       $('quickList').innerHTML = made.map(m => m.kind === 'task'
         ? `<div class="item"><div class="item-main"><div class="item-title">${esc(m.title)}</div><div class="item-meta">Task &nbsp; ${m.due ? 'Due ' + esc(prettyDate(m.due)) : 'No due date'}${m.priority !== 'Normal' ? ' &nbsp; ' + esc(m.priority) + ' priority' : ''}${m.remind ? ' &nbsp; ◷ ' + esc(fmtRemind(m.remind)) : ''}</div></div></div>`
-        : `<div class="item"><div class="item-main"><div class="item-title">${esc(m.name)}</div><div class="item-meta">Expense &nbsp; ${esc(prettyDate(m.date))} &nbsp; <span class="tag">${esc(m.category)}</span>${m.sub ? ` <span class="tag">${esc(m.sub)}</span>` : ''}</div></div><div class="item-side">${esc(money(m.amount))}</div></div>`).join('');
+        : (() => { const tp = m.plan && items.find(i => i.id === m.plan); return `<div class="item"><div class="item-main"><div class="item-title">${esc(m.name)}</div><div class="item-meta">Expense &nbsp; ${esc(prettyDate(m.date))} &nbsp; <span class="tag">${esc(m.category)}</span>${m.sub ? ` <span class="tag">${esc(m.sub)}</span>` : ''}${tp ? ` <span class="tag track">${esc(tp.name)}</span>` : ''}</div></div><div class="item-side">${esc(money(m.amount))}</div></div>`; })()).join('');
       $('quickResult').hidden = false;
       const t = made.filter(m => m.kind === 'task').length, x = made.length - t;
       const parts = [];
@@ -1037,19 +1079,22 @@
   });
   let planType = 'save';
   function setPlanType(t){
-    planType = t === 'emi' ? 'emi' : 'save';
+    planType = t === 'emi' ? 'emi' : t === 'track' ? 'track' : 'save';
     document.querySelectorAll('#planType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ptype === planType)));
-    const emi = planType === 'emi';
-    $('planNameLabel').textContent = emi ? 'What are you paying off?' : 'What are you saving for?';
-    $('planName').placeholder = emi ? 'e.g. Fridge on EMI, phone loan' : 'e.g. Washing machine, family trip';
+    const emi = planType === 'emi', track = planType === 'track';
+    $('planNameLabel').textContent = track ? 'What are you tracking?' : emi ? 'What are you paying off?' : 'What are you saving for?';
+    $('planName').placeholder = track ? 'e.g. Online business, side project' : emi ? 'e.g. Fridge on EMI, phone loan' : 'e.g. Washing machine, family trip';
     $('planAmountLabel').textContent = emi ? 'Amount each month (\u20b9)' : 'Total cost (\u20b9)';
     $('planAmount').placeholder = emi ? '2500' : '25000';
-    $('planMonthLabel').textContent = emi ? 'First instalment' : 'Paying for it in';
+    $('planAmount').required = !track;
+    $('planAmountLabel').parentElement.hidden = track;
+    $('planMonthLabel').textContent = track ? 'Started from' : emi ? 'First instalment' : 'Paying for it in';
     $('planCountField').hidden = !emi;
     $('planCount').required = emi;
-    $('planBtn').textContent = emi ? '\uff0b Add these instalments' : '\uff0b Start saving for this';
-    $('planMonth').value = emi ? monthKey(isoToday) : shiftKey(monthKey(isoToday), 1);
-    $('planSub').textContent = emi ? 'Instalments you already owe are taken off each month\u2019s spending money' : 'Money promised to something else, month by month';
+    $('planBudgetField').hidden = !track;
+    $('planBtn').textContent = track ? '\uff0b Start tracking' : emi ? '\uff0b Add these instalments' : '\uff0b Start saving for this';
+    $('planMonth').value = track ? monthKey(isoToday) : emi ? monthKey(isoToday) : shiftKey(monthKey(isoToday), 1);
+    $('planSub').textContent = track ? 'Track how much you spend on something, month by month' : emi ? 'Instalments you already owe are taken off each month\u2019s spending money' : 'Money promised to something else, month by month';
   }
   $('planType').addEventListener('click', e => {
     const b = e.target.closest('[data-ptype]');
@@ -1057,20 +1102,27 @@
   });
   $('planForm').addEventListener('submit', e => {
     e.preventDefault();
-    const name = $('planName').value.trim(), amount = Math.max(0, Math.round(Number($('planAmount').value) || 0));
+    const name = $('planName').value.trim();
     const m = $('planMonth').value.slice(0,7);
     if (!name) return;
-    if (!(amount > 0)) { toast('Enter an amount above zero.'); return; }
-    if (!/^\d{4}-\d{2}$/.test(m)) { toast(planType === 'emi' ? 'Pick the month of the first instalment.' : 'Pick the month you will pay for it.'); return; }
-    if (planType === 'emi') {
-      const n = Math.round(Number($('planCount').value) || 0);
-      if (!(n > 0)) { toast('Enter how many instalments are left.'); return; }
-      addItem('plan', {type:'emi', name, amount, months:n, month:m, from:m, category: $('planCategory').value});
-      toast('Instalments added');
+    if (!/^\d{4}-\d{2}$/.test(m)) { toast(planType === 'emi' ? 'Pick the month of the first instalment.' : planType === 'track' ? 'Pick the start month.' : 'Pick the month you will pay for it.'); return; }
+    if (planType === 'track') {
+      const budget = Math.max(0, Math.round(Number($('planBudgetPm').value) || 0));
+      addItem('plan', {type:'track', name, amount:0, budget: budget || 0, month:m, from:m, category: $('planCategory').value, active:true});
+      toast('Tracking started for ' + name);
     } else {
-      if (apartM(monthKey(isoToday), m) < 0) { toast('Pick this month or a later one.'); return; }
-      addItem('plan', {type:'save', name, amount, month:m, from: monthKey(isoToday), category: $('planCategory').value});
-      toast('Saving plan added');
+      const amount = Math.max(0, Math.round(Number($('planAmount').value) || 0));
+      if (!(amount > 0)) { toast('Enter an amount above zero.'); return; }
+      if (planType === 'emi') {
+        const n = Math.round(Number($('planCount').value) || 0);
+        if (!(n > 0)) { toast('Enter how many instalments are left.'); return; }
+        addItem('plan', {type:'emi', name, amount, months:n, month:m, from:m, category: $('planCategory').value});
+        toast('Instalments added');
+      } else {
+        if (apartM(monthKey(isoToday), m) < 0) { toast('Pick this month or a later one.'); return; }
+        addItem('plan', {type:'save', name, amount, month:m, from: monthKey(isoToday), category: $('planCategory').value});
+        toast('Saving plan added');
+      }
     }
     e.target.reset();
     setPlanType(planType);
@@ -1166,11 +1218,17 @@
     bullet:  [['text','Entry','text'],['time','Time (events)','time']],
     note:    [['text','Note','textarea']],
     trip:    [['name','Trip or destination','text'],['start','Start date','date'],['end','End date','date'],['budget','Budget (\u20b9)','number'],['notes','Notes','textarea']],
-    plan:    [['name','What it is','text'],['amount','Amount (\u20b9)','number'],['months','How many instalments','number'],['month','Month','month'],['category','Category','cat']]
+    plan:    [['name','What it is','text'],['amount','Amount (\u20b9)','number'],['budget','Monthly budget (\u20b9)','number'],['months','How many instalments','number'],['month','Month','month'],['category','Category','cat']]
   };
   let editId = null;
   function openEdit(item){
-    const fields = (EDIT_FIELDS[item.kind] || []).filter(f => !(item.kind === 'plan' && f[0] === 'months' && item.type !== 'emi'));
+    const fields = (EDIT_FIELDS[item.kind] || []).filter(f => {
+      if (item.kind !== 'plan') return true;
+      if (f[0] === 'months' && item.type !== 'emi') return false;
+      if (f[0] === 'amount' && item.type === 'track') return false;
+      if (f[0] === 'budget' && item.type !== 'track') return false;
+      return true;
+    });
     if (!fields.length) return;
     editId = item.id;
     $('editTitle').textContent = {expense:'Edit expense', task:'Edit task', note:'Edit note', trip:'Edit trip', plan:'Edit plan', project:'Edit project', goal:'Edit goal', bullet:'Edit entry'}[item.kind] || 'Edit';
@@ -1218,7 +1276,7 @@
     if (item.kind === 'bullet' && !patch.text) { toast('The entry cannot be empty.'); return; }
     if (item.kind === 'plan') {
       if (!patch.name) { toast('Give it a name.'); return; }
-      if (!(patch.amount > 0)) { toast('Enter an amount above zero.'); return; }
+      if (item.type !== 'track' && !(patch.amount > 0)) { toast('Enter an amount above zero.'); return; }
       if (!/^\d{4}-\d{2}$/.test(patch.month)) { toast('Pick a month.'); return; }
       if (item.type === 'emi' && !(patch.months > 0)) { toast('Enter how many instalments.'); return; }
     }
@@ -1297,6 +1355,9 @@
     if (g.sub && !$('expenseSub').value.trim()) $('expenseSub').value = g.sub;
     note.textContent = 'Picked from ' + g.why + ' \u2014 change it if that is wrong';
     note.hidden = false;
+    const q = String($('expenseName').value || '').toLowerCase().trim();
+    const tp = trackingPlans().filter(p => p.active !== false).find(p => q.includes(p.name.toLowerCase()));
+    if (tp && $('expensePlan')) $('expensePlan').value = tp.id;
   }
   $('expenseName').addEventListener('input', applyGuess);
   $('expenseCategory').addEventListener('change', () => { catTouched = true; $('catGuess').hidden = true; });
@@ -1306,10 +1367,12 @@
     const amount = Math.round(Number($('expenseAmount').value) * 100) / 100;
     if (!name) return;
     if (!(amount > 0)) { toast('Enter an amount above zero.'); return; }
-    addItem('expense', {name, amount, category: $('expenseCategory').value, sub: $('expenseSub').value.trim().slice(0,30), date: $('expenseDate').value || isoToday});
+    const planId = $('expensePlan') ? $('expensePlan').value : '';
+    addItem('expense', {name, amount, category: $('expenseCategory').value, sub: $('expenseSub').value.trim().slice(0,30), date: $('expenseDate').value || isoToday, ...(planId ? {plan: planId} : {})});
     e.target.reset(); $('expenseDate').value = isoToday; $('expenseName').focus();
     catTouched = false; $('catGuess').hidden = true;
-    toast('Expense added');
+    const planName = planId && trackingPlans().find(p => p.id === planId);
+    toast('Expense added' + (planName ? ' to ' + planName.name : ''));
   });
   $('tripForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -1836,6 +1899,7 @@
     jnTab = t === 'month' ? 'month' : 'day';
     $('jnDay').hidden = jnTab !== 'day'; $('jnMonth').hidden = jnTab !== 'month';
     document.querySelectorAll('#jnTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === jnTab)));
+    renderNow();
   }
   $('jnTabs').addEventListener('click', e => { const b = e.target.closest('[data-jtab]'); if (b) setJournalTab(b.dataset.jtab); });
 
@@ -1976,7 +2040,7 @@
   function renderNow(){
     const view = (document.querySelector('.view.active') || {}).id;
     const bar = $('nowBar');
-    bar.hidden = !(view === 'view-home' || view === 'view-journal');
+    bar.hidden = !(view === 'view-home' || (view === 'view-journal' && jnTab !== 'month'));
     if (bar.hidden) return;
     const {mode, pick, count} = nextAction();
     const btn = (act, label, cls) => `<button type="button" class="btn ${cls || ''} small" data-now="${act}">${label}</button>`;
@@ -2036,19 +2100,20 @@
   function projectRowHTML(g, key){
     const kids = kidsOf(g.id).sort(byDoneThenAge), kd = kids.filter(k => k.done).length, open = mlOpen === g.id;
     const weeks = monthWeeks(key);
+    const stepsHTML = kids.map(k => {
+      const wkLabel = k.targetWeek ? 'W' + Number(k.targetWeek.slice(6)) : '';
+      return `<div class="bj sub ${k.done ? 'done' : ''}">
+        <button type="button" class="bj-g" data-ml-done="${esc(k.id)}" aria-pressed="${!!k.done}">${k.done ? '✕' : '○'}</button>
+        <div class="bj-t"><span class="tx">${esc(k.title)}</span>${wkLabel ? `<span class="bj-m">${wkLabel}</span>` : ''}</div>
+        <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Wk</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${'W' + w.num}</option>`).join('')}</select>
+      </div>`;
+    }).join('');
     return `<div class="ml-project ${g.done ? 'done' : ''}"><div class="bj ${g.done ? 'done' : ''}">
       <button type="button" class="bj-g" data-ml-done="${esc(g.id)}" aria-pressed="${!!g.done}" aria-label="${g.done ? 'Reopen' : 'Mark done'}: ${esc(g.title)}">${g.done ? '✕' : '•'}</button>
-      <div class="bj-t"><span class="tx">${esc(g.title)}</span>${kids.length ? `<span class="bj-m">${kd}/${kids.length} done</span>` : ''}</div>
+      <div class="bj-t"><span class="tx">${esc(g.title)}</span>${kids.length ? `<span class="bj-m">${kd}/${kids.length}</span>` : ''}</div>
       <button type="button" class="icon-btn bj-more" data-ml-more="${esc(g.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>
       ${open ? `<div class="bj-strip">${g.done ? '' : `<button type="button" class="chip-btn" data-ml-step="${esc(g.id)}">＋ Do it today</button>`}<button type="button" class="chip-btn" data-ml-area="${esc(g.id)}">→ ${areaOf(g) === 'work' ? 'Personal' : 'Work'}</button><button type="button" class="chip-btn" data-act="edit" data-id="${esc(g.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(g.id)}">Delete</button></div>` : ''}</div>
-      ${open ? `<div class="ml-kids">${kids.map(k => {
-        const wkLabel = k.targetWeek ? 'Week ' + Number(k.targetWeek.slice(6)) : '';
-        return `<div class="bj sub ${k.done ? 'done' : ''}">
-          <button type="button" class="bj-g" data-ml-done="${esc(k.id)}" aria-pressed="${!!k.done}">${k.done ? '✕' : '○'}</button>
-          <div class="bj-t"><span class="tx">${esc(k.title)}</span>${wkLabel ? `<span class="bj-m">${wkLabel}</span>` : ''}</div>
-          <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Week</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${w.label}</option>`).join('')}</select>
-        </div>`;
-      }).join('')}<form class="hz-add ml-kid-form" data-ml-parent="${esc(g.id)}"><input maxlength="120" required autocomplete="off" placeholder="Add a step" aria-label="Add a step to ${esc(g.title)}"><button class="icon-btn" type="submit">＋</button></form></div>` : ''}</div>`;
+      <div class="ml-kids">${stepsHTML}${!g.done ? `<form class="hz-add ml-kid-form" data-ml-parent="${esc(g.id)}"><input maxlength="120" required autocomplete="off" placeholder="Add a step" aria-label="Add a step to ${esc(g.title)}"><button class="icon-btn" type="submit">＋</button></form>` : ''}</div></div>`;
   }
 
   function renderMonthRight(key){
@@ -2063,7 +2128,7 @@
     $('mlPlanSub').textContent = 'Plan your weeks, then work the plan';
   }
   function renderMonthDone(key){
-    const weeks = monthWeeks(key);
+    const [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
     const doneItems = [];
     ofKind('task').forEach(t => {
       const on = t.doneOn || t.due;
@@ -2079,27 +2144,22 @@
         doneItems.push({iso:on, glyph:'◆', text:g.title});
       }
     });
+    const byDay = {};
+    doneItems.forEach(di => (byDay[di.iso] || (byDay[di.iso] = [])).push(di));
     let total = doneItems.length;
     let html = '';
-    weeks.forEach(w => {
-      const [y2, m2] = key.split('-').map(Number), days2 = new Date(y2, m2, 0).getDate();
-      const wkDates = [];
-      for (let d = 1; d <= days2; d++){
-        const iso = `${key}-${pad(d)}`;
-        if (weekKey(iso) === w.wk) wkDates.push(iso);
-      }
-      const wkItems = doneItems.filter(di => wkDates.includes(di.iso)).sort((a,b) => a.iso.localeCompare(b.iso));
-      if (!wkItems.length) return;
-      const byDay = {};
-      wkItems.forEach(di => (byDay[di.iso] || (byDay[di.iso] = [])).push(di));
-      html += `<div class="ml-done-week"><div class="ml-done-wk-head">${esc(w.label)}</div>`;
-      Object.keys(byDay).sort().forEach(iso => {
-        const d = Number(iso.slice(8)), dow = 'SMTWTFS'[new Date(iso + 'T12:00:00').getDay()];
-        const inline = byDay[iso].map(di => `<span class="ml-done-g">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
-        html += `<div class="ml-done-day"><span class="ml-done-dt">${dow} ${d}</span>${inline}</div>`;
-      });
-      html += '</div>';
-    });
+    for (let d = 1; d <= days; d++){
+      const iso = `${key}-${pad(d)}`, dow = new Date(iso + 'T12:00:00').getDay();
+      const wk = weekKey(iso);
+      if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week" data-ml-wk="${wk}"><div class="ml-wk">Week ${Number(wk.slice(6))}</div>`;
+      const dayDone = byDay[iso] || [];
+      const didStr = dayDone.map(di => `<span class="ml-done-g">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
+      html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}">
+        <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
+        <div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>
+        <div class="ml-dot-col"></div></div>`;
+    }
+    html += '</div>';
     $('mlPlanSub').textContent = total + ' completed ' + (total === 1 ? 'item' : 'items') + ' this month';
     safeHTML($('mlDoneList'), html || `<div class="hz-empty">Nothing completed yet this month.</div>`);
   }
