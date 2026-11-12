@@ -545,9 +545,10 @@ button.bj-g:hover { background:var(--track) }
 .ml-line:focus { background:var(--input-bg) }
 .ml-habits { display:flex; gap:2px }
 .ml-hl { width:26px; text-align:center; font-size:11px; font-weight:600; color:var(--muted) }
-.ml-dot { width:26px; height:26px; border-radius:50%; border:0; background:transparent; padding:0; display:grid; place-items:center }
-.ml-dot::after { content:""; width:6px; height:6px; border-radius:50%; background:var(--track) }
-.ml-dot.on::after { width:13px; height:13px; background:var(--pop, var(--accent)) }
+.ml-dot { width:26px; height:26px; border-radius:0; border:0; background:transparent; padding:0; display:grid; place-items:center; font-size:14px; font-weight:700; color:transparent }
+.ml-dot::after { content:"·"; color:var(--track); font-size:16px }
+.ml-dot.on { color:var(--pop, var(--accent)) }
+.ml-dot.on::after { content:"✕"; color:var(--pop, var(--accent)); font-size:14px; font-weight:700 }
 .ml-dot:hover { background:var(--track) }
 
 @media (max-width:620px) {
@@ -659,9 +660,9 @@ button.bj-g:hover { background:var(--track) }
   .ml-row .ml-line { font-size:11.5px; padding:3px 4px }
   .ml-row .ml-day { padding:1px 2px; font-size:10px; gap:4px }
   .ml-row .ml-day b { font-size:12px }
-  .ml-row .ml-dot { width:12px; height:12px }
-  .ml-row .ml-dot::after { width:5px; height:5px }
-  .ml-row .ml-dot.on::after { width:10px; height:10px }
+  .ml-row .ml-dot { width:14px; height:14px; font-size:10px }
+  .ml-row .ml-dot::after { font-size:12px }
+  .ml-row .ml-dot.on::after { font-size:10px }
   .ml-row .ml-hl { font-size:8px; width:12px }
   .ml-row.ml-head { padding:0 2px 1px }
   .ml-week { padding:1px 0 2px }
