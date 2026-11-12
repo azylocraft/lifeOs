@@ -1846,7 +1846,7 @@
     $('lgShapeSub').textContent = open.length ? `${mk} deep · ${open.length - mk} quick · for ${d === isoToday ? 'today' : shortDay(d)}` : '3-hour blocks · maker & manager';
   }
   /* the left page: last 7 days before this one, each with plan/log tabs */
-  let pastCount = 7, pastTabs = {};
+  let pastCount = 7, pastTab = 'log';
   function pastDays7(before){
     const days = [];
     for (let n = 1; n <= 7; n++) {
@@ -1867,15 +1867,13 @@
       if (wk !== curWk) { weeks.push({wk, days:[]}); curWk = wk; }
       weeks[weeks.length - 1].days.push(d);
     });
+    document.querySelectorAll('#pastTabsGlobal button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pasttab === pastTab)));
     safeHTML($('lgPast'), weeks.map(w => `<div class="past-week"><div class="past-wk-label">Week ${Number(w.wk.slice(6))}</div>${w.days.map(d => {
       const line = (monthDoc(monthKey(d)).lines || {})[d.slice(8)];
       const entries = dayEntries(d);
-      const planOnly = entries.filter(e => e.role === 'task' && !e.i.done);
-      const tab = pastTabs[d] || 'log';
-      const showing = tab === 'plan' ? planOnly : entries;
-      return `<section class="bj-day"><div class="past-day-head"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button>
-        <div class="seg past-tabs"><button type="button" data-past-tab="plan" data-past-day="${d}" aria-pressed="${tab === 'plan'}">Plan</button><button type="button" data-past-tab="log" data-past-day="${d}" aria-pressed="${tab === 'log'}">Log</button></div></div>
-        ${line ? `<div class="bj-quote">"​${esc(line)}"</div>` : ''}<div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d, tab !== 'plan')).join('') : `<div class="hz-empty">${tab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
+      const showing = pastTab === 'plan' ? entries.filter(e => e.role === 'task' && !e.i.done) : entries;
+      return `<section class="bj-day"><div class="past-day-head"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button></div>
+        ${line ? `<div class="bj-quote">"​${esc(line)}"</div>` : ''}<div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d, pastTab !== 'plan')).join('') : `<div class="hz-empty">${pastTab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
     }).join('')}</div>`).join(''));
   }
 
@@ -1999,9 +1997,11 @@
   });
   const setLogDate = d => { logDate = d; logOpen = null; pastCount = 5; renderLog(); };
   $('lgPast').addEventListener('click', e => {
-    const tab = e.target.closest('[data-past-tab]');
-    if (tab) { pastTabs[tab.dataset.pastDay] = tab.dataset.pastTab; renderPast(); return; }
     const b = e.target.closest('[data-past-open]'); if (b) { setLogDate(b.dataset.pastOpen); $('lgDate').scrollIntoView({block:'center'}); $('lgPrev').focus(); }
+  });
+  $('pastTabsGlobal').addEventListener('click', e => {
+    const b = e.target.closest('[data-pasttab]');
+    if (b) { pastTab = b.dataset.pasttab; renderPast(); }
   });
   $('lgPastMore').addEventListener('click', () => { pastCount += 7; renderPast(); });
   $('lgPrev').addEventListener('click', () => setLogDate(addDays(logDate, -1)));
