@@ -651,13 +651,24 @@ button.bj-g:hover { background:var(--track) }
 .ml-proj-card .card-head .stat-icon { width:28px; height:28px; font-size:12px }
 .ml-project { border:1px solid var(--line-soft); border-radius:6px; padding:1px 4px; margin-bottom:2px }
 .ml-project > .bj { padding:2px 0 }
+.ml-project > .bj .bj-t { display:flex; align-items:baseline; gap:6px }
+.ml-project > .bj .bj-m { display:inline; margin:0; font-size:10px }
 .ml-project.done { opacity:.6 }
 .ml-kids { padding:0 0 1px 18px }
 .ml-kids .bj { padding:0 2px; cursor:grab }
 .ml-kids .bj .bj-g { width:16px; height:16px; font-size:8px }
-.ml-kids .bj .bj-t { padding:0; font-size:11.5px }
-.ml-kids .bj .bj-m { font-size:9px }
+.ml-kids .bj .bj-t { padding:0; font-size:11.5px; display:flex; align-items:baseline; gap:6px }
+.ml-kids .bj .bj-m { font-size:9px; display:inline; margin:0 }
 .ml-kids .bj.dragging { opacity:.35 }
+.ml-sub-add { font-size:11px; width:20px; height:20px; padding:0; opacity:.5 }
+.ml-sub-add:hover { opacity:1 }
+.ml-sub-kids { padding:0 0 1px 16px }
+.ml-sub-kids .bj { padding:0 2px }
+.ml-sub-kids .bj .bj-g { width:14px; height:14px; font-size:7px }
+.ml-sub-kids .bj .bj-t { font-size:10.5px }
+.ml-sub-form { margin:2px 0 2px 16px }
+.ml-sub-form input { padding:2px 6px; font-size:10.5px }
+.ml-step-wrap { margin-bottom:1px }
 .ml-kid-form { margin-top:1px }
 .ml-kid-form input { padding:2px 6px; font-size:11px }
 .ml-day-task { font-size:10px; color:var(--accent) }

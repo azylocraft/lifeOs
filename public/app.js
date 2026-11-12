@@ -2105,11 +2105,16 @@
     const weeks = monthWeeks(key);
     const stepsHTML = kids.map(k => {
       const wkLabel = k.targetWeek ? 'W' + Number(k.targetWeek.slice(6)) : '';
-      return `<div class="bj sub ${k.done ? 'done' : ''}">
+      const subKids = kidsOf(k.id).sort(byDoneThenAge);
+      const subHTML = subKids.map(sk => `<div class="bj sub-sub ${sk.done ? 'done' : ''}">
+        <button type="button" class="bj-g" data-ml-done="${esc(sk.id)}" aria-pressed="${!!sk.done}">${sk.done ? '✕' : '○'}</button>
+        <div class="bj-t"><span class="tx">${esc(sk.title)}</span></div></div>`).join('');
+      return `<div class="ml-step-wrap"><div class="bj sub ${k.done ? 'done' : ''}">
         <button type="button" class="bj-g" data-ml-done="${esc(k.id)}" aria-pressed="${!!k.done}">${k.done ? '✕' : '○'}</button>
         <div class="bj-t"><span class="tx">${esc(k.title)}</span>${wkLabel ? `<span class="bj-m">${wkLabel}</span>` : ''}</div>
         <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Wk</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${'W' + w.num}</option>`).join('')}</select>
-      </div>`;
+        ${k.done ? '' : `<button type="button" class="icon-btn ml-sub-add" data-ml-sub="${esc(k.id)}" aria-label="Add sub-step">＋</button>`}
+      </div>${subHTML ? `<div class="ml-sub-kids">${subHTML}</div>` : ''}</div>`;
     }).join('');
     const countLabel = kids.length ? `${kd}/${kids.length} done` : '';
     return `<div class="ml-project ${g.done ? 'done' : ''}"><div class="bj ${g.done ? 'done' : ''}">
@@ -2323,10 +2328,30 @@
     const hit = name => { const b = e.target.closest(`[data-ml-${name}]`); return b ? items.find(i => i.id === b.getAttribute('data-ml-' + name)) : null; };
     const done = hit('done'), more = hit('more'), step = hit('step'), area = hit('area');
     const refocus = (name, id) => { const again = document.querySelector(`.ml-plan [data-ml-${name}="${CSS.escape(id)}"]`); if (again) again.focus(); };
-    if (done) { patchItem(done.id, {done: !done.done}); refocus('done', done.id); }
-    else if (more) { mlOpen = mlOpen === more.id ? null : more.id; renderMonthLog(); refocus('more', more.id); }
-    else if (step) { newTask(step.title, isoToday, {parent: step.id}); toast('Added to today’s actions'); }
-    else if (area) { patchItem(area.id, {area: areaOf(area) === 'work' ? 'personal' : 'work'}); refocus('more', area.id); }
+    const subAdd = e.target.closest(‘[data-ml-sub]’);
+    if (subAdd) {
+      const parentId = subAdd.dataset.mlSub;
+      const wrap = subAdd.closest(‘.ml-step-wrap’);
+      if (wrap && !wrap.querySelector(‘.ml-sub-form’)) {
+        const f = document.createElement(‘form’);
+        f.className = ‘hz-add ml-sub-form’;
+        f.innerHTML = `<input maxlength="120" required autocomplete="off" placeholder="Sub-step" aria-label="Add sub-step" style="padding:2px 6px;font-size:11px"><button class="icon-btn" type="submit">＋</button>`;
+        wrap.appendChild(f);
+        f.querySelector(‘input’).focus();
+        f.addEventListener(‘submit’, ev => {
+          ev.preventDefault();
+          const inp = f.querySelector(‘input’), t = inp.value.trim();
+          if (!t) return;
+          addItem(‘goal’, {horizon:’month’, period:mlMonth, title:t.slice(0,120), done:false, parent:parentId, area:’’});
+          inp.value = ‘’;
+        });
+      }
+      return;
+    }
+    if (done) { patchItem(done.id, {done: !done.done}); refocus(‘done’, done.id); }
+    else if (more) { mlOpen = mlOpen === more.id ? null : more.id; renderMonthLog(); refocus(‘more’, more.id); }
+    else if (step) { newTask(step.title, isoToday, {parent: step.id}); toast(‘Added to today’s actions’); }
+    else if (area) { patchItem(area.id, {area: areaOf(area) === ‘work’ ? ‘personal’ : ‘work’}); refocus(‘more’, area.id); }
   });
   $('mlHabitForm').addEventListener('submit', e => {
     e.preventDefault();
