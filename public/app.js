@@ -711,12 +711,14 @@
     $('homeLeft').className = nowFree < 0 ? 'red' : '';
     $('homeAside').textContent = nowAside ? money(nowAside) + ' more goes to plans and instalments this month, on top of this budget' : '';
     const names = cats.map(c => c.name), sig = names.join('\n');
-    [$('expenseCategory'), $('planCategory')].forEach(sel => {
-      if (sel.dataset.sig === sig) return;
+    /* the expense form starts on nothing, so a category is a choice and never a leftover */
+    [[$('expenseCategory'), true], [$('planCategory'), false]].forEach(([sel, blank]) => {
+      const mySig = (blank ? 'blank\n' : '') + sig;
+      if (sel.dataset.sig === mySig) return;
       const cur = sel.value;
-      sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join('');
-      if (names.includes(cur)) sel.value = cur;
-      sel.dataset.sig = sig;
+      sel.innerHTML = (blank ? '<option value="">Choose a category</option>' : '') + names.map(n => `<option>${esc(n)}</option>`).join('');
+      sel.value = names.includes(cur) ? cur : (blank ? '' : names[0] || '');
+      sel.dataset.sig = mySig;
     });
     const subs = [...new Set(exps.map(e => String(e.sub || '').trim()).filter(Boolean))].sort();
     $('subList').innerHTML = subs.map(x => `<option value="${esc(x)}"></option>`).join('');
@@ -897,17 +899,58 @@
     const cats = catNames();
     return cats.includes('Other') ? 'Other' : cats[0] || 'Other';
   }
+  /* "in <category>" written out loud beats any guess, so match it loosely:
+     the whole name, one of its words, or either side of a "Transport / fuel" */
+  const normCat = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+  function matchCat(phrase){
+    const q = normCat(phrase);
+    if (!q) return '';
+    const names = catNames(), normed = names.map(normCat);
+    let i = normed.indexOf(q);
+    if (i < 0) i = normed.findIndex(n => n.split(' ').includes(q));
+    if (i < 0) i = normed.findIndex(n => n.includes(q));
+    if (i < 0) i = normed.findIndex(n => n && q.includes(n));
+    return i < 0 ? '' : names[i];
+  }
+  /* "420 in home for cylinder": in names the category, for names the subcategory */
+  function splitExpenseWords(text){
+    let rest = String(text || '').trim(), cat = '', sub = '';
+    const takeIn = s => {
+      const m = s.match(/(?:^|\s)in\s+(.+)$/i);
+      if (!m) return s;
+      const hit = matchCat(m[1]);
+      if (!hit) return s;
+      cat = hit;
+      return s.slice(0, m.index).trim();
+    };
+    const forM = rest.match(/(?:^|\s)for\s+(.+)$/i);
+    if (forM) {
+      sub = takeIn(forM[1].trim());
+      rest = rest.slice(0, forM.index).trim();
+    }
+    return {rest: takeIn(rest), cat, sub};
+  }
+  /* one expense from one line: "450 groceries", "2k in home for rent", "coffee 200" */
+  function parseExpenseLine(line){
+    const {rest, cat, sub} = splitExpenseWords(line);
+    let body = rest.replace(/^(?:spent|paid|bought)\s+/i, '').trim();
+    const am = body.match(/(?:^|\s)(\d[\d,.]*k?)\s*(?:rs|rupees|inr)?(?=\s|$)/i);
+    if (!am) return null;
+    let amount = parseFloat(am[1].replace(/,/g, ''));
+    if (/k$/i.test(am[1])) amount = parseFloat(am[1]) * 1000;
+    if (!(amount > 0) || !isFinite(amount)) return null;
+    let name = (body.slice(0, am.index) + ' ' + body.slice(am.index + am[0].length)).replace(/\s+/g, ' ').trim();
+    name = name.replace(/^(?:on|for)\s+/i, '').trim();
+    let date = isoToday;
+    const when = name.match(/\b(today|yesterday|tomorrow|tmr|tmrw|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i);
+    if (when) { date = resolveDate(when[1]) || isoToday; name = name.replace(when[0], '').replace(/\s+/g, ' ').trim(); }
+    if (!name) name = sub || cat || 'Expense';
+    return {kind:'expense', name: name.charAt(0).toUpperCase() + name.slice(1), amount: Math.round(amount * 100) / 100,
+      category: cat || quickCat(name + (sub ? ' ' + sub : '')), sub, date};
+  }
   /* expense text like "450 groceries" typed into the log card */
   function addQuickExpense(text){
-    const list = quickParse('spent ' + text).filter(x => x.kind === 'expense');
-    if (!list.length) {
-      const parts = text.match(/^(\d[\d,.k]*)\s+(.+)$/);
-      if (parts) {
-        let amount = parseFloat(parts[1].replace(/,/g, ''));
-        if (/k$/i.test(parts[1])) amount = parseFloat(parts[1]) * 1000;
-        if (amount > 0) list.push({kind:'expense', name:parts[2].trim(), amount, category:quickCat(parts[2]), sub:'', date:isoToday});
-      }
-    }
+    const list = String(text || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).map(parseExpenseLine).filter(Boolean);
     if (!list.length) return 0;
     addMany(list);
     return list.length;
@@ -1264,6 +1307,7 @@
     const amount = Math.round(Number($('expenseAmount').value) * 100) / 100;
     if (!name) return;
     if (!(amount > 0)) { toast('Enter an amount above zero.'); return; }
+    if (!$('expenseCategory').value) { toast('Pick a category for it.'); $('expenseCategory').focus(); return; }
     const planId = $('expensePlan') ? $('expensePlan').value : '';
     addItem('expense', {name, amount, category: $('expenseCategory').value, sub: $('expenseSub').value.trim().slice(0,30), date: $('expenseDate').value || isoToday, ...(planId ? {plan: planId} : {})});
     e.target.reset(); $('expenseDate').value = isoToday; $('expenseName').focus();
@@ -1409,7 +1453,14 @@
     const parent = i.parent ? items.find(x => x.id === i.parent && x.kind === 'goal') : null;
     const lower = HORIZONS[HORIZONS.indexOf(h) - 1];
     const panel = !open ? '' : `<div class="hz-panel">
-      ${kids.sort(byDoneThenAge).map(k => `<label class="hz-kid"><input type="checkbox" class="check" data-act="toggle" data-id="${esc(k.id)}" ${k.done ? 'checked' : ''}><span>${esc(k.title)} <small>· ${esc(whereLabel(k))}</small></span></label>`).join('')}
+      ${kids.sort(byDoneThenAge).map(k => {
+        const subs = kidsOf(k.id).sort(byDoneThenAge), sd = subs.filter(x => x.done).length;
+        return `<div class="hz-kid-wrap">
+          <label class="hz-kid"><input type="checkbox" class="check" data-act="toggle" data-id="${esc(k.id)}" ${k.done ? 'checked' : ''}><span>${esc(k.title)} <small>· ${esc(whereLabel(k))}${subs.length ? ` · ${sd}/${subs.length} sub-steps` : ''}</small></span></label>
+          ${subs.length ? `<div class="hz-subs">${subs.map(sk => `<label class="hz-kid sub"><input type="checkbox" class="check" data-act="toggle" data-id="${esc(sk.id)}" ${sk.done ? 'checked' : ''}><span>${esc(sk.title)}</span></label>`).join('')}</div>` : ''}
+          <form class="hz-sub-add" data-hz-sub="${esc(k.id)}"><input maxlength="120" required autocomplete="off" placeholder="Add a sub-step" aria-label="Add a sub-step to ${esc(k.title)}"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form>
+        </div>`;
+      }).join('')}
       ${lower ? `<form class="hz-step" data-hz-step="${esc(i.id)}"><input maxlength="120" required autocomplete="off" placeholder="Add a step for ${lower === 'day' ? 'this day' : 'this ' + lower}" aria-label="Add a step for ${lower === 'day' ? 'this day' : 'this ' + lower}"><button class="btn small" type="submit">＋ Step</button></form>` : ''}
       <div class="dlg-actions" style="margin:0"><select data-hz-move="${esc(i.id)}" aria-label="Move to another horizon" style="width:auto"><option value="">Move to…</option>${HORIZONS.filter(x => x !== h).map(x => `<option value="${x}">${HZ_NAME[x]}</option>`).join('')}</select>
         <button type="button" class="btn secondary small" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="btn secondary small" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>
@@ -1465,12 +1516,21 @@
     }
   });
   $('hzBoard').addEventListener('submit', e => {
-    const add = e.target.closest('[data-hz-add]'), step = e.target.closest('[data-hz-step]');
-    if (!add && !step) return;
+    const add = e.target.closest('[data-hz-add]'), step = e.target.closest('[data-hz-step]'), sub = e.target.closest('[data-hz-sub]');
+    if (!add && !step && !sub) return;
     e.preventDefault();
     const input = e.target.querySelector('input'), title = input.value.trim();
     if (!title) return;
     input.value = '';
+    if (sub) {
+      /* a sub-step sits under its step, on the same horizon as the step itself */
+      const owner = items.find(i => i.id === sub.dataset.hzSub);
+      if (!owner) return;
+      if (owner.kind === 'task') newTask(title, owner.due || hzDate, {parent:owner.id});
+      else addItem('goal', {horizon:owner.horizon, period:owner.period, title:title.slice(0,120), done:false, parent:owner.id});
+      const back = $('hzBoard').querySelector(`[data-hz-sub="${CSS.escape(owner.id)}"] input`); if (back) back.focus();
+      return;
+    }
     if (add) {
       const h = add.dataset.hzAdd;
       if (h === 'day') newTask(title, hzDate); else addItem('goal', {horizon:h, period:periodFor(h, hzDate), title:title.slice(0,120), done:false, parent:''});
@@ -1562,7 +1622,7 @@
   const GLYPH = {task:'•', note:'–', event:'○', mood:'=', idea:'✦', mistake:'✘', observation:'◎', problem:'△'};
   const REFLECT = {idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
   const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood', '+':'idea', '✦':'idea', 'x':'mistake', 'X':'mistake', '✘':'mistake', '@':'observation', '◎':'observation', '?':'problem', '△':'problem'};
-  let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', reviewOpen = false, jnTab = 'day', lgTab = 'plan';
+  let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', jnTab = 'day', lgTab = 'plan';
   function parseEntry(raw, type){
     let text = String(raw).trim(), t = type, high = false, time = '';
     const m = text.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s+(.+)$/);
@@ -1656,10 +1716,6 @@
     return `<div class="bj ${role} ${i.indent ? 'in' : ''}" data-row="${esc(i.id)}"><span class="bj-g" role="img" aria-label="${role}">${GLYPH[role]}</span>
       <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${timeSpan}${nm.length ? `<span class="bj-m">${nm.join(' · ')}</span>` : ''}</div>${more}${strip}</div>`;
   }
-  function reviewHTML(t){
-    return `<div class="bj"><span class="bj-g" aria-hidden="true">•</span><div class="bj-t"><span class="tx">${esc(t.title)}</span><span class="bj-m">from ${esc(shortDay(t.due))}${movedNote(t) ? ' · ' + movedNote(t) : ''}</span></div>
-      <div class="bj-strip">${chip('done', t.id, 'Done')}${chip('today', t.id, 'Today')}${chip('tomorrow', t.id, 'Tomorrow')}${laterSelect(t.id)}${chip('drop', t.id, 'Drop it')}</div></div>`;
-  }
   const MODE_LABEL = {maker:'Maker', manager:'Manager', sleep:'Sleep'};
   function renderShape(){
     refreshBlocks();
@@ -1729,11 +1785,10 @@
     });
     document.querySelectorAll('#pastTabsGlobal button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pasttab === pastTab)));
     safeHTML($('lgPast'), weeks.map(w => `<div class="past-week"><div class="past-wk-label">Week ${Number(w.wk.slice(6))}</div>${w.days.map(d => {
-      const line = (monthDoc(monthKey(d)).lines || {})[d.slice(8)];
       const entries = dayEntries(d);
       const showing = pastTab === 'plan' ? entries.filter(e => e.role === 'task' && !e.i.done) : entries;
       return `<section class="bj-day"><div class="past-day-head"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button></div>
-        ${line ? `<div class="bj-quote">"​${esc(line)}"</div>` : ''}<div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d, pastTab !== 'plan')).join('') : `<div class="hz-empty">${pastTab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
+        <div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d, pastTab !== 'plan')).join('') : `<div class="hz-empty">${pastTab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
     }).join('')}</div>`).join(''));
   }
 
@@ -1744,27 +1799,17 @@
     const acts = entries.filter(e => e.role === 'task'), openN = acts.filter(e => !e.i.done).length;
     const others = entries.filter(e => e.role !== 'task' && e.role !== 'ghost').length;
     const tops = topsOf(logDate).length;
-    const mlLine = (monthDoc(monthKey(logDate)).lines || {})[logDate.slice(8)];
-    $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` + (acts.length ? ` · top 3: ${tops} picked` : '') : (mlLine ? '' : 'A blank page');
+    $('lgSub').textContent = entries.length ? `${openN} open · ${acts.length - openN} done · ${others} ${others === 1 ? 'note' : 'notes'}` + (acts.length ? ` · top 3: ${tops} picked` : '') : 'A blank page';
     if (logOpen && !items.some(x => x.id === logOpen)) logOpen = null;
-    const quoteHTML = mlLine ? `<div class="bj-quote" style="margin-bottom:10px">"${esc(mlLine)}"</div>` : '';
     const planEntries = entries.filter(e => e.role === 'task' && !e.i.done);
-    safeHTML($('lgList'), quoteHTML + (planEntries.length ? planEntries.map(e => entryHTML(e, logDate, false)).join('')
+    safeHTML($('lgList'), (planEntries.length ? planEntries.map(e => entryHTML(e, logDate, false)).join('')
       : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing planned for this day.'}</div>`));
-    safeHTML($('lgDoneList'), quoteHTML + (entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
+    safeHTML($('lgDoneList'), (entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
       : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing logged yet. Jot the first thing below.'}</div>`));
     document.querySelectorAll('#lgSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lgtab === lgTab)));
     $('lgPlanView').hidden = lgTab !== 'plan';
     $('lgDoneView').hidden = lgTab !== 'done';
     document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType)));
-    /* the daily ritual: clear out what earlier days left open */
-    const stale = leftBehind('day').sort((a,b) => a.due.localeCompare(b.due));
-    $('lgReview').hidden = !(stale.length && logDate === isoToday);
-    $('lgReviewTitle').textContent = stale.length === 1 ? '1 open action from earlier' : stale.length + ' open actions from earlier';
-    $('lgReviewList').hidden = !reviewOpen;
-    $('lgReviewToggle').setAttribute('aria-expanded', String(reviewOpen));
-    $('lgReviewToggle').textContent = reviewOpen ? 'Hide' : 'Review one by one';
-    safeHTML($('lgReviewList'), stale.map(reviewHTML).join(''));
     renderPast();
     renderShape();
     const tom = ofKind('task').filter(t => t.due === isoTomorrow).sort(byDoneThenAge);
@@ -1775,7 +1820,6 @@
   }
   function logAction(act, id, el){
     const i = items.find(x => x.id === id);
-    if (act === 'all-today') { const list = leftBehind('day'); list.forEach(t => moveTask(t.id, isoToday, true)); toast(list.length === 1 ? '1 action brought to today' : list.length + ' actions brought to today'); return; }
     if (!i) return;
     if (act === 'more') { logOpen = logOpen === id ? null : id; renderLog(); const again = $('jnDay').querySelector(`[data-lg="more"][data-id="${CSS.escape(id)}"]`); if (again) again.focus(); }
     else if (act === 'done') patchItem(id, i.cancelled ? {done:false, cancelled:false} : {done:!i.done});
@@ -1809,7 +1853,7 @@
       }
     }
   }
-  ['lgList','lgDoneList','lgPast','lgReview','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
+  ['lgList','lgDoneList','lgPast','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
   $('lgShape').addEventListener('click', e => {
     const b = e.target.closest('[data-shape]');
     if (!b) return;
@@ -1910,7 +1954,6 @@
     refreshBlocks();
     renderShape();
   });
-  $('lgReviewToggle').addEventListener('click', () => { reviewOpen = !reviewOpen; renderLog(); });
   $('lgSubTabs').addEventListener('click', e => {
     const b = e.target.closest('[data-lgtab]');
     if (b) { lgTab = b.dataset.lgtab; renderLog(); }
@@ -1938,7 +1981,21 @@
   });
   const HOME_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
   let homeLgType = 'task', homeLgPicked = 'task';
-  const paintHomeType = () => document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType)));
+  /* what each kind understands, said once under the box */
+  const HOME_HINT = {
+    task: 'A day in the words sets the due date — <b>buy milk tomorrow</b>. Start with <b>!</b> for high priority.',
+    expense: '<b>in</b> names the category, <b>for</b> the subcategory — <b>400 in home for bike repair</b>. Without them the category is guessed.',
+    event: 'Put the time first and it is kept — <b>18:00 dentist</b>.',
+    mood: 'A line about how the day felt. It shows in the month under the <b>=</b> icon.',
+    idea: 'Something worth trying. Grouped under Ideas in the monthly log.',
+    problem: 'Something in the way. Grouped under Problems in the monthly log.',
+    mistake: 'Something that went wrong, so it is there to learn from later.',
+    observation: 'Something you noticed, kept without judging it.'
+  };
+  const paintHomeType = () => {
+    document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType)));
+    safeHTML($('homeLgHint'), HOME_HINT[homeLgType] || '');
+  };
   $('homeLgType').addEventListener('click', e => {
     const b = e.target.closest('[data-hbtype]');
     if (!b) return;
@@ -1947,6 +2004,7 @@
     $('homeLgText').placeholder = HOME_PH[homeLgType] || 'Jot it down and press Enter';
     $('homeLgText').focus();
   });
+  paintHomeType();
   $('homeLgText').addEventListener('input', e => {
     if (homeLgPicked === 'expense') return;
     const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
@@ -2072,7 +2130,8 @@
 
   /* ---------- focus session ---------- */
   const FOCUS_KEY = 'myLifeOS.focus';
-  let focus = null, focusMins = 50, focusTick = null;
+  let focus = null, focusMins = 60, focusTick = null;
+  const minsLabel = m => m % 60 === 0 && m >= 60 ? (m / 60) + (m === 60 ? ' hr' : ' hrs') : m + ' min';
   try { const f = JSON.parse(localStorage.getItem(FOCUS_KEY) || 'null'); if (f && f.start && f.mins) focus = f; } catch(err) {}
   const saveFocus = () => { try { if (focus) localStorage.setItem(FOCUS_KEY, JSON.stringify(focus)); else localStorage.removeItem(FOCUS_KEY); } catch(err) {} };
   function endFocus(done){
@@ -2157,13 +2216,13 @@
     } else if (pick) {
       $('nowLabel').textContent = `Right now · ${MODE_NAME[mode]} time · ${count} open today`;
       $('nowTitle').textContent = pick.title;
-      $('nowActions').innerHTML = btn('start', `▶ Start ${focusMins} min`) + btn('done', '✕ Done', 'secondary') + (count > 1 ? btn('skip', 'Skip', 'secondary') : '');
+      $('nowActions').innerHTML = btn('start', `▶ Start ${minsLabel(focusMins)}`) + btn('done', '✕ Done', 'secondary') + (count > 1 ? btn('skip', 'Skip', 'secondary') : '');
       bar.dataset.id = pick.id;
     } else {
       const stale = leftBehind('day').length;
       $('nowLabel').textContent = 'Right now';
       $('nowTitle').textContent = stale ? `${stale} open ${stale === 1 ? 'action' : 'actions'} from earlier days` : 'Nothing lined up for today';
-      $('nowActions').innerHTML = stale ? btn('review', 'Decide what to do with them') : btn('jot', 'Jot one action and start');
+      $('nowActions').innerHTML = stale ? btn('review', 'Open the log') : btn('jot', 'Jot one action and start');
     }
   }
   $('nowBar').addEventListener('click', e => {
@@ -2171,7 +2230,7 @@
     if (!b) return;
     const act = b.dataset.now, t = items.find(i => i.id === $('nowBar').dataset.id);
     if (act === 'stop') endFocus(false);
-    else if (act === 'review' || act === 'jot') { go('journal'); setJournalTab('day'); setLogDate(isoToday); if (act === 'review') { reviewOpen = true; renderLog(); } else $('lgText').focus(); }
+    else if (act === 'review' || act === 'jot') { go('journal'); setJournalTab('day'); setLogDate(isoToday); if (act === 'jot') $('lgText').focus(); }
     else if (!t) return;
     else if (act === 'start') { focus = {title:t.title, mins:focusMins, start:Date.now()}; saveFocus(); renderFocus(); }
     else if (act === 'done') { patchItem(t.id, {done:true}); toast('Done. Next one is up.', () => patchItem(t.id, {done:false})); }
@@ -2298,7 +2357,7 @@
     const key = mlMonth, [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
     $('mlTitle').textContent = monthName(key);
     $('mlToday').hidden = key === monthKey(isoToday);
-    const habits = habitList(), log = habitLog(), lines = monthDoc(key).lines || {};
+    const habits = habitList(), log = habitLog();
     const did = {}, counts = {};
     const note = (iso, text) => (did[iso] || (did[iso] = [])).push(text);
     ofKind('bullet').forEach(b => { if (b.type === 'event' && monthKey(b.date) === key) note(b.date, '○ ' + (b.time ? b.time + ' ' : '') + b.text); });
