@@ -287,7 +287,7 @@
   const nowStamp = () => { const d = new Date(); return `${isoOf(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const isStamp = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s) && !isNaN(new Date(s));
   const fmtRemind = s => new Date(s).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
-  function taskHTML(t){
+  function taskHTML(t, rank){
     const meta = [];
     if (t.due) {
       const overdue = !t.done && t.due < isoToday;
@@ -298,9 +298,9 @@
     const proj = t.project ? items.find(i => i.kind === 'project' && i.id === t.project) : null;
     if (proj) meta.push(`<span class="tag proj-tag">${esc(proj.name)}</span>`);
     if (isStamp(t.remind) && !t.done) meta.push(!t.reminded && t.remind <= nowStamp() ? `<span class="red">◷ Reminder due since ${esc(fmtRemind(t.remind))}</span>` : `◷ Reminder ${esc(fmtRemind(t.remind))}`);
-    return `<div class="item ${t.done ? 'completed' : ''}">
+    return `<div class="item ${t.done ? 'completed' : ''} ${rank ? 'is-top' : ''}">
       <input type="checkbox" class="check" data-act="toggle" data-id="${esc(t.id)}" ${t.done ? 'checked' : ''} aria-label="Done: ${esc(t.title)}">
-      <div class="item-main"><div class="item-title">${esc(t.title)}</div><div class="item-meta">${meta.join(' &nbsp; ')}</div></div>
+      <div class="item-main"><div class="item-title">${rank ? `<b class="top-rank">★${rank}</b> ` : ''}${esc(t.title)}</div><div class="item-meta">${meta.join(' &nbsp; ')}</div></div>
       ${t.done ? '' : `<button type="button" class="icon-btn" data-act="remind" data-id="${esc(t.id)}" aria-label="${isStamp(t.remind) ? 'Change reminder' : 'Set a reminder'}" style="font-size:14px">◷</button>`}
       ${delBtn(t.id, 'Delete task')}
     </div>`;
@@ -354,7 +354,12 @@
     $('homeBar').style.width = tasks.length ? Math.round(doneCount / tasks.length * 100) + '%' : '0%';
     $('statExpenses').textContent = money(sum(exps.filter(e => monthKey(e.date) === monthKey(isoToday))));
     $('statTrips').textContent = ofKind('trip').filter(t => !isPast(t)).length;
-    $('homeTasks').innerHTML = open.length ? open.slice(0,4).map(taskHTML).join('')
+    const tops = topsOf(isoToday).filter(t => !t.done);
+    const rest = open.filter(t => !tops.some(x => x.id === t.id));
+    const focus = [...tops, ...rest.slice(0, Math.max(0, 4 - tops.length))];
+    $('homeFocusSub').textContent = tops.length ? `Your top ${tops.length} for today` : 'Pick your top 3 in the daily log';
+    $('homeTasks').innerHTML = focus.length
+      ? focus.map(t => taskHTML(t, tops.findIndex(x => x.id === t.id) + 1)).join('')
       : empty(tasks.length ? 'Everything is done. Add a task when something comes up.' : 'No tasks yet. Add your first one under Tasks & notes.');
     $('homeExpenses').innerHTML = exps.length ? exps.slice(0,4).map(e =>
       `<div class="item"><div class="item-main"><div class="item-title">${esc(e.name)}</div><div class="item-meta">${esc(prettyDate(e.date))} &nbsp; <span class="tag">${esc(e.category)}</span></div></div><div class="item-side">${esc(money(e.amount))}</div></div>`).join('')

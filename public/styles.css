@@ -460,6 +460,8 @@ button.bj-g:hover { background:var(--track) }
 .bj.problem .bj-g { color:var(--red) }
 .bj.mistake .bj-g { color:var(--red) }
 .bj.observation .bj-g { color:var(--muted) }
+.top-rank { color:var(--pop, var(--accent)); font-size:11px; margin-right:2px }
+.item.is-top .item-title { font-weight:600 }
 .ml-reflect-group + .ml-reflect-group { margin-top:16px }
 .ml-reflect-h { font-size:12.5px; font-weight:600; color:var(--muted); margin:0 0 4px; display:flex; align-items:center; gap:7px }
 .bj-more { width:28px; height:28px; background:transparent; font-size:15px; margin-top:1px }
