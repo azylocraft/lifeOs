@@ -58,9 +58,13 @@
         </div>
       </div>
       <div class="card" id="quickAdd" style="margin-bottom:18px">
-        <div class="card-head"><div><h2>Quick add</h2><div class="sub">Write it the way you’d say it. Tasks and expenses get filed for you.</div></div><span class="stat-icon" aria-hidden="true">✎</span></div>
-        <form id="quickForm"><div class="field"><label for="quickText">What do you want to record?</label><textarea id="quickText" required maxlength="600" rows="2" placeholder="e.g. spent 450 on groceries, buy milk tomorrow, meeting 3pm"></textarea></div><button class="btn" type="submit" id="quickBtn">Add</button></form>
-        <div id="quickResult" hidden style="margin-top:16px"><div class="sub" style="margin:0 0 8px">Added just now</div><div class="list" id="quickList"></div></div>
+        <div class="card-head"><div><h2>Quick add</h2><div class="sub">Task, expense, or note — just type it</div></div><span class="stat-icon" aria-hidden="true">✎</span></div>
+        <form id="quickForm" class="bj-add" style="margin-bottom:8px">
+          <div class="seg bj-type" id="quickType" role="group" aria-label="Kind of entry"><button type="button" data-qtype="task" aria-label="Action" title="Action" aria-pressed="true">•</button><button type="button" data-qtype="expense" aria-label="Expense" title="Expense" aria-pressed="false">₹</button><button type="button" data-qtype="note" aria-label="Note" title="Note" aria-pressed="false">–</button></div>
+          <input id="quickText" maxlength="300" required autocomplete="off" placeholder="e.g. spent 450 on groceries, buy milk tomorrow" aria-label="Quick add">
+          <button class="btn" type="submit" id="quickBtn">Add</button>
+        </form>
+        <div id="quickResult" hidden style="margin-top:8px"><div class="sub" style="margin:0 0 6px">Added just now</div><div class="list" id="quickList"></div></div>
       </div>
       <div class="grid two-col">
         <div class="card"><div class="card-head"><div><h2>Today’s focus</h2><div class="sub">Your next few tasks</div></div><button type="button" class="btn secondary small" data-go="tasks">View tasks</button></div><div id="homeTasks" class="list"></div></div>

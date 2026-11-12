@@ -963,39 +963,42 @@
     const cats = catNames();
     return cats.includes('Other') ? 'Other' : cats[0] || 'Other';
   }
-  let quickBusy = false;
-  $('quickForm').addEventListener('submit', async e => {
+  let quickMode = 'task';
+  $('quickType').addEventListener('click', e => {
+    const b = e.target.closest('[data-qtype]');
+    if (!b) return;
+    quickMode = b.dataset.qtype;
+    document.querySelectorAll('#quickType button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.qtype === quickMode)));
+    $('quickText').placeholder = quickMode === 'expense' ? 'e.g. 450 groceries, 200 coffee' : quickMode === 'note' ? 'A thought or observation' : 'e.g. buy milk tomorrow';
+    $('quickText').focus();
+  });
+  $('quickForm').addEventListener('submit', e => {
     e.preventDefault();
     const text = $('quickText').value.trim();
-    if (!text || quickBusy) return;
-    const btn = $('quickBtn');
-    quickBusy = true; btn.disabled = true; btn.textContent = 'Adding...';
-    try {
-      let list;
-      if (sample) {
-        list = cleanParsed(await sample.json(quickPrompt(text), {modelTier:'quick', cache:false}));
-      } else {
-        list = quickParse(text);
+    if (!text) return;
+    if (quickMode === 'expense') {
+      const list = quickParse('spent ' + text);
+      const expenses = list.filter(x => x.kind === 'expense');
+      if (!expenses.length) {
+        const parts = text.match(/^(d[d,.k]*)s+(.+)$/);
+        if (parts) {
+          let amount = parseFloat(parts[1].replace(/,/g, ''));
+          if (/k$/i.test(parts[1])) amount = parseFloat(parts[1]) * 1000;
+          if (amount > 0) expenses.push({kind:'expense', name:parts[2].trim(), amount, category:quickCat(parts[2]), sub:'', date:isoToday});
+        }
       }
-      if (!list.length) { toast('Could not parse that. Try: "spent 200 on groceries" or "buy milk tomorrow"'); return; }
-      const made = addMany(list);
+      if (expenses.length) { addMany(expenses); $('quickText').value = ''; toast('Added ' + expenses.length + (expenses.length === 1 ? ' expense' : ' expenses')); }
+      else toast('Try: 450 groceries or 200 coffee');
+    } else if (quickMode === 'note') {
+      addItem('bullet', {type:'note', text:text.slice(0,500), date:isoToday, time:''});
       $('quickText').value = '';
-      $('quickList').innerHTML = made.map(m => m.kind === 'task'
-        ? `<div class="item"><div class="item-main"><div class="item-title">${esc(m.title)}</div><div class="item-meta">Task   ${m.due ? 'Due ' + esc(prettyDate(m.due)) : 'No due date'}${m.priority !== 'Normal' ? '   ' + esc(m.priority) + ' priority' : ''}</div></div></div>`
-        : (() => { const tp = m.plan && items.find(i => i.id === m.plan); return `<div class="item"><div class="item-main"><div class="item-title">${esc(m.name)}</div><div class="item-meta">Expense   ${esc(prettyDate(m.date))}   <span class="tag">${esc(m.category)}</span>${tp ? ` <span class="tag track">${esc(tp.name)}</span>` : ''}</div></div><div class="item-side">${esc(money(m.amount))}</div></div>`; })()).join('');
-      $('quickResult').hidden = false;
-      const t = made.filter(m => m.kind === 'task').length, x = made.length - t;
-      const parts = [];
-      if (t) parts.push(t === 1 ? '1 task' : t + ' tasks');
-      if (x) parts.push(x === 1 ? '1 expense' : x + ' expenses');
-      toast('Added ' + parts.join(' and '), () => { removeItems(made.map(m => m.id), ''); $('quickResult').hidden = true; $('quickText').value = text; });
-    } catch(err) {
-      toast('Could not parse that. Try: "spent 200 on groceries" or "buy milk tomorrow"');
-    } finally {
-      quickBusy = false; btn.disabled = false; btn.textContent = 'Add';
+      toast('Note added');
+    } else {
+      const list = quickParse(text);
+      if (list.length) { addMany(list); $('quickText').value = ''; toast('Added ' + list.length + (list.length === 1 ? ' item' : ' items')); }
+      else toast('Try: buy milk tomorrow, call dentist friday');
     }
   });
-  $('quickText').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('quickForm').requestSubmit(); } });
 
   /* ---------- categories and budgets ---------- */
   let editingCats = false, budgetMonth = monthKey(isoToday);
@@ -1754,13 +1757,14 @@
   }
   function entryHTML({i, role}, d){
     const open = logOpen === i.id, more = `<button type="button" class="icon-btn bj-more" data-lg="more" data-id="${esc(i.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>`;
-    const timeTag = entryTime(i) ? `<span class="bj-time">${entryTime(i)}</span>` : '';
+    const et = entryTime(i);
     if (role === 'ghost') {
       const goal = i.kind === 'goal';
-      return `<div class="bj ghost"><span class="bj-g" aria-hidden="true">${goal ? '&lt;' : '&gt;'}</span><div class="bj-t"><span class="tx">${esc(i.title)}</span><span class="bj-m">${goal ? 'scheduled for ' + esc(whereLabel(i)) : 'moved to ' + esc(shortDay(i.due))}${i.done ? ' · done' : ''}</span></div>${timeTag}</div>`;
+      return `<div class="bj ghost"><span class="bj-g" aria-hidden="true">${goal ? '&lt;' : '&gt;'}</span><div class="bj-t"><span class="tx">${esc(i.title)}</span><span class="bj-m">${et ? et + ' · ' : ''}${goal ? 'scheduled for ' + esc(whereLabel(i)) : 'moved to ' + esc(shortDay(i.due))}${i.done ? ' · done' : ''}</span></div></div>`;
     }
     if (role === 'task') {
       const meta = [];
+      if (et) meta.push(et);
       if (isStamp(i.remind) && !i.done) meta.push('◷ ' + esc(fmtRemind(i.remind)));
       const parent = i.parent ? items.find(x => x.id === i.parent && x.kind === 'goal') : null;
       if (parent) meta.push('↑ ' + esc(parent.title));
@@ -1778,11 +1782,12 @@
       const star = (i.done && !rank) ? '' : `<button type="button" class="icon-btn bj-top ${rank ? 'on' : ''}" data-lg="top" data-id="${esc(i.id)}" aria-pressed="${!!rank}" aria-label="${rank ? 'Number ' + rank + ' of your top 3. Tap to remove' : 'Add to your top 3'}">${rank || '☆'}</button>`;
       return `<div class="bj ${i.done ? (i.cancelled ? 'cancel' : 'done') : ''} ${i.priority === 'High' && !i.done ? 'high' : ''} ${i.indent ? 'in' : ''} ${rank ? 'is-top' : ''}" data-row="${esc(i.id)}">
         <button type="button" class="bj-g" data-lg="done" data-id="${esc(i.id)}" aria-pressed="${!!i.done}" aria-label="${i.done ? 'Reopen' : 'Mark done'}: ${esc(i.title)}">${i.done && !i.cancelled ? '✕' : '•'}</button>
-        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${timeTag}${more}${strip}</div>`;
+        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${more}${strip}</div>`;
     }
     const strip = !open ? '' : `<div class="bj-strip">${chip('todo', i.id, 'Make it a to-do today', ' data-when="today"')}${chip('todo', i.id, '…tomorrow', ' data-when="tomorrow"')}${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
+    const nm = []; if (et) nm.push(et); if (i.made) nm.push('→ made into a to-do');
     return `<div class="bj ${role} ${i.indent ? 'in' : ''}" data-row="${esc(i.id)}"><span class="bj-g" role="img" aria-label="${role}">${GLYPH[role]}</span>
-      <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${i.made ? '<span class="bj-m">→ made into a to-do</span>' : ''}</div>${timeTag}${more}${strip}</div>`;
+      <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${nm.length ? `<span class="bj-m">${nm.join(' · ')}</span>` : ''}</div>${more}${strip}</div>`;
   }
   function reviewHTML(t){
     return `<div class="bj"><span class="bj-g" aria-hidden="true">•</span><div class="bj-t"><span class="tx">${esc(t.title)}</span><span class="bj-m">from ${esc(shortDay(t.due))}${movedNote(t) ? ' · ' + movedNote(t) : ''}</span></div>
