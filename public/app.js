@@ -2328,30 +2328,30 @@
     const hit = name => { const b = e.target.closest(`[data-ml-${name}]`); return b ? items.find(i => i.id === b.getAttribute('data-ml-' + name)) : null; };
     const done = hit('done'), more = hit('more'), step = hit('step'), area = hit('area');
     const refocus = (name, id) => { const again = document.querySelector(`.ml-plan [data-ml-${name}="${CSS.escape(id)}"]`); if (again) again.focus(); };
-    const subAdd = e.target.closest(‘[data-ml-sub]’);
+    const subAdd = e.target.closest('[data-ml-sub]');
     if (subAdd) {
       const parentId = subAdd.dataset.mlSub;
-      const wrap = subAdd.closest(‘.ml-step-wrap’);
-      if (wrap && !wrap.querySelector(‘.ml-sub-form’)) {
-        const f = document.createElement(‘form’);
-        f.className = ‘hz-add ml-sub-form’;
-        f.innerHTML = `<input maxlength="120" required autocomplete="off" placeholder="Sub-step" aria-label="Add sub-step" style="padding:2px 6px;font-size:11px"><button class="icon-btn" type="submit">＋</button>`;
+      const wrap = subAdd.closest('.ml-step-wrap');
+      if (wrap && !wrap.querySelector('.ml-sub-form')) {
+        const f = document.createElement('form');
+        f.className = 'hz-add ml-sub-form';
+        f.innerHTML = '<input maxlength="120" required autocomplete="off" placeholder="Sub-step" aria-label="Add sub-step" style="padding:2px 6px;font-size:11px"><button class="icon-btn" type="submit">＋</button>';
         wrap.appendChild(f);
-        f.querySelector(‘input’).focus();
-        f.addEventListener(‘submit’, ev => {
+        f.querySelector('input').focus();
+        f.addEventListener('submit', function(ev) {
           ev.preventDefault();
-          const inp = f.querySelector(‘input’), t = inp.value.trim();
+          var inp = f.querySelector('input'), t = inp.value.trim();
           if (!t) return;
-          addItem(‘goal’, {horizon:’month’, period:mlMonth, title:t.slice(0,120), done:false, parent:parentId, area:’’});
-          inp.value = ‘’;
+          addItem('goal', {horizon:'month', period:mlMonth, title:t.slice(0,120), done:false, parent:parentId, area:''});
+          inp.value = '';
         });
       }
       return;
     }
-    if (done) { patchItem(done.id, {done: !done.done}); refocus(‘done’, done.id); }
-    else if (more) { mlOpen = mlOpen === more.id ? null : more.id; renderMonthLog(); refocus(‘more’, more.id); }
-    else if (step) { newTask(step.title, isoToday, {parent: step.id}); toast(‘Added to today’s actions’); }
-    else if (area) { patchItem(area.id, {area: areaOf(area) === ‘work’ ? ‘personal’ : ‘work’}); refocus(‘more’, area.id); }
+    if (done) { patchItem(done.id, {done: !done.done}); refocus('done', done.id); }
+    else if (more) { mlOpen = mlOpen === more.id ? null : more.id; renderMonthLog(); refocus('more', more.id); }
+    else if (step) { newTask(step.title, isoToday, {parent: step.id}); toast('Added to today’s actions'); }
+    else if (area) { patchItem(area.id, {area: areaOf(area) === 'work' ? 'personal' : 'work'}); refocus('more', area.id); }
   });
   $('mlHabitForm').addEventListener('submit', e => {
     e.preventDefault();
