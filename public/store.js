@@ -191,9 +191,17 @@
     if (!panel || document.getElementById('acctRow')) return;
     const row = document.createElement('div');
     row.className = 'acct-row'; row.id = 'acctRow';
-    row.innerHTML = `<span></span><button type="button" class="btn secondary small">Sign out</button>`;
+    row.innerHTML = `<span></span><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn secondary small" id="acctSetPw">Set password</button><button type="button" class="btn secondary small" id="acctOut">Sign out</button></div>`;
     row.querySelector('span').textContent = email || 'Signed in';
-    row.querySelector('button').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+    row.querySelector('#acctOut').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+    row.querySelector('#acctSetPw').addEventListener('click', () => {
+      const pw = prompt('Enter a new password (at least 6 characters):');
+      if (!pw || pw.length < 6) { if (pw !== null) alert('Password must be at least 6 characters.'); return; }
+      sb.auth.updateUser({ password: pw }).then(({ error }) => {
+        if (error) alert('Could not set password: ' + error.message);
+        else { alert('Password set! You can now sign in with email and password.'); row.querySelector('#acctSetPw').remove(); }
+      });
+    });
     panel.appendChild(row);
   }
 
