@@ -113,7 +113,7 @@
             <div class="field"><label for="planMonth" id="planMonthLabel">Paying for it in</label><input id="planMonth" type="month" required></div>
             <div class="field" id="planCountField" hidden><label for="planCount">How many instalments?</label><input id="planCount" type="number" inputmode="numeric" min="1" max="120" step="1" placeholder="12"></div>
             <div class="field" id="planBudgetField" hidden><label for="planBudgetPm">Monthly budget (₹, optional)</label><input id="planBudgetPm" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 3000"></div>
-            <div class="field full"><label for="planCategory">Category</label><select id="planCategory"></select></div></div>
+            <div class="field full"><label for="planCategory">Category</label><select id="planCategory" required></select></div></div>
             <button class="btn" type="submit" id="planBtn">＋ Start saving for this</button></form>
           <div class="list" id="planList"></div>
         </div>
@@ -236,6 +236,7 @@
           <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
         <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
         <div class="ml-filters" id="mlFilters" role="group" aria-label="Also show on each day" hidden></div>
+        <div class="ml-legend" id="mlLegend" hidden><span><i class="g-task">✓</i> task done</span><span><i class="g-event">○</i> event</span><span><i class="g-goal">◆</i> project</span></div>
 
         <div class="card ml-cal-card" id="mlCalCard">
           <div id="mlRows"></div>
@@ -250,12 +251,6 @@
               <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
                 <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a work project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
             </div>
-          </div>
-        </div>
-
-        <div id="mlDoneView" hidden>
-          <div class="ml-legend"><span><i class="g-task">✓</i> task done</span><span><i class="g-event">○</i> event</span><span><i class="g-goal">◆</i> project</span></div>
-          <div class="card ml-cal-card"><div id="mlDoneList"></div>
           </div>
         </div>
 

@@ -714,7 +714,8 @@
     $('homeAside').textContent = nowAside ? money(nowAside) + ' more goes to plans and instalments this month, on top of this budget' : '';
     const names = cats.map(c => c.name), sig = names.join('\n');
     /* the expense form starts on nothing, so a category is a choice and never a leftover */
-    [[$('expenseCategory'), true], [$('planCategory'), false]].forEach(([sel, blank]) => {
+    [$('expenseCategory'), $('planCategory')].forEach(sel => {
+      const blank = true;
       const mySig = (blank ? 'blank\n' : '') + sig;
       if (sel.dataset.sig === mySig) return;
       const cur = sel.value;
@@ -1120,6 +1121,7 @@
     const m = $('planMonth').value.slice(0,7);
     if (!name) return;
     if (!/^\d{4}-\d{2}$/.test(m)) { toast(planType === 'emi' ? 'Pick the month of the first instalment.' : planType === 'track' ? 'Pick the start month.' : 'Pick the month you will pay for it.'); return; }
+    if (!$('planCategory').value) { toast('Pick a category for it.'); $('planCategory').focus(); return; }
     if (planType === 'track') {
       const budget = Math.max(0, Math.round(Number($('planBudgetPm').value) || 0));
       addItem('plan', {type:'track', name, amount:0, budget: budget || 0, month:m, from:m, category: $('planCategory').value, active:true});
@@ -2245,9 +2247,11 @@
      left  = reflection: the month split into weeks, one line a day plus what got done
      right = planning: the month's tasks, personal beside work */
   let mlMonth = monthKey(isoToday), mlOpen = null, mlTab = 'plan';
-  /* extra entry types that can be laid over the Done calendar, one small icon each */
-  const ML_SHOW = {mood:'Mood', idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
-  let mlShow = new Set();
+  /* what the Done calendar can show, one small icon each. Done is on from the start;
+     the rest are laid over the days only when you ask for them. */
+  const ML_SHOW = {done:'Done', mood:'Mood', idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
+  const ML_NOTE = t => t !== 'done';
+  let mlShow = new Set(['done']);
   const habitsDoc = () => items.find(i => i.kind === 'habits') || {};
   const habitList = () => Array.isArray(habitsDoc().list) ? habitsDoc().list.filter(h => h && h.id && h.name) : [];
   const habitLog = () => (habitsDoc().log && typeof habitsDoc().log === 'object') ? habitsDoc().log : {};
@@ -2292,7 +2296,6 @@
   }
 
   function renderMonthRight(key){
-    if (mlTab === 'done') { renderMonthDone(key); return; }
     const allGoals = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key);
     const goals = allGoals.filter(g => !g.parent).sort(byDoneThenAge);
     if (mlOpen && !allGoals.some(g => g.id === mlOpen)) mlOpen = null;
@@ -2300,74 +2303,49 @@
       const list = goals.filter(g => areaOf(g) === area);
       $(id).innerHTML = list.length ? list.map(g => projectRowHTML(g, key)).join('') : `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing yet.'}</div>`;
     });
-    $('mlPlanSub').textContent = 'Plan your weeks, then work the plan';
+    if (mlTab === 'plan') $('mlPlanSub').textContent = 'Plan your weeks, then work the plan';
   }
   function renderMlFilters(){
     const row = $('mlFilters');
     row.hidden = mlTab !== 'done';
     if (row.hidden) return;
     const counts = {};
-    ofKind('bullet').forEach(b => { if (monthKey(b.date) === mlMonth && b.type in ML_SHOW) counts[b.type] = (counts[b.type] || 0) + 1; });
+    ofKind('bullet').forEach(b => { if (monthKey(b.date) === mlMonth && ML_NOTE(b.type) && b.type in ML_SHOW) counts[b.type] = (counts[b.type] || 0) + 1; });
+    counts.done = doneItemsFor(mlMonth, true).length;
     row.innerHTML = Object.keys(ML_SHOW).map(t => {
-      const n = counts[t] || 0;
-      return `<button type="button" class="ml-filter g-${t}" data-mlshow="${t}" aria-pressed="${mlShow.has(t)}" ${n ? '' : 'data-none="1"'} title="${ML_SHOW[t]} logged in ${esc(monthName(mlMonth))}">
-        <span class="ml-filter-g" aria-hidden="true">${GLYPH[t]}</span><span class="ml-filter-l">${ML_SHOW[t]}</span>${n ? `<span class="ml-filter-n">${n}</span>` : ''}</button>`;
+      const n = counts[t] || 0, glyph = t === 'done' ? '✓' : GLYPH[t];
+      return `<button type="button" class="ml-filter g-${t === 'done' ? 'task' : t}" data-mlshow="${t}" aria-pressed="${mlShow.has(t)}" ${n ? '' : 'data-none="1"'} title="${t === 'done' ? 'Tasks, events and projects finished in' : ML_SHOW[t] + ' logged in'} ${esc(monthName(mlMonth))}">
+        <span class="ml-filter-g" aria-hidden="true">${glyph}</span><span class="ml-filter-l">${ML_SHOW[t]}</span>${n ? `<span class="ml-filter-n">${n}</span>` : ''}</button>`;
     }).join('');
   }
-  function renderMonthDone(key){
-    const [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
-    const doneItems = [];
-    ofKind('task').forEach(t => {
+  /* everything finished in a month, plus whichever notes are switched on.
+     baseOnly asks for the finished work alone, for the Done pill's count. */
+  function doneItemsFor(key, baseOnly){
+    const out = [], want = t => baseOnly ? false : mlShow.has(t), done = baseOnly || mlShow.has('done');
+    if (done) ofKind('task').forEach(t => {
       const on = t.doneOn || t.due;
-      /* a tick, not the bullet-journal ✕ — on this line it would read as the ✘ of a mistake */
-      if (t.done && !t.cancelled && monthKey(on) === key) doneItems.push({iso:on, glyph:'✓', text:t.title, type:'task'});
+      /* a tick, not the bullet-journal cross, which on this line reads as the cross of a mistake */
+      if (t.done && !t.cancelled && monthKey(on) === key) out.push({iso:on, glyph:'✓', text:t.title, type:'task'});
     });
     ofKind('bullet').forEach(b => {
       if (monthKey(b.date) !== key) return;
-      if (b.type === 'event') doneItems.push({iso:b.date, glyph:'○', text:(b.time ? b.time + ' ' : '') + b.text, type:'event'});
-      else if (mlShow.has(b.type)) doneItems.push({iso:b.date, glyph:GLYPH[b.type], text:b.text, type:b.type});
+      if (b.type === 'event') { if (done) out.push({iso:b.date, glyph:'○', text:(b.time ? b.time + ' ' : '') + b.text, type:'event'}); }
+      else if (want(b.type)) out.push({iso:b.date, glyph:GLYPH[b.type], text:b.text, type:b.type});
     });
-    ofKind('goal').forEach(g => {
-      if (g.done && g.horizon === 'month' && g.period === key) {
-        const on = g.doneOn || key + '-01';
-        doneItems.push({iso:on, glyph:'◆', text:g.title, type:'goal'});
-      }
+    if (done) ofKind('goal').forEach(g => {
+      if (g.done && g.horizon === 'month' && g.period === key) out.push({iso:g.doneOn || key + '-01', glyph:'◆', text:g.title, type:'goal'});
     });
-    const byDay = {}, rank = di => (di.type in ML_SHOW ? 1 : 0);
-    doneItems.sort((a, b) => rank(a) - rank(b));
-    doneItems.forEach(di => (byDay[di.iso] || (byDay[di.iso] = [])).push(di));
-    let total = doneItems.length;
-    let html = '';
-    for (let d = 1; d <= days; d++){
-      const iso = `${key}-${pad(d)}`, dow = new Date(iso + 'T12:00:00').getDay();
-      const wk = weekKey(iso);
-      if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week" data-ml-wk="${wk}"><div class="ml-wk">Week ${Number(wk.slice(6))}</div>`;
-      const dayDone = byDay[iso] || [];
-      const didStr = dayDone.map(di => `<span class="ml-done-g g-${di.type || 'task'}">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
-      html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}">
-        <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
-        <div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>
-        <div class="ml-dot-col"></div></div>`;
-    }
-    html += '</div>';
-    const extra = doneItems.filter(di => di.type in ML_SHOW).length, base = total - extra;
-    $('mlPlanSub').textContent = base + ' completed ' + (base === 1 ? 'item' : 'items') + ' this month' +
-      (extra ? ' · ' + extra + ' ' + (extra === 1 ? 'note' : 'notes') : '');
-    safeHTML($('mlDoneList'), html || `<div class="hz-empty">Nothing completed yet this month.</div>`);
+    const rank = di => (ML_NOTE(di.type) && di.type in ML_SHOW ? 1 : 0);
+    return out.sort((a, b) => rank(a) - rank(b));
   }
   function renderMonthLog(){
     const key = mlMonth, [y, m] = key.split('-').map(Number), days = new Date(y, m, 0).getDate();
     $('mlTitle').textContent = monthName(key);
     $('mlToday').hidden = key === monthKey(isoToday);
     const habits = habitList(), log = habitLog();
-    const did = {}, counts = {};
-    const note = (iso, text) => (did[iso] || (did[iso] = [])).push(text);
-    ofKind('bullet').forEach(b => { if (b.type === 'event' && monthKey(b.date) === key) note(b.date, '○ ' + (b.time ? b.time + ' ' : '') + b.text); });
-    ofKind('task').forEach(t => {
-      const on = t.doneOn || t.due;
-      if (t.done && !t.cancelled && monthKey(on) === key) note(on, '✓ ' + t.title);
-      else if (!t.done && monthKey(t.due) === key) counts[t.due] = (counts[t.due] || 0) + 1;
-    });
+    const shown = mlTab === 'done' ? doneItemsFor(key) : [];
+    const byDay = {};
+    shown.forEach(di => (byDay[di.iso] || (byDay[di.iso] = [])).push(di));
     const planned = {};
     ofKind('goal').filter(g => g.horizon === 'month' && g.period === key && g.due && !g.done).forEach(g => {
       (planned[g.due] || (planned[g.due] = [])).push(g.title);
@@ -2378,12 +2356,12 @@
       const wk = weekKey(iso);
       if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week" data-ml-wk="${wk}"><div class="ml-wk" data-ml-drop="${wk}">Week ${Number(wk.slice(6))}<span class="ml-wk-count" data-wk-count="${wk}"></span></div>`;
       const done = new Set(log[iso] || []);
-      const didStr = did[iso] ? `<span class="ml-done-only">${did[iso].map(esc).join(' · ')}</span>` : '';
-      const planStr = (planned[iso] || []).map(t => `<span class="ml-day-task ml-plan-only">◇ ${esc(t)}</span>`).join(' ');
-      const belowStr = [planStr, didStr].filter(Boolean).join(' ');
+      const dayItems = byDay[iso] || [];
+      const didStr = dayItems.map(di => `<span class="ml-done-g g-${di.type}">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
+      const belowStr = mlTab === 'done' ? '' : (planned[iso] || []).map(t => `<span class="ml-day-task ml-plan-only">◇ ${esc(t)}</span>`).join(' ');
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
-        <span class="ml-line-space"></span>
+        ${mlTab === 'done' ? `<div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>` : '<span class="ml-line-space"></span>'}
         <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
         ${belowStr ? `<div class="ml-did">${belowStr}</div>` : ''}</div>`;
     }
@@ -2393,12 +2371,16 @@
       const el = document.querySelector(`[data-wk-count="${w.wk}"]`);
       if (el) el.textContent = planned.length ? ` · ${planned.map(g => g.title).join(', ')}` : '';
     });
+    if (mlTab === 'done') {
+      const extra = shown.filter(di => di.type in ML_SHOW && ML_NOTE(di.type)).length, base = shown.length - extra;
+      $('mlPlanSub').textContent = (mlShow.has('done') ? base + ' completed ' + (base === 1 ? 'item' : 'items') + ' this month' : 'Notes laid over the month')
+        + (extra ? ' · ' + extra + ' ' + (extra === 1 ? 'note' : 'notes') : '');
+    }
     renderMonthRight(key);
     document.querySelectorAll('#mlSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mltab === mlTab)));
     $('mlPlanView').hidden = mlTab !== 'plan';
-    $('mlDoneView').hidden = mlTab !== 'done';
     $('mlCalCard').classList.toggle('hide-habits', mlTab === 'plan');
-    $('mlCalCard').classList.toggle('done-tab', mlTab === 'done');
+    $('mlLegend').hidden = mlTab !== 'done';
     renderMlFilters();
     $('mlHabits').innerHTML = habits.length ? habits.map(h => {
       const n = Object.keys(log).filter(dk => monthKey(dk) === key && (log[dk] || []).includes(h.id)).length;
@@ -2434,8 +2416,7 @@
     if (!b) return;
     const t = b.dataset.mlshow;
     if (mlShow.has(t)) mlShow.delete(t); else mlShow.add(t);
-    renderMlFilters();
-    renderMonthDone(mlMonth);
+    renderMonthLog();
     const again = $('mlFilters').querySelector(`[data-mlshow="${t}"]`); if (again) again.focus();
   });
   $('mlPrev').addEventListener('click', () => { mlMonth = shiftKey(mlMonth, -1); mlOpen = null; renderMonthLog(); });
@@ -2445,13 +2426,7 @@
     const b = e.target.closest('[data-mltab]');
     if (!b) return;
     mlTab = b.dataset.mltab;
-    $('mlPlanView').hidden = mlTab !== 'plan';
-    $('mlDoneView').hidden = mlTab !== 'done';
-    $('mlCalCard').classList.toggle('hide-habits', mlTab === 'plan');
-    $('mlCalCard').classList.toggle('done-tab', mlTab === 'done');
-    renderMlFilters();
-    document.querySelectorAll('#mlSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mltab === mlTab)));
-    renderMonthRight(mlMonth);
+    renderMonthLog();
   });
   document.querySelectorAll('.ml-goal-form').forEach(f => f.addEventListener('submit', e => {
     e.preventDefault();

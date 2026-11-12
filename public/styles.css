@@ -605,10 +605,7 @@ button.bj-g:hover { background:var(--track) }
 .ml-line:focus { background:var(--input-bg) }
 .ml-habits { display:flex; gap:2px }
 .ml-cal-card.hide-habits .ml-habits { display:none }
-.ml-cal-card.hide-habits .ml-done-only { display:none }
-.ml-cal-card.done-tab .ml-did { display:none }
-.ml-cal-card:not(.hide-habits) .ml-plan-only { display:none }
-.ml-done-only, .ml-plan-only { display:inline }
+.ml-cal-card.done-tab { background-image:radial-gradient(circle, color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1.3px); background-size:20px 20px; background-position:10px 10px }
 .ml-hl { width:26px; text-align:center; font-size:11px; font-weight:600; color:var(--muted) }
 .ml-dot { width:26px; height:26px; border-radius:0; border:0; background:transparent; padding:0; display:grid; place-items:center; cursor:pointer }
 .ml-dot::after { content:"·"; color:var(--track); font-size:18px; line-height:1 }
@@ -783,10 +780,6 @@ button.bj-g:hover { background:var(--track) }
 .ml-legend .g-task { color:var(--text) }
 .ml-legend .g-goal { color:var(--pop, var(--accent)) }
 .ml-done-sep { color:var(--muted); margin:0 3px }
-#mlDoneList .ml-row { grid-template-columns:38px minmax(0,1fr) 8px }
-#mlDoneList .ml-dot-col { width:8px; display:flex; align-items:center; justify-content:center }
-#mlDoneList .ml-dot-col::after { content:''; width:4px; height:4px; border-radius:50%; background:var(--line-soft) }
-#mlDoneList .ml-row:has(.ml-done-g) .ml-dot-col::after { background:var(--accent) }
 /* icon row under Plan / Done: lay mood, ideas, problems and the rest over the days */
 .ml-filters { display:flex; flex-wrap:wrap; gap:4px; margin:0 20px 8px }
 .ml-filter { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line-soft); background:var(--tile);
@@ -803,8 +796,6 @@ button.bj-g:hover { background:var(--track) }
 .g-problem .ml-filter-g, .ml-done-g.g-problem, .g-mistake .ml-filter-g, .ml-done-g.g-mistake { color:var(--red) }
 .g-observation .ml-filter-g, .ml-done-g.g-observation, .g-mood .ml-filter-g, .ml-done-g.g-mood { color:var(--muted) }
 .ml-done-g.g-idea, .ml-done-g.g-problem, .ml-done-g.g-mistake, .ml-done-g.g-observation, .ml-done-g.g-mood { opacity:1 }
-#mlDoneView .card { padding:12px 10px 14px;
-  background-image:radial-gradient(circle, color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1.3px); background-size:20px 20px; background-position:10px 10px }
 
 /* tracking plans */
 .tag.track { background:color-mix(in srgb, var(--accent) 18%, transparent); color:var(--accent) }
@@ -815,3 +806,45 @@ button.bj-g:hover { background:var(--track) }
 .track-month-name { color:var(--text-2); font-size:11px }
 .track-month-amt { font-weight:600; font-variant-numeric:tabular-nums }
 .track-month-amt.red { color:var(--red) }
+
+
+/* ---- liquid glass ----
+   One rim for every surface: a bright top edge where the light catches it,
+   a faint bottom edge, a hairline border and the backdrop showing through. */
+:root { --rim-hi:rgba(255,255,255,.72); --rim-lo:rgba(255,255,255,.18); --rim-edge:rgba(255,255,255,.55);
+  --glass-tint:74%; --glass-blur:blur(22px) saturate(140%) }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --rim-hi:rgba(255,255,255,.14); --rim-lo:rgba(255,255,255,.04); --rim-edge:rgba(255,255,255,.10); --glass-tint:82% } }
+:root[data-theme="dark"] { --rim-hi:rgba(255,255,255,.14); --rim-lo:rgba(255,255,255,.04); --rim-edge:rgba(255,255,255,.10); --glass-tint:82% }
+
+.card:not(.dark) { background:color-mix(in srgb, var(--card) var(--glass-tint), transparent); border:1px solid var(--rim-edge);
+  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo), var(--card-shadow);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur) }
+.card.glass { background:var(--glass) }
+.card.dark { box-shadow:inset 0 1px 0 rgba(255,255,255,.14), var(--card-shadow) }
+.stats .card { background:transparent; border:0; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none }
+aside { background:color-mix(in srgb, var(--card) var(--glass-tint), transparent); border:1px solid var(--rim-edge);
+  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur) }
+.inner-panel, .shape-block, .theme-panel, .dlg, dialog > form { border:1px solid var(--rim-edge);
+  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo), 0 6px 20px color-mix(in srgb, var(--text) 7%, transparent) }
+
+/* the controls get the same edge, without a blur each, so a long list still scrolls */
+.btn.secondary, .icon-btn, .chip-btn, .round-btn, .date-pill, .seg, .type-pill, .ml-filter, .bj-help kbd {
+  background:color-mix(in srgb, var(--card) 55%, transparent); border:1px solid color-mix(in srgb, var(--stroke) 42%, transparent);
+  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo) }
+.seg { -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px) }
+.icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] { background:var(--accent); color:var(--on-accent); border-color:transparent }
+.btn:not(.secondary) { box-shadow:inset 0 1px 0 rgba(255,255,255,.26), 0 4px 14px color-mix(in srgb, var(--pop, var(--accent)) 30%, transparent) }
+.seg button[aria-pressed="true"], .type-pill[aria-pressed="true"] { box-shadow:inset 0 1px 0 rgba(255,255,255,.3) }
+.ml-filter[aria-pressed="true"] { background:color-mix(in srgb, var(--card) 92%, transparent) }
+input, textarea, select { background:color-mix(in srgb, var(--input-bg) 70%, transparent); border:1px solid var(--input-border);
+  box-shadow:inset 0 1px 0 var(--rim-hi) }
+input:focus, textarea:focus, select:focus { border-color:var(--accent) }
+.tag { background:color-mix(in srgb, var(--card) 45%, transparent); border:1px solid color-mix(in srgb, var(--stroke) 22%, transparent) }
+
+/* a phone paints every frame while scrolling, so the big blurs come off there */
+@media (max-width:860px) {
+  .card:not(.dark), aside { -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px) }
+  .seg { -webkit-backdrop-filter:none; backdrop-filter:none }
+}
