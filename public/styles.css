@@ -547,7 +547,6 @@ button.bj-g:hover { background:var(--track) }
 .ml-cal-card.hide-habits .ml-habits { display:none }
 .ml-cal-card.hide-habits .ml-done-only { display:none }
 .ml-cal-card:not(.hide-habits) .ml-plan-only { display:none }
-.ml-cal-card:not(.hide-habits) .ml-line { visibility:hidden }
 .ml-done-only, .ml-plan-only { display:inline }
 .ml-hl { width:26px; text-align:center; font-size:11px; font-weight:600; color:var(--muted) }
 .ml-dot { width:26px; height:26px; border-radius:0; border:0; background:transparent; padding:0; display:grid; place-items:center; cursor:pointer }
