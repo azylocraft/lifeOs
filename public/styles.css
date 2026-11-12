@@ -557,10 +557,10 @@ button.bj-g:hover { background:var(--track) }
 .ml-row.drop-over { background:color-mix(in srgb, var(--accent) 15%, transparent); border-radius:8px }
 .ml-wk-count { font-weight:400; font-size:10px; letter-spacing:0; text-transform:none; color:var(--text-2) }
 .ml-plan { display:grid; grid-template-columns:minmax(0,1fr); gap:0 }
-.ml-col { min-width:0; padding:0; display:grid; gap:6px; align-content:start }
-.ml-col:first-child { padding:0 0 12px; border-bottom:1.5px solid var(--stroke); margin-bottom:12px }
-.ml-col h3 { text-align:left; margin:0; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted) }
-.ml-col .hz-add input { padding:6px 10px }
+.ml-col { min-width:0; padding:0; display:grid; gap:3px; align-content:start }
+.ml-col:first-child { padding:0 0 8px; border-bottom:1.5px solid var(--stroke); margin-bottom:8px }
+.ml-col h3 { text-align:left; margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted) }
+.ml-col .hz-add input { padding:4px 10px; font-size:12px }
 
 /* an open notebook: two dot-grid pages joined at the spine */
 .book { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); background:var(--card); border-radius:26px; box-shadow:var(--card-shadow); overflow:hidden }
@@ -645,16 +645,20 @@ button.bj-g:hover { background:var(--track) }
 }
 
 /* project rows in monthly plan */
-.ml-project { border:1px solid var(--line-soft); border-radius:10px; padding:2px 4px; margin-bottom:6px }
+.ml-proj-card .card-head { margin-bottom:8px }
+.ml-proj-card .card-head h2 { font-size:16px }
+.ml-proj-card .card-head .sub { font-size:11.5px; margin-top:1px }
+.ml-proj-card .card-head .stat-icon { width:32px; height:32px; font-size:13px }
+.ml-project { border:1px solid var(--line-soft); border-radius:8px; padding:1px 4px; margin-bottom:4px }
 .ml-project.done { opacity:.6 }
-.ml-kids { padding:0 0 4px 24px }
-.ml-kids .bj { padding:2px 2px; cursor:grab }
-.ml-kids .bj .bj-g { width:22px; height:22px; font-size:10px }
-.ml-kids .bj .bj-t { padding:2px 0; font-size:12.5px }
-.ml-kids .bj .bj-m { font-size:10px }
+.ml-kids { padding:0 0 2px 20px }
+.ml-kids .bj { padding:1px 2px; cursor:grab }
+.ml-kids .bj .bj-g { width:18px; height:18px; font-size:9px }
+.ml-kids .bj .bj-t { padding:1px 0; font-size:12px }
+.ml-kids .bj .bj-m { font-size:9px }
 .ml-kids .bj.dragging { opacity:.35 }
-.ml-kid-form { margin-top:4px }
-.ml-kid-form input { padding:5px 8px; font-size:12px }
+.ml-kid-form { margin-top:2px }
+.ml-kid-form input { padding:3px 8px; font-size:11.5px }
 .ml-wk-sel { font-size:10px; padding:1px 3px; border:1px solid var(--line-soft); border-radius:5px; background:var(--input-bg); color:var(--muted); cursor:pointer; max-width:50px }
 .ml-wk-sel:focus { border-color:var(--pop, var(--accent)) }
 
