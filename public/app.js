@@ -2180,6 +2180,10 @@
       if (t.done && !t.cancelled && monthKey(on) === key) note(on, '✕ ' + t.title);
       else if (!t.done && monthKey(t.due) === key) counts[t.due] = (counts[t.due] || 0) + 1;
     });
+    const planned = {};
+    ofKind('goal').filter(g => g.horizon === 'month' && g.period === key && g.due && !g.done).forEach(g => {
+      (planned[g.due] || (planned[g.due] = [])).push(g.title);
+    });
     let html = `<div class="ml-row ml-head"><span></span><span></span><div class="ml-habits">${habits.map(h => `<span class="ml-hl" title="${esc(h.name)}">${esc(h.name.charAt(0).toUpperCase())}</span>`).join('')}</div></div>`;
     for (let d = 1; d <= days; d++) {
       const iso = `${key}-${pad(d)}`, dow = new Date(iso + 'T12:00:00').getDay();
@@ -2188,15 +2192,17 @@
       const done = new Set(log[iso] || []);
       const hint = iso === isoToday ? 'One line about today' : counts[iso] ? `${counts[iso]} open` : '';
       const didStr = did[iso] ? did[iso].map(esc).join(' · ') : '';
+      const planStr = (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join(' ');
+      const belowStr = [planStr, didStr].filter(Boolean).join(' ');
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
         <input class="ml-line" data-ml-line="${pad(d)}" maxlength="140" value="${esc(lines[pad(d)] || '')}" placeholder="${esc(hint)}" aria-label="One line for ${esc(dayLabel(iso))}" autocomplete="off">
         <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
-        ${didStr ? `<div class="ml-did">${didStr}</div>` : ''}</div>`;
+        ${belowStr ? `<div class="ml-did">${belowStr}</div>` : ''}</div>`;
     }
     safeHTML($('mlRows'), html + '</div>');
     monthWeeks(key).forEach(w => {
-      const planned = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key && g.targetWeek === w.wk && !g.done);
+      const planned = ofKind('goal').filter(g => g.horizon === 'month' && g.period === key && g.targetWeek === w.wk && !g.done && !g.due);
       const el = document.querySelector(`[data-wk-count="${w.wk}"]`);
       if (el) el.textContent = planned.length ? ` · ${planned.map(g => g.title).join(', ')}` : '';
     });
