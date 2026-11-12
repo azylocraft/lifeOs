@@ -1861,8 +1861,7 @@
       html += `<div class="shape-block unassigned" data-block="unassigned"><div class="shape-head"><span class="shape-time">Unassigned</span><span style="font-size:10px;opacity:.5">${unassigned.length} tasks – drag to a block</span></div>${unassigned.map(row).join('')}</div>`;
     }
     $('lgShape').innerHTML = html;
-    const mk = open.filter(t => workOf(t) === 'maker').length;
-    $('lgShapeSub').textContent = open.length ? `${mk} deep · ${open.length - mk} quick · for ${d === isoToday ? 'today' : shortDay(d)}` : '3-hour blocks · maker & manager';
+    $('lgShapeSub').textContent = '';
   }
   /* the left page: last 7 days before this one, each with plan/log tabs */
   let pastCount = 7, pastTab = 'log';
