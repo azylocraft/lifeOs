@@ -449,6 +449,7 @@ button.bj-g:hover { background:var(--track) }
 .bj-t { padding:5px 0; overflow-wrap:anywhere; line-height:1.45; min-width:0 }
 .bj-t .tm { font-weight:600; font-variant-numeric:tabular-nums; margin-right:7px }
 .bj-m { display:block; color:var(--muted); font-size:11.5px; margin-top:1px }
+.bj-et { color:var(--muted); font-size:10px; margin-left:6px; white-space:nowrap }
 .bj.done .bj-t .tx { color:var(--muted) }
 .bj.cancel .bj-t .tx { text-decoration:line-through; color:var(--faint) }
 .bj.cancel .bj-g, .bj.ghost .bj-g, .bj.ghost .bj-t .tx { color:var(--faint) }

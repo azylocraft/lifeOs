@@ -1753,18 +1753,21 @@
     const ts = i.at || i.created;
     if (!ts) return '';
     const dt = new Date(ts);
-    return pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+    let h = dt.getHours(), m = dt.getMinutes();
+    const ap = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return h + ':' + pad(m) + ap;
   }
-  function entryHTML({i, role}, d){
+  function entryHTML({i, role}, d, showTime){
     const open = logOpen === i.id, more = `<button type="button" class="icon-btn bj-more" data-lg="more" data-id="${esc(i.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>`;
-    const et = entryTime(i);
+    const et = showTime !== false ? entryTime(i) : '';
+    const timeSpan = et ? ` <span class="bj-et">${et}</span>` : '';
     if (role === 'ghost') {
       const goal = i.kind === 'goal';
-      return `<div class="bj ghost"><span class="bj-g" aria-hidden="true">${goal ? '&lt;' : '&gt;'}</span><div class="bj-t"><span class="tx">${esc(i.title)}</span><span class="bj-m">${et ? et + ' · ' : ''}${goal ? 'scheduled for ' + esc(whereLabel(i)) : 'moved to ' + esc(shortDay(i.due))}${i.done ? ' · done' : ''}</span></div></div>`;
+      return `<div class="bj ghost"><span class="bj-g" aria-hidden="true">${goal ? '&lt;' : '&gt;'}</span><div class="bj-t"><span class="tx">${esc(i.title)}${timeSpan}</span><span class="bj-m">${goal ? 'scheduled for ' + esc(whereLabel(i)) : 'moved to ' + esc(shortDay(i.due))}${i.done ? ' · done' : ''}</span></div></div>`;
     }
     if (role === 'task') {
       const meta = [];
-      if (et) meta.push(et);
       if (isStamp(i.remind) && !i.done) meta.push('◷ ' + esc(fmtRemind(i.remind)));
       const parent = i.parent ? items.find(x => x.id === i.parent && x.kind === 'goal') : null;
       if (parent) meta.push('↑ ' + esc(parent.title));
@@ -1782,12 +1785,12 @@
       const star = (i.done && !rank) ? '' : `<button type="button" class="icon-btn bj-top ${rank ? 'on' : ''}" data-lg="top" data-id="${esc(i.id)}" aria-pressed="${!!rank}" aria-label="${rank ? 'Number ' + rank + ' of your top 3. Tap to remove' : 'Add to your top 3'}">${rank || '☆'}</button>`;
       return `<div class="bj ${i.done ? (i.cancelled ? 'cancel' : 'done') : ''} ${i.priority === 'High' && !i.done ? 'high' : ''} ${i.indent ? 'in' : ''} ${rank ? 'is-top' : ''}" data-row="${esc(i.id)}">
         <button type="button" class="bj-g" data-lg="done" data-id="${esc(i.id)}" aria-pressed="${!!i.done}" aria-label="${i.done ? 'Reopen' : 'Mark done'}: ${esc(i.title)}">${i.done && !i.cancelled ? '✕' : '•'}</button>
-        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${more}${strip}</div>`;
+        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${timeSpan}${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${more}${strip}</div>`;
     }
     const strip = !open ? '' : `<div class="bj-strip">${chip('todo', i.id, 'Make it a to-do today', ' data-when="today"')}${chip('todo', i.id, '…tomorrow', ' data-when="tomorrow"')}${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
-    const nm = []; if (et) nm.push(et); if (i.made) nm.push('→ made into a to-do');
+    const nm = []; if (i.made) nm.push('→ made into a to-do');
     return `<div class="bj ${role} ${i.indent ? 'in' : ''}" data-row="${esc(i.id)}"><span class="bj-g" role="img" aria-label="${role}">${GLYPH[role]}</span>
-      <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${nm.length ? `<span class="bj-m">${nm.join(' · ')}</span>` : ''}</div>${more}${strip}</div>`;
+      <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${timeSpan}${nm.length ? `<span class="bj-m">${nm.join(' · ')}</span>` : ''}</div>${more}${strip}</div>`;
   }
   function reviewHTML(t){
     return `<div class="bj"><span class="bj-g" aria-hidden="true">•</span><div class="bj-t"><span class="tx">${esc(t.title)}</span><span class="bj-m">from ${esc(shortDay(t.due))}${movedNote(t) ? ' · ' + movedNote(t) : ''}</span></div>
@@ -1851,7 +1854,7 @@
       const showing = tab === 'plan' ? planOnly : entries;
       return `<section class="bj-day"><div class="past-day-head"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button>
         <div class="seg past-tabs"><button type="button" class="past-tab ${tab === 'plan' ? 'on' : ''}" data-past-tab="plan" data-past-day="${d}">Plan</button><button type="button" class="past-tab ${tab === 'log' ? 'on' : ''}" data-past-tab="log" data-past-day="${d}">Log</button></div></div>
-        ${line ? `<div class="bj-quote">"​${esc(line)}"</div>` : ''}<div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d)).join('') : `<div class="hz-empty">${tab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
+        ${line ? `<div class="bj-quote">"​${esc(line)}"</div>` : ''}<div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d, tab !== 'plan')).join('') : `<div class="hz-empty">${tab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
     }).join('')}</div>`).join(''));
   }
 
@@ -1867,7 +1870,7 @@
     if (logOpen && !items.some(x => x.id === logOpen)) logOpen = null;
     const quoteHTML = mlLine ? `<div class="bj-quote" style="margin-bottom:10px">"${esc(mlLine)}"</div>` : '';
     const planEntries = entries.filter(e => e.role === 'task' && !e.i.done);
-    safeHTML($('lgList'), quoteHTML + (planEntries.length ? planEntries.map(e => entryHTML(e, logDate)).join('')
+    safeHTML($('lgList'), quoteHTML + (planEntries.length ? planEntries.map(e => entryHTML(e, logDate, false)).join('')
       : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing planned for this day.'}</div>`));
     safeHTML($('lgDoneList'), quoteHTML + (entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
       : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing logged yet. Jot the first thing below.'}</div>`));
