@@ -1770,7 +1770,7 @@
       const meta = [];
       if (isStamp(i.remind) && !i.done) meta.push('◷ ' + esc(fmtRemind(i.remind)));
       const parent = i.parent ? items.find(x => x.id === i.parent && x.kind === 'goal') : null;
-      if (parent) meta.push('↑ ' + esc(parent.title));
+      const parentSpan = parent ? ` <span class="bj-et">↑ ${esc(parent.title)}</span>` : '';
       if (!i.done && movedNote(i)) meta.push(movedNote(i));
       if (i.done && i.cancelled) meta.push('dropped');
       const strip = !open ? '' : `<div class="bj-strip">${i.done ? '' :
@@ -1785,7 +1785,7 @@
       const star = (i.done && !rank) ? '' : `<button type="button" class="icon-btn bj-top ${rank ? 'on' : ''}" data-lg="top" data-id="${esc(i.id)}" aria-pressed="${!!rank}" aria-label="${rank ? 'Number ' + rank + ' of your top 3. Tap to remove' : 'Add to your top 3'}">${rank || '☆'}</button>`;
       return `<div class="bj ${i.done ? (i.cancelled ? 'cancel' : 'done') : ''} ${i.priority === 'High' && !i.done ? 'high' : ''} ${i.indent ? 'in' : ''} ${rank ? 'is-top' : ''}" data-row="${esc(i.id)}">
         <button type="button" class="bj-g" data-lg="done" data-id="${esc(i.id)}" aria-pressed="${!!i.done}" aria-label="${i.done ? 'Reopen' : 'Mark done'}: ${esc(i.title)}">${i.done && !i.cancelled ? '✕' : '•'}</button>
-        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${timeSpan}${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${more}${strip}</div>`;
+        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${parentSpan}${timeSpan}${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${more}${strip}</div>`;
     }
     const strip = !open ? '' : `<div class="bj-strip">${chip('todo', i.id, 'Make it a to-do today', ' data-when="today"')}${chip('todo', i.id, '…tomorrow', ' data-when="tomorrow"')}${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
     const nm = []; if (i.made) nm.push('→ made into a to-do');
