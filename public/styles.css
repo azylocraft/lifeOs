@@ -594,11 +594,7 @@ button.bj-g:hover { background:var(--track) }
 .bj-date:focus-visible { outline:2px solid var(--pop, var(--accent)) }
 .bj-quote { font-size:12.5px; font-style:italic; color:var(--muted); padding:0 4px 6px; overflow-wrap:anywhere }
 .past-day-head { display:flex; align-items:center; justify-content:space-between; gap:8px }
-.past-tabs { display:flex; gap:0 }
-.past-tab { all:unset; cursor:pointer; font-size:10px; padding:1px 8px; border:1px solid var(--line-soft); color:var(--muted) }
-.past-tab:first-child { border-radius:4px 0 0 4px }
-.past-tab:last-child { border-radius:0 4px 4px 0; border-left:0 }
-.past-tab.on { background:var(--track); color:var(--text); font-weight:600 }
+.past-tabs { gap:3px }
 .page .bj:hover { background:color-mix(in srgb, var(--text) 6%, var(--card)) }
 .page .bj-add input { background:var(--card) }
 .day-cards { grid-template-columns:repeat(auto-fit, minmax(270px, 1fr)); align-items:start }

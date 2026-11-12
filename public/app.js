@@ -1853,7 +1853,7 @@
       const tab = pastTabs[d] || 'log';
       const showing = tab === 'plan' ? planOnly : entries;
       return `<section class="bj-day"><div class="past-day-head"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button>
-        <div class="seg past-tabs"><button type="button" class="past-tab ${tab === 'plan' ? 'on' : ''}" data-past-tab="plan" data-past-day="${d}">Plan</button><button type="button" class="past-tab ${tab === 'log' ? 'on' : ''}" data-past-tab="log" data-past-day="${d}">Log</button></div></div>
+        <div class="seg past-tabs"><button type="button" data-past-tab="plan" data-past-day="${d}" aria-pressed="${tab === 'plan'}">Plan</button><button type="button" data-past-tab="log" data-past-day="${d}" aria-pressed="${tab === 'log'}">Log</button></div></div>
         ${line ? `<div class="bj-quote">"​${esc(line)}"</div>` : ''}<div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d, tab !== 'plan')).join('') : `<div class="hz-empty">${tab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
     }).join('')}</div>`).join(''));
   }
