@@ -463,13 +463,17 @@ button.bj-g:hover { background:var(--track) }
 #lgReview .bj { background:var(--card); padding:6px 8px; margin-bottom:6px }
 
 /* shape of the day */
-.shape-half { border-radius:16px; background:var(--tile); padding:12px 14px; min-width:0 }
-.shape-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; font-size:13px }
-.shape-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; padding:4px 0; min-width:0 }
+#lgShape { display:grid; gap:6px }
+.shape-block { border-radius:12px; background:var(--tile); padding:10px 14px; min-width:0 }
+.shape-block.sleep { opacity:.45; padding:6px 14px }
+.shape-head { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px }
+.shape-time { color:var(--muted); font-variant-numeric:tabular-nums; min-width:72px }
+.shape-sleep-tag { font-size:11px; color:var(--faint); font-style:italic }
+.shape-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; padding:3px 0; min-width:0 }
 .shape-row > span:first-child { min-width:0; overflow-wrap:anywhere }
 .shape-row .tm { font-variant-numeric:tabular-nums }
-.shape-hint { font-size:12px; color:var(--muted) }
-.mode-btn { border:1px solid var(--stroke); background:transparent; color:var(--text); border-radius:999px; padding:5px 12px; font-size:11.5px; font-weight:600; white-space:nowrap }
+.shape-hint { font-size:11px; color:var(--muted) }
+.mode-btn { border:1px solid var(--stroke); background:transparent; color:var(--text); border-radius:999px; padding:4px 10px; font-size:11px; font-weight:600; white-space:nowrap }
 .mode-btn.maker { background:var(--pop, var(--accent)); color:var(--on-pop, var(--on-accent)); border-color:transparent }
 .mode-btn:hover { filter:brightness(1.12) }
 .fc-clock { font-size:44px; font-weight:600; letter-spacing:-1.5px; line-height:1.1; font-variant-numeric:tabular-nums }
@@ -504,8 +508,9 @@ button.bj-g:hover { background:var(--track) }
 .rh-grid .h { color:var(--muted); text-align:center }
 .rh-grid .h.side { text-align:left; padding-right:6px }
 .rh-grid .h.now { color:var(--text); font-weight:600 }
-.rh-cell { border:1px solid var(--stroke); background:transparent; color:var(--text-2); border-radius:12px; padding:10px 2px; font-size:11.5px; min-width:0 }
+.rh-cell { border:1px solid var(--stroke); background:transparent; color:var(--text-2); border-radius:12px; padding:6px 2px; font-size:10.5px; min-width:0 }
 .rh-cell.maker { background:var(--pop, var(--accent)); color:var(--on-pop, var(--on-accent)); border-color:transparent; font-weight:600 }
+.rh-cell.sleep { border:none; background:transparent; color:var(--faint); font-size:9px; cursor:default; padding:4px 2px }
 .rh-cell:hover { filter:brightness(1.12) }
 .rh-cell .s { display:none }
 
