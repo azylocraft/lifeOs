@@ -463,11 +463,17 @@ button.bj-g:hover { background:var(--track) }
 #lgReview .bj { background:var(--card); padding:6px 8px; margin-bottom:6px }
 
 /* shape of the day */
+.shape-card { background:#1c1c1e !important; color:#f5f5f7 !important; color-scheme:dark !important;
+  --text:#f5f5f7; --text-2:rgba(245,245,247,.85); --muted:rgba(245,245,247,.6); --faint:rgba(245,245,247,.35);
+  --tile:rgba(255,255,255,.07); --track:rgba(255,255,255,.12); --stroke:rgba(255,255,255,.18);
+  --line-soft:rgba(255,255,255,.08); --pop:var(--accent); --on-pop:var(--on-accent) }
 #lgShape { display:grid; gap:8px }
 .shape-block { border-radius:18px; padding:14px 16px; min-width:0; transition:box-shadow .2s, border-color .2s;
-  background:var(--tile); border:1px solid var(--line-soft); box-shadow:0 2px 8px rgba(0,0,0,.08) }
-.shape-block.sleep { opacity:.35; padding:6px 16px }
-.shape-block.drag-over { border-color:var(--pop, var(--accent)); box-shadow:0 0 0 2px var(--pop, var(--accent)), 0 4px 16px rgba(0,0,0,.12) }
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 2px 12px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px) }
+.shape-block.sleep { opacity:.3; padding:6px 16px }
+.shape-block.drag-over { border-color:var(--pop, var(--accent)); box-shadow:0 0 0 2px var(--pop, var(--accent)), 0 4px 16px rgba(0,0,0,.2) }
 .shape-head { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px }
 .shape-time { color:var(--muted); font-variant-numeric:tabular-nums; min-width:72px; font-weight:600; font-size:11px }
 .shape-sleep-tag { font-size:10px; color:var(--faint); font-style:italic }
@@ -478,8 +484,8 @@ button.bj-g:hover { background:var(--track) }
 .shape-row > span:first-child { min-width:0; overflow-wrap:anywhere }
 .shape-row .tm { font-variant-numeric:tabular-nums }
 .shape-hint { font-size:11px; color:var(--muted); font-style:italic; padding:2px 0 }
-.day-start-pick { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid var(--stroke); background:var(--tile); color:var(--text) }
-.mode-btn { border:1px solid var(--stroke); background:var(--tile); color:var(--text); border-radius:999px; padding:5px 12px; font-size:11px; font-weight:600; white-space:nowrap; transition:all .15s }
+.day-start-pick { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.08); color:inherit }
+.mode-btn { border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.08); color:inherit; border-radius:999px; padding:5px 12px; font-size:11px; font-weight:600; white-space:nowrap; transition:all .15s }
 .mode-btn.maker { background:var(--pop, var(--accent)); color:var(--on-pop, var(--on-accent)); border-color:transparent }
 .mode-btn:hover { filter:brightness(1.1) }
 .fc-clock { font-size:44px; font-weight:600; letter-spacing:-1.5px; line-height:1.1; font-variant-numeric:tabular-nums }
