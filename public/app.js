@@ -5,7 +5,6 @@
   const DEFAULT_CATS = ['Swiggy / outdoor food','Transport / fuel','Home / family','Friend / partner','Lifestyle','Health / gym','Vacation / travel','Entertainment','Subscriptions / utility bills','Other'];
   const VIEWS = {
     home:     ['Overview', 'A little more clarity, every day.'],
-    tasks:    ['Tasks & notes', 'Capture what you need to do and what you don’t want to forget.'],
     expenses: ['Expense tracker', 'Record spending and see where your money goes. Amounts are in Indian rupees (₹).'],
     planner:  ['Planner', 'Day, week, month, year and life on one board, with your maker and manager time.'],
     journal:  ['Journal', 'Jot everything in one place. Decide what matters afterwards.'],
@@ -305,25 +304,6 @@
       ${delBtn(t.id, 'Delete task')}
     </div>`;
   }
-  let cal = {y: today.getFullYear(), m: today.getMonth()}, selDate = isoToday;
-  function renderCalendar(){
-    const first = new Date(cal.y, cal.m, 1), days = new Date(cal.y, cal.m + 1, 0).getDate();
-    $('calTitle').textContent = first.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
-    const by = {};
-    ofKind('task').forEach(t => { if (t.due) { const b = by[t.due] || (by[t.due] = {open:0, done:0}); b[t.done ? 'done' : 'open']++; } });
-    let h = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="cal-dow">${d}</div>`).join('') + '<span></span>'.repeat(first.getDay());
-    for (let d = 1; d <= days; d++) {
-      const iso = `${cal.y}-${pad(cal.m + 1)}-${pad(d)}`, b = by[iso];
-      const count = b ? (b.open ? `, ${b.open} open ${b.open === 1 ? 'task' : 'tasks'}` : ', all tasks done') : '';
-      h += `<button type="button" class="cal-day${iso === isoToday ? ' today' : ''}${iso === selDate ? ' sel' : ''}" data-day="${iso}" aria-pressed="${iso === selDate}" aria-label="${esc(dayLabel(iso) + count)}">${d}${b ? `<i class="${b.open ? '' : 'done'}"></i>` : ''}</button>`;
-    }
-    $('calGrid').innerHTML = h;
-    const short = new Date(selDate + 'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-    $('dayTitle').textContent = selDate === isoToday ? 'Today, ' + short : dayLabel(selDate);
-    $('dayTaskLabel').textContent = 'Add a task for ' + short;
-    const list = sortedTasks().filter(t => t.due === selDate);
-    $('dayList').innerHTML = list.length ? list.map(taskHTML).join('') : empty('Nothing planned for this day.');
-  }
   const announced = new Set();
   let remindersSeen = false;
   function renderReminders(){
@@ -360,62 +340,10 @@
     $('homeFocusSub').textContent = tops.length ? `Your top ${tops.length} for today` : 'Pick your top 3 in the daily log';
     $('homeTasks').innerHTML = focus.length
       ? focus.map(t => taskHTML(t, tops.findIndex(x => x.id === t.id) + 1)).join('')
-      : empty(tasks.length ? 'Everything is done. Add a task when something comes up.' : 'No tasks yet. Add your first one under Tasks & notes.');
+      : empty(tasks.length ? 'Everything is done. Add a task when something comes up.' : 'No tasks yet. Add your first one in today’s log above.');
     $('homeExpenses').innerHTML = exps.length ? exps.slice(0,4).map(e =>
       `<div class="item"><div class="item-main"><div class="item-title">${esc(e.name)}</div><div class="item-meta">${esc(prettyDate(e.date))} &nbsp; <span class="tag">${esc(e.category)}</span></div></div><div class="item-side">${esc(money(e.amount))}</div></div>`).join('')
       : empty('No expenses yet. Add your first one under Expenses.');
-  }
-  /* mini projects: a named set of steps; each step is an ordinary task, so it shows in the daily list too */
-  let openProject = null;
-  const projSteps = id => sortedTasks().filter(t => t.project === id);
-  function renderProjects(){
-    const projects = ofKind('project').slice().sort((a,b) => (b.created||0) - (a.created||0));
-    const sel = $('taskProject'), cur = sel.value;
-    sel.innerHTML = '<option value="">No project</option>' + projects.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
-    if (projects.some(p => p.id === cur)) sel.value = cur;
-    if (openProject && !projects.some(p => p.id === openProject)) openProject = null;
-    const active = projects.filter(p => projSteps(p.id).some(t => !t.done) || !projSteps(p.id).length).length;
-    $('projSub').textContent = projects.length ? `${active} in progress \u00b7 steps show up in your daily list on their due date` : 'Bigger things, broken into steps that land in your daily list';
-    $('projList').innerHTML = projects.length ? projects.map(p => {
-      const steps = projSteps(p.id), done = steps.filter(t => t.done).length, open = p.id === openProject;
-      const pct = steps.length ? Math.round(done / steps.length * 100) : 0;
-      const next = steps.find(t => !t.done);
-      const finished = steps.length > 0 && done === steps.length;
-      const late = p.due && !finished && p.due < isoToday;
-      const nextLine = finished ? 'All steps done' : next ? 'Next: ' + next.title + (next.due ? ' \u00b7 ' + prettyDate(next.due) : '') : 'No steps yet \u2014 add the first one';
-      return `<div class="proj ${open ? 'open' : ''}">
-        <button type="button" class="proj-head" data-proj="${esc(p.id)}" aria-expanded="${open}">
-          <div class="proj-top"><span class="proj-name">${esc(p.name)}${finished ? ' <span class="tag">Done</span>' : ''}</span><span class="proj-count">${done} of ${steps.length}</span></div>
-          <div class="progress"><span style="width:${pct}%"></span></div>
-          <div class="proj-next">${esc(nextLine)}${p.due ? ` \u00b7 <span class="${late ? 'red' : ''}">${late ? 'was due ' : 'finish by '}${esc(prettyDate(p.due))}</span>` : ''}</div>
-        </button>
-        ${open ? `<div class="proj-body"><div class="list">${steps.length ? steps.map(taskHTML).join('') : empty('No steps yet. Add the first thing to do below.')}</div>
-          <form class="proj-add" data-proj-add="${esc(p.id)}"><div class="field"><label for="stepTitle">Add a step</label><input id="stepTitle" required maxlength="120" placeholder="e.g. Visit two showrooms" autocomplete="off"></div><div class="field"><label for="stepDue">When (optional)</label><input id="stepDue" type="date"></div><button class="btn" type="submit">\uff0b Add step</button></form>
-          <div class="dlg-actions" style="margin-top:12px"><button type="button" class="btn secondary small" data-act="edit" data-id="${esc(p.id)}">Rename or change date</button><button type="button" class="btn secondary small" data-act="delete" data-id="${esc(p.id)}">Delete project</button></div></div>` : ''}
-      </div>`;
-    }).join('') : empty('No projects yet. Start one above, then add its steps.');
-  }
-  function renderTasks(){
-    renderProjects();
-    const tasks = sortedTasks(), done = tasks.filter(t => t.done).length;
-    const tmr = new Date(today); tmr.setDate(tmr.getDate() + 1);
-    const isoTmr = isoOf(tmr), openT = tasks.filter(t => !t.done), groups = [];
-    const group = (label, list, cls) => { if (list.length) groups.push(`<div class="group-head ${cls || ''}"><span>${esc(label)}</span><span>${list.length}</span></div>` + list.map(taskHTML).join('')); };
-    group('Overdue', openT.filter(t => t.due && t.due < isoToday), 'red');
-    group('Today, ' + prettyDate(isoToday), openT.filter(t => t.due === isoToday));
-    group('Tomorrow, ' + prettyDate(isoTmr), openT.filter(t => t.due === isoTmr));
-    [...new Set(openT.filter(t => t.due > isoTmr).map(t => t.due))].sort().forEach(d => group(dayLabel(d), openT.filter(t => t.due === d)));
-    group('No due date', openT.filter(t => !t.due));
-    group('Completed', tasks.filter(t => t.done));
-    $('taskList').innerHTML = tasks.length ? groups.join('') : empty('No tasks yet. Add one to get started.');
-    renderCalendar();
-    $('taskProgressText').textContent = tasks.length ? `${done} of ${tasks.length} completed` : '0 completed';
-    $('taskProgress').style.width = tasks.length ? Math.round(done / tasks.length * 100) + '%' : '0%';
-    $('clearDone').disabled = !done;
-    const notes = ofKind('note').slice().sort((a,b) => (b.created||0) - (a.created||0));
-    $('noteList').innerHTML = notes.length ? notes.map(n =>
-      `<div class="item"><div class="item-main"><div class="item-body">${esc(n.text)}</div><div class="item-meta">Saved ${esc(new Date(n.created||Date.now()).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}))}</div></div>${delBtn(n.id, 'Delete note')}</div>`).join('')
-      : empty('No notes yet. Save a quick thought on the left.');
   }
   /* bars scale to what was actually spent, so small amounts stay visible;
      the budget is a dashed line, pinned to the top when it sits off the scale */
@@ -810,7 +738,7 @@
       return `<div class="item ${isPast(t) ? 'past' : ''}"><div class="item-main"><div class="item-title">${esc(t.name)} ${isPast(t) ? '<span class="tag">Past</span>' : ''}</div><div class="item-meta">${esc(when)}${budget}</div>${t.notes ? `<div class="item-body" style="margin-top:8px;font-size:12px">${esc(t.notes)}</div>` : ''}</div>${delBtn(t.id, 'Delete trip')}</div>`;
     }).join('') : empty('No trips yet. Plan your first one on the left.');
   }
-  function renderAll(){ migrateCats(); renderHome(); renderTasks(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); }
+  function renderAll(){ migrateCats(); renderHome(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); }
 
   /* ---------- navigation ---------- */
   function showView(name){
@@ -1210,66 +1138,6 @@
     toast('Category added');
   });
 
-  $('projForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const name = $('projName').value.trim();
-    if (!name) return;
-    const id = uid();
-    items = [{id, kind:'project', created:Date.now(), name, due: $('projDue').value || ''}, ...items];
-    openProject = id;
-    const made = items[0];
-    commit(c => c.doc(id).set(made));
-    e.target.reset();
-    toast('Project started \u2014 add its first step');
-    setTimeout(() => { const f = $('stepTitle'); if (f) f.focus(); }, 0);
-  });
-  $('projList').addEventListener('click', e => {
-    if (e.target.closest('[data-act]') || e.target.closest('form')) return;
-    const b = e.target.closest('[data-proj]');
-    if (!b) return;
-    openProject = openProject === b.dataset.proj ? null : b.dataset.proj;
-    renderProjects();
-  });
-  $('projList').addEventListener('submit', e => {
-    const f = e.target.closest('[data-proj-add]');
-    if (!f) return;
-    e.preventDefault();
-    const title = f.querySelector('#stepTitle').value.trim();
-    if (!title) return;
-    addItem('task', {title, due: f.querySelector('#stepDue').value || '', priority:'Normal', done:false, remind:'', reminded:false, project: f.dataset.projAdd});
-    toast('Step added');
-    setTimeout(() => { const t = $('stepTitle'); if (t) t.focus(); }, 0);
-  });
-  $('taskForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const title = $('taskTitle').value.trim();
-    if (!title) return;
-    addItem('task', {title, due: $('taskDue').value || '', priority: $('taskPriority').value, done:false, remind: isStamp($('taskRemind').value.slice(0,16)) ? $('taskRemind').value.slice(0,16) : '', reminded:false, project: $('taskProject').value || ''});
-    e.target.reset(); $('taskTitle').focus();
-    toast('Task added');
-  });
-  /* ---------- calendar and reminders ---------- */
-  $('calGrid').addEventListener('click', e => {
-    const b = e.target.closest('[data-day]');
-    if (!b) return;
-    selDate = b.dataset.day; renderCalendar();
-    const again = $('calGrid').querySelector('.cal-day.sel'); if (again) again.focus();
-    const panel = $('dayTitle');
-    if (panel) { const r = panel.getBoundingClientRect(); if (r.top > innerHeight - 120 || r.top < 0) panel.scrollIntoView({behavior:'smooth', block:'start'}); }
-  });
-  const shiftMonth = n => { const d = new Date(cal.y, cal.m + n, 1); cal = {y:d.getFullYear(), m:d.getMonth()}; renderCalendar(); };
-  $('calPrev').addEventListener('click', () => shiftMonth(-1));
-  $('calNext').addEventListener('click', () => shiftMonth(1));
-  $('calToday').addEventListener('click', () => { cal = {y:today.getFullYear(), m:today.getMonth()}; selDate = isoToday; renderCalendar(); });
-  $('dayForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const title = $('dayTask').value.trim(), time = $('dayTime').value;
-    if (!title) return;
-    const remind = time ? `${selDate}T${time.slice(0,5)}` : '';
-    addItem('task', {title, due: selDate, priority:'Normal', done:false, remind: isStamp(remind) ? remind : '', reminded:false});
-    e.target.reset(); $('dayTask').focus();
-    toast(remind ? 'Task added with a reminder' : 'Task added');
-  });
   /* edit any entry in place */
   const EDIT_FIELDS = {
     expense: [['name','Description','text'],['amount','Amount (\u20b9)','number'],['category','Category','cat'],['sub','Subcategory','text'],['date','Date','date']],
@@ -1368,18 +1236,6 @@
   setInterval(renderReminders, 20000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) renderAll(); });
 
-  $('noteForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const text = $('noteText').value.trim();
-    if (!text) return;
-    addItem('note', {text});
-    e.target.reset();
-    toast('Note saved');
-  });
-  $('clearDone').addEventListener('click', () => {
-    const ids = ofKind('task').filter(t => t.done).map(t => t.id);
-    if (ids.length) removeItems(ids, ids.length === 1 ? '1 completed task cleared' : ids.length + ' completed tasks cleared');
-  });
   /* guess the category from what you type, until you pick one yourself */
   const KEYWORDS = [
     ['Swiggy / outdoor food', ['swiggy','zomato','restaurant','hotel','biryani','pizza','burger','coffee','tea','snack','dinner','lunch','breakfast','parcel','juice','ice cream','bakery','dosa','meals','food']],
