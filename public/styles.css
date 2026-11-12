@@ -205,7 +205,8 @@
   .proj-new .field { margin:0 }
   .tag.proj-tag { background:color-mix(in srgb, var(--pop, var(--accent)) 16%, transparent); color:var(--text) }
   @media (max-width:620px) { .proj-add, .proj-new { grid-template-columns:minmax(0,1fr) auto } .proj-add .field:first-child, .proj-new .field:first-child { grid-column:1/-1 } }
-  .cal-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:14px }
+  .cal-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:14px; flex-wrap:nowrap }
+  .cal-head > div:first-child { min-width:0 }
   .cal-title { font-size:19px; font-weight:600; letter-spacing:-.3px }
   .cal-nav { display:flex; gap:6px; align-items:center }
   .cal-nav .icon-btn { width:34px; height:34px; font-size:14px; color:var(--text) }
