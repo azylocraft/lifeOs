@@ -1718,12 +1718,13 @@
   });
 
   /* ---------- daily log ---------- */
-  const GLYPH = {task:'•', note:'–', event:'○', mood:'='};
-  const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood'};
+  const GLYPH = {task:'•', note:'–', event:'○', mood:'=', idea:'✦', mistake:'✘', observation:'◎', problem:'△'};
+  const REFLECT = {idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
+  const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood', '+':'idea', '✦':'idea', 'x':'mistake', 'X':'mistake', '✘':'mistake', '@':'observation', '◎':'observation', '?':'problem', '△':'problem'};
   let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', reviewOpen = false, jnTab = 'day', lgTab = 'plan';
   function parseEntry(raw, type){
     let text = String(raw).trim(), t = type, high = false, time = '';
-    const m = text.match(/^([-–.*•oO○=])\s+(.+)$/);
+    const m = text.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s+(.+)$/);
     if (m) { t = PREFIX[m[1]]; text = m[2].trim(); }
     if (/^!+/.test(text)) { high = true; text = text.replace(/^!+\s*/, ''); if (!m) t = 'task'; }
     if (t === 'event') {
@@ -2079,7 +2080,7 @@
     logType = logPicked = b.dataset.btype; renderLog(); $('lgText').focus();
   });
   $('lgText').addEventListener('input', e => {
-    const m = e.target.value.match(/^([-–.*•oO○=])\s/);
+    const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
     const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : logPicked;
     if (t !== logType) { logType = t; document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType))); }
   });
@@ -2103,7 +2104,7 @@
     $('homeLgText').focus();
   });
   $('homeLgText').addEventListener('input', e => {
-    const m = e.target.value.match(/^([-–.*•oO○=])\s/);
+    const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
     const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : homeLgPicked;
     if (t !== homeLgType) { homeLgType = t; document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType))); }
   });
@@ -2117,7 +2118,7 @@
     if (p.type === 'task') newTask(p.text, isoToday, p.high ? {priority:'High'} : null);
     else addItem('bullet', {date:isoToday, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
     $('homeLgText').focus();
-    toast('Added to today's log');
+    toast('Added to today’s log');
   });
   $('lgTomForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -2385,8 +2386,10 @@
       if (t.done && !t.cancelled && monthKey(on) === key) doneItems.push({iso:on, glyph:'✕', text:t.title});
     });
     ofKind('bullet').forEach(b => {
-      if (b.type === 'event' && monthKey(b.date) === key) doneItems.push({iso:b.date, glyph:'○', text:(b.time ? b.time + ' ' : '') + b.text});
-      if (b.type === 'mood' && monthKey(b.date) === key) doneItems.push({iso:b.date, glyph:'~', text:b.text});
+      if (monthKey(b.date) !== key) return;
+      if (b.type === 'event') doneItems.push({iso:b.date, glyph:'○', text:(b.time ? b.time + ' ' : '') + b.text});
+      if (b.type === 'mood') doneItems.push({iso:b.date, glyph:'~', text:b.text});
+      if (b.type in REFLECT) doneItems.push({iso:b.date, glyph:GLYPH[b.type], text:b.text});
     });
     ofKind('goal').forEach(g => {
       if (g.done && g.horizon === 'month' && g.period === key) {
@@ -2460,6 +2463,19 @@
       const n = Object.keys(log).filter(dk => monthKey(dk) === key && (log[dk] || []).includes(h.id)).length;
       return `<div class="item"><div class="item-main"><div class="item-title">${esc(h.name.charAt(0).toUpperCase())} · ${esc(h.name)}</div><div class="item-meta">${n} ${n === 1 ? 'day' : 'days'} in ${esc(monthName(key))}</div></div><button type="button" class="icon-btn" data-habit-del="${esc(h.id)}" aria-label="Remove ${esc(h.name)}">✕</button></div>`;
     }).join('') : empty('No habits yet. Add one and tick it off each day in the month.');
+    renderMonthReflect(key);
+  }
+  function renderMonthReflect(key){
+    const groups = {};
+    ofKind('bullet').forEach(b => {
+      if (monthKey(b.date) === key && b.type in REFLECT) (groups[b.type] || (groups[b.type] = [])).push(b);
+    });
+    const html = Object.keys(REFLECT).filter(t => groups[t]).map(t => {
+      const rows = groups[t].sort((a, b) => a.date.localeCompare(b.date)).map(b =>
+        `<div class="bj ${t}" data-row="${esc(b.id)}"><span class="bj-g" role="img" aria-label="${t}">${GLYPH[t]}</span><div class="bj-t"><span class="tx">${esc(b.text)}</span><span class="bj-et">${esc(dayMonth(b.date))}</span></div></div>`).join('');
+      return `<div class="ml-reflect-group"><h3 class="ml-reflect-h">${GLYPH[t]} ${REFLECT[t]} <span class="item-meta">${groups[t].length}</span></h3><div class="bj-list">${rows}</div></div>`;
+    }).join('');
+    safeHTML($('mlReflect'), html || empty('Nothing logged yet. Use ✦ idea, △ problem, ✘ mistake or ◎ observation in your daily log.'));
   }
   $('mlRows').addEventListener('click', e => {
     const open = e.target.closest('[data-ml-open]'), dot = e.target.closest('[data-ml-habit]');

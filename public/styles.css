@@ -456,6 +456,12 @@ button.bj-g:hover { background:var(--track) }
 .bj.cancel .bj-g, .bj.ghost .bj-g, .bj.ghost .bj-t .tx { color:var(--faint) }
 .bj.high .bj-t .tx::before { content:"! "; color:var(--red); font-weight:700 }
 .bj.mood .bj-t .tx { font-style:italic }
+.bj.idea .bj-g { color:var(--pop, var(--accent)) }
+.bj.problem .bj-g { color:var(--red) }
+.bj.mistake .bj-g { color:var(--red) }
+.bj.observation .bj-g { color:var(--muted) }
+.ml-reflect-group + .ml-reflect-group { margin-top:16px }
+.ml-reflect-h { font-size:12.5px; font-weight:600; color:var(--muted); margin:0 0 4px; display:flex; align-items:center; gap:7px }
 .bj-more { width:28px; height:28px; background:transparent; font-size:15px; margin-top:1px }
 .bj-strip { grid-column:2 / -1; display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:2px 0 8px }
 .bj-strip input, .bj-strip select { padding:5px 10px; border-radius:999px }
