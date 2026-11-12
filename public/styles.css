@@ -891,13 +891,23 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   box-shadow:inset 0 1.5px 3px rgba(40,50,70,.10), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 16%, transparent) }
 .check { width:20px; height:20px; border-radius:7px }
 
-/* accent glass: a glossy tinted piece with a bright band along the top and a short glow */
-.btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .pop-dot[aria-pressed="true"] {
-  background:linear-gradient(180deg, color-mix(in srgb, var(--pop, var(--accent)) 62%, white) 0%, var(--pop, var(--accent)) 46%, color-mix(in srgb, var(--pop, var(--accent)) 84%, black) 100%);
-  color:var(--on-pop, var(--on-accent)); border:1px solid color-mix(in srgb, var(--pop, var(--accent)) 55%, white);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.70), inset 0 7px 8px -6px rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.16),
-    0 1px 2px color-mix(in srgb, var(--pop, var(--accent)) 35%, transparent), 0 3px 8px color-mix(in srgb, var(--pop, var(--accent)) 28%, transparent) }
-.btn:not(.secondary):hover { filter:brightness(1.05); transform:translateY(-1px) }
+/* accent glass: the same glass, poured in the accent colour. A translucent body so the
+   backdrop tints it, a gloss that curves across the top half, the colour deepening at the
+   bottom in oklch so it stays red rather than going brown, a light-tinted edge and a glow. */
+:root { --ag-gloss:linear-gradient(180deg, rgba(255,255,255,.60) 0%, rgba(255,255,255,.28) 34%, rgba(255,255,255,.03) 50%, rgba(255,255,255,0) 72%, rgba(255,255,255,.07) 100%);
+  --ag-body:linear-gradient(180deg, color-mix(in oklch, var(--pop, var(--accent)) 78%, white) 0%, color-mix(in srgb, var(--pop, var(--accent)) 88%, transparent) 48%, color-mix(in oklch, var(--pop, var(--accent)) 86%, black) 100%);
+  --ag-edge:color-mix(in srgb, var(--pop, var(--accent)) 42%, white);
+  --ag-shadow:inset 0 1px 0 rgba(255,255,255,.80), inset 0 -1px 1px rgba(0,0,0,.10),
+    0 1px 2px color-mix(in srgb, var(--pop, var(--accent)) 38%, transparent), 0 3px 9px color-mix(in srgb, var(--pop, var(--accent)) 32%, transparent), 0 0 18px color-mix(in srgb, var(--pop, var(--accent)) 20%, transparent) }
+.btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .pop-dot[aria-pressed="true"],
+.bj-top.on, .brand-icon, .cal-day.sel, .icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] {
+  background:var(--ag-gloss), var(--ag-body); color:var(--on-pop, var(--on-accent)); border:1px solid var(--ag-edge); box-shadow:var(--ag-shadow) }
+.btn:not(.secondary):hover { filter:brightness(1.06) saturate(1.05); transform:translateY(-1px) }
+.btn:not(.secondary):active, .seg button[aria-pressed="true"]:active { filter:brightness(.97); transform:none }
+/* bars and dots: the same pour, no edge */
+#homeBar, #fcBar, #taskProgress, .progress span, .hz-item .progress span, .proj .progress span, .jump-rail i.on {
+  background:var(--ag-gloss), var(--ag-body); box-shadow:0 0 10px color-mix(in srgb, var(--pop, var(--accent)) 45%, transparent) }
+.jump-rail i.on { border:0 }
 .nav button.active { border-radius:999px }
 .nav button.active .ico, .nav button.active span { color:inherit }
 .ml-filter[aria-pressed="true"] { background:var(--g-spec); border-color:color-mix(in srgb, var(--pop, var(--accent)) 55%, white); box-shadow:inset 0 1px 0 var(--g-spec), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 14%, transparent) }
@@ -912,17 +922,17 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 
 /* ---- jump rail ---- */
 .jump-rail { position:fixed; right:10px; top:50%; transform:translateY(-50%); z-index:40; display:flex; flex-direction:column; align-items:center; gap:0;
-  padding:10px 6px; border-radius:999px; touch-action:none; user-select:none; -webkit-user-select:none;
+  padding:12px 8px; border-radius:999px; touch-action:none; user-select:none; -webkit-user-select:none;
   background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge); box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow);
   -webkit-backdrop-filter:blur(10px) saturate(150%); backdrop-filter:blur(10px) saturate(150%); transition:opacity .2s }
 .jump-rail[hidden] { display:none }
-.jump-rail i { display:block; width:5px; height:5px; margin:5px 0; border-radius:50%; background:color-mix(in srgb, var(--text) 30%, transparent); transition:transform .15s, background .15s }
+.jump-rail i { display:block; width:7px; height:7px; margin:7px 0; border-radius:50%; background:color-mix(in srgb, var(--text) 30%, transparent); transition:transform .15s, background .15s }
 .jump-rail i.on { background:var(--pop, var(--accent)); transform:scale(1.5) }
-.jump-rail.scrubbing i { margin:7px 0 }
+.jump-rail.scrubbing i { margin:9px 0 }
 .jump-bubble { position:fixed; right:38px; z-index:41; transform:translateY(-50%); pointer-events:none; white-space:nowrap;
   font-size:13px; font-weight:600; padding:8px 14px; border-radius:999px; color:var(--text);
   background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge); box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow-lg);
   -webkit-backdrop-filter:blur(10px) saturate(150%); backdrop-filter:blur(10px) saturate(150%); opacity:0; transition:opacity .12s }
 .jump-bubble.show { opacity:1 }
 @media (min-width:861px) { .jump-rail { right:calc((100vw - min(100vw, 1380px)) / 2 + 2px) } .jump-bubble { right:calc((100vw - min(100vw, 1380px)) / 2 + 32px) } }
-@media (max-width:860px) { .jump-rail { right:4px; padding:8px 5px } .jump-rail i { width:4px; height:4px; margin:4px 0 } .jump-bubble { right:30px } }
+@media (max-width:860px) { .jump-rail { right:5px; padding:11px 7px } .jump-rail i { width:6px; height:6px; margin:6px 0 } .jump-bubble { right:34px } }
