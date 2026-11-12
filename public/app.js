@@ -1598,12 +1598,34 @@
   }
   function blockForHour(h){ return BLOCKS.find(b => h >= b.start && h < b.start + 3) || BLOCKS[0]; }
   function saveRhythm(week, days){ upsertDoc('rhythm', 'rhythm', {week, days}); }
+  /* the week as eight blocks a day: tap the badge to change a block's kind,
+     drag an action from the pool into the block you mean to do it in */
   function renderRhythm(){
+    refreshBlocks();
     const order = [1,2,3,4,5,6,0], names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], todayDow = today.getDay();
-    const cell = (dow, bk) => { const m = weekShape(dow)[bk]; if (m === 'sleep') return '<span class="rh-cell sleep">zz</span>'; return `<button type="button" class="rh-cell ${m}" data-rh="${dow}" data-half="${bk}" aria-label="${names[dow]} ${bk}: ${MODE_NAME[m]} time. Tap to switch"><span class="l">${MODE_NAME[m]}</span><span class="s">${m === 'maker' ? 'Mk' : 'Mg'}</span></button>`; };
+    const mon = mondayOf(isoToday), sun = addDays(mon, 6);
+    const dateOf = dow => addDays(mon, (dow + 6) % 7);
+    const open = ofKind('task').filter(t => !t.done && !t.cancelled);
+    const placed = new Set();
+    const chip = t => {
+      const rank = topsOf(t.due).findIndex(x => x.id === t.id) + 1;
+      return `<span class="rh-task${rank ? ' is-top' : ''}" draggable="true" data-drag-id="${esc(t.id)}" title="${esc(t.title)}${rank ? ' · top ' + rank : ''}">${esc(t.title)}</span>`;
+    };
+    const cell = (dow, bk) => {
+      const iso = dateOf(dow), m = weekShape(dow)[bk];
+      if (m === 'sleep') return `<button type="button" class="rh-cell sleep" data-rh="${dow}" data-half="${bk}" aria-label="${names[dow]} ${esc(blockLabel(bk))}: asleep. Tap to switch">zz</button>`;
+      const mine = open.filter(t => t.due === iso && t.block === bk);
+      mine.forEach(t => placed.add(t.id));
+      return `<div class="rh-cell ${m} ${iso === isoToday ? 'is-today' : ''}" data-rh-drop="${iso}|${bk}">
+        <button type="button" class="rh-mode ${m}" data-rh="${dow}" data-half="${bk}" aria-label="${names[dow]} ${esc(blockLabel(bk))}: ${MODE_NAME[m]} time. Tap to switch">${m === 'maker' ? 'Mk' : 'Mg'}</button>
+        ${mine.map(chip).join('')}</div>`;
+    };
     $('rhGrid').innerHTML = '<span></span>' + order.map(d => `<span class="h ${d === todayDow ? 'now' : ''}">${names[d]}</span>`).join('')
       + BLOCKS.map(bl => `<span class="h side">${esc(bl.label)}</span>` + order.map(d => cell(d, bl.key)).join('')).join('');
-    const mon = mondayOf(isoToday), sun = addDays(mon, 6);
+    /* what still wants a slot: open actions with no block, from this week or already late */
+    const pool = open.filter(t => !placed.has(t.id) && !t.block && (!t.due || t.due <= sun)).sort(byDoneThenAge);
+    $('rhPool').innerHTML = `<div class="rh-pool-h">${pool.length ? pool.length + (pool.length === 1 ? ' action waiting for a block' : ' actions waiting for a block') + ' — drag one onto the week' : 'Every open action has a block. Drag one back here to free it.'}</div>`
+      + pool.map(chip).join('');
     const inWeek = d => d >= mon && d <= sun;
     const focus = ofKind('bullet').filter(b => b.focus && inWeek(b.date)).reduce((t,b) => t + (Number(b.focus) || 0), 0);
     const done = ofKind('task').filter(t => t.done && !t.cancelled && inWeek(t.due));
@@ -1611,6 +1633,7 @@
     const hrs = focus >= 60 ? `${Math.floor(focus / 60)}h ${focus % 60}m` : focus + ' min';
     $('rhStats').innerHTML = `<div><div class="l">Focus time this week</div><div class="n">${hrs}</div></div><div><div class="l">Maker actions done</div><div class="n">${mk}</div></div><div><div class="l">Manager actions done</div><div class="n">${done.length - mk}</div></div>`;
   }
+  const blockLabel = bk => (BLOCKS.find(b => b.key === bk) || {label:bk}).label;
   $('rhGrid').addEventListener('click', e => {
     const b = e.target.closest('[data-rh]');
     if (!b) return;
@@ -1621,6 +1644,80 @@
     saveRhythm(week, r.days || {});
     const again = $('rhGrid').querySelector(`[data-rh="${dow}"][data-half="${bk}"]`); if (again) again.focus();
   });
+  /* dragging an action onto the week gives it a day and a block at once */
+  (function rhythmDrop(){
+    let dragId = null, ts = null;
+    const clear = () => document.querySelectorAll('.rh-drop-over').forEach(el => el.classList.remove('rh-drop-over'));
+    const place = (id, key) => {
+      if (!id || !key) return;
+      if (key === 'unplanned') { patchItem(id, {block:''}); return; }
+      const bar = key.indexOf('|');
+      patchItem(id, {due: key.slice(0, bar), block: key.slice(bar + 1)});
+    };
+    [$('rhGrid'), $('rhPool')].forEach(z => {
+      z.addEventListener('dragstart', e => {
+        const r = e.target.closest('[data-drag-id]');
+        if (!r) return;
+        dragId = r.dataset.dragId;
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', dragId); } catch(err) {}
+        r.classList.add('dragging');
+      });
+      z.addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); clear(); });
+      z.addEventListener('dragover', e => {
+        if (!dragId) return;
+        const t = e.target.closest('[data-rh-drop]');
+        if (!t) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        clear(); t.classList.add('rh-drop-over');
+      });
+      z.addEventListener('drop', e => {
+        const t = e.target.closest('[data-rh-drop]');
+        if (!t || !dragId) return;
+        e.preventDefault(); clear();
+        place(dragId, t.dataset.rhDrop);
+        dragId = null;
+      });
+      /* touch: hold for a moment, then drag */
+      z.addEventListener('touchstart', e => {
+        const r = e.target.closest('[data-drag-id]');
+        if (!r) return;
+        const t = e.touches[0];
+        ts = {id:r.dataset.dragId, row:r, x0:t.clientX, y0:t.clientY, dragging:false, ghost:null, timer:null};
+        ts.timer = setTimeout(() => {
+          if (!ts) return;
+          ts.dragging = true; r.classList.add('dragging');
+          const g = document.createElement('div');
+          g.className = 'ml-drag-ghost';
+          g.textContent = r.textContent;
+          g.style.cssText = 'position:fixed;pointer-events:none;z-index:999;left:' + (t.clientX - 30) + 'px;top:' + (t.clientY - 12) + 'px';
+          document.body.appendChild(g); ts.ghost = g;
+        }, 300);
+      }, {passive:true});
+      z.addEventListener('touchmove', e => {
+        if (!ts) return;
+        const t = e.touches[0];
+        if (!ts.dragging) { if (Math.abs(t.clientX - ts.x0) > 10 || Math.abs(t.clientY - ts.y0) > 10) clearTimeout(ts.timer); return; }
+        e.preventDefault();
+        if (ts.ghost) { ts.ghost.style.left = (t.clientX - 30) + 'px'; ts.ghost.style.top = (t.clientY - 12) + 'px'; }
+        clear();
+        const el = document.elementFromPoint(t.clientX, t.clientY), zone = el && el.closest('[data-rh-drop]');
+        if (zone) zone.classList.add('rh-drop-over');
+      }, {passive:false});
+      z.addEventListener('touchend', e => {
+        if (!ts) return;
+        clearTimeout(ts.timer);
+        const was = ts; ts = null;
+        document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+        clear();
+        if (was.ghost) was.ghost.remove();
+        if (!was.dragging) return;
+        const t = e.changedTouches[0], el = document.elementFromPoint(t.clientX, t.clientY), zone = el && el.closest('[data-rh-drop]');
+        if (zone) place(was.id, zone.dataset.rhDrop);
+      });
+    });
+  })();
 
   /* ---------- daily log ---------- */
   const GLYPH = {task:'•', note:'–', event:'○', mood:'=', idea:'✦', mistake:'✘', observation:'◎', problem:'△'};

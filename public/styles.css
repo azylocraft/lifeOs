@@ -585,11 +585,29 @@ button.bj-g:hover { background:var(--track) }
 .rh-grid .h { color:var(--muted); text-align:center }
 .rh-grid .h.side { text-align:left; padding-right:6px }
 .rh-grid .h.now { color:var(--text); font-weight:600 }
-.rh-cell { border:1px solid var(--stroke); background:transparent; color:var(--text-2); border-radius:12px; padding:6px 2px; font-size:10.5px; min-width:0 }
-.rh-cell.maker { background:var(--pop, var(--accent)); color:var(--on-pop, var(--on-accent)); border-color:transparent; font-weight:600 }
-.rh-cell.sleep { border:none; background:transparent; color:var(--faint); font-size:9px; cursor:default; padding:4px 2px }
-.rh-cell:hover { filter:brightness(1.12) }
-.rh-cell .s { display:none }
+/* a cell is a block of a real day: its kind on a badge, the actions dropped into it below */
+.rh-grid { align-items:stretch }
+.rh-wrap { overflow-x:auto; overscroll-behavior-x:contain }
+.rh-cell { border:1px solid color-mix(in srgb, var(--stroke) 40%, transparent); background:transparent; color:var(--text-2);
+  border-radius:12px; padding:5px 4px; font-size:10.5px; min-width:0; min-height:42px; display:flex; flex-direction:column; align-items:flex-start; gap:3px }
+.rh-cell.maker { background:color-mix(in srgb, var(--pop, var(--accent)) 13%, transparent); border-color:color-mix(in srgb, var(--pop, var(--accent)) 38%, transparent) }
+.rh-cell.is-today { box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent) }
+.rh-cell.sleep { border:none; background:transparent; color:var(--faint); font-size:9px; padding:4px 2px; min-height:22px; align-items:center; justify-content:center }
+.rh-cell.rh-drop-over, .rh-pool.rh-drop-over { background:color-mix(in srgb, var(--pop, var(--accent)) 26%, transparent);
+  border-color:var(--pop, var(--accent)); box-shadow:0 0 0 2px color-mix(in srgb, var(--pop, var(--accent)) 45%, transparent) }
+.rh-mode { border:0; border-radius:7px; padding:2px 7px; font-size:9.5px; font-weight:700; line-height:1.4; letter-spacing:.02em; flex-shrink:0 }
+.rh-mode.maker { background:var(--pop, var(--accent)); color:var(--on-pop, var(--on-accent)) }
+.rh-mode.manager { background:color-mix(in srgb, var(--text) 12%, transparent); color:var(--text-2) }
+.rh-mode:hover { filter:brightness(1.15) }
+.rh-task { display:block; width:100%; font-size:10px; line-height:1.35; padding:3px 6px; border-radius:7px; cursor:grab;
+  background:color-mix(in srgb, var(--card) 85%, transparent); border:1px solid color-mix(in srgb, var(--stroke) 30%, transparent);
+  color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.rh-task.is-top { font-weight:600; border-color:color-mix(in srgb, var(--pop, var(--accent)) 55%, transparent) }
+.rh-task.dragging { opacity:.4 }
+.rh-pool { display:flex; flex-wrap:wrap; gap:5px; margin-top:12px; padding:10px; border-radius:16px; min-height:54px;
+  border:1px dashed color-mix(in srgb, var(--stroke) 45%, transparent) }
+.rh-pool-h { width:100%; font-size:10.5px; color:var(--muted) }
+.rh-pool .rh-task { width:auto; max-width:200px }
 
 /* monthly log */
 .ml-row { display:grid; grid-template-columns:46px minmax(0,1fr) auto; gap:6px; align-items:center; border-bottom:1px solid var(--line-soft); padding:1px 4px }
@@ -618,11 +636,11 @@ button.bj-g:hover { background:var(--track) }
   .bj-add { grid-template-columns:minmax(0,1fr) auto }
   .bj-add .seg { grid-column:1 / -1; justify-self:start }
   .hz-board { grid-auto-columns:82% }
-  .rh-grid { gap:4px }
-  .rh-cell { padding:10px 0; font-size:10.5px }
-  .rh-cell .l { display:none }
-  .rh-cell .s { display:inline }
-  .rh-grid .h.side { font-size:10.5px; padding-right:2px }
+  /* on a phone the week scrolls sideways rather than squeezing seven days in */
+  .rh-grid { gap:4px; min-width:620px }
+  .rh-cell { padding:4px 3px; font-size:10px; min-height:38px }
+  .rh-grid .h.side { font-size:10px; padding-right:2px; white-space:nowrap }
+  .rh-task { font-size:9.5px; padding:2px 5px }
   .fc-clock { font-size:38px }
 }
 
@@ -809,42 +827,74 @@ button.bj-g:hover { background:var(--track) }
 
 
 /* ---- liquid glass ----
-   One rim for every surface: a bright top edge where the light catches it,
-   a faint bottom edge, a hairline border and the backdrop showing through. */
-:root { --rim-hi:rgba(255,255,255,.72); --rim-lo:rgba(255,255,255,.18); --rim-edge:rgba(255,255,255,.55);
-  --glass-tint:74%; --glass-blur:blur(22px) saturate(140%) }
+   Every surface is a lozenge of frosted glass: a thick bright rim along the top and
+   left where the light enters, a cooler shade along the bottom, the backdrop blurred
+   through it, and a soft shadow lifting it off the page. Accent controls are the same
+   glass tinted with the accent and glowing. */
+:root { --rim-hi:rgba(255,255,255,.98); --rim-mid:rgba(255,255,255,.55); --rim-lo:rgba(140,150,170,.22); --rim-edge:rgba(255,255,255,.75);
+  --glass-top:rgba(255,255,255,.78); --glass-bot:rgba(255,255,255,.46);
+  --glass-blur:blur(20px) saturate(165%);
+  --lift:0 1px 2px rgba(60,70,90,.08), 0 10px 26px rgba(60,70,90,.13);
+  --lift-sm:0 1px 2px rgba(60,70,90,.08), 0 4px 12px rgba(60,70,90,.10);
+  --inset:inset 0 1.5px 1px var(--rim-hi), inset 1px 0 0 var(--rim-mid), inset 0 -1.5px 1px var(--rim-lo) }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --rim-hi:rgba(255,255,255,.14); --rim-lo:rgba(255,255,255,.04); --rim-edge:rgba(255,255,255,.10); --glass-tint:82% } }
-:root[data-theme="dark"] { --rim-hi:rgba(255,255,255,.14); --rim-lo:rgba(255,255,255,.04); --rim-edge:rgba(255,255,255,.10); --glass-tint:82% }
+  --rim-hi:rgba(255,255,255,.22); --rim-mid:rgba(255,255,255,.08); --rim-lo:rgba(0,0,0,.35); --rim-edge:rgba(255,255,255,.14);
+  --glass-top:rgba(255,255,255,.11); --glass-bot:rgba(255,255,255,.05);
+  --lift:0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35); --lift-sm:0 1px 2px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.3) } }
+:root[data-theme="dark"] {
+  --rim-hi:rgba(255,255,255,.22); --rim-mid:rgba(255,255,255,.08); --rim-lo:rgba(0,0,0,.35); --rim-edge:rgba(255,255,255,.14);
+  --glass-top:rgba(255,255,255,.11); --glass-bot:rgba(255,255,255,.05);
+  --lift:0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35); --lift-sm:0 1px 2px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.3) }
+/* the paper under the glass stays a touch darker than the glass itself, or the rims have nothing to catch */
+:root[data-palette="japan"] { --bg:#e3e4e9 }
 
-.card:not(.dark) { background:color-mix(in srgb, var(--card) var(--glass-tint), transparent); border:1px solid var(--rim-edge);
-  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo), var(--card-shadow);
-  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur) }
-.card.glass { background:var(--glass) }
-.card.dark { box-shadow:inset 0 1px 0 rgba(255,255,255,.14), var(--card-shadow) }
+.card:not(.dark), aside, .theme-panel, .inner-panel, .shape-block, dialog > form, .dlg {
+  background:linear-gradient(180deg, var(--glass-top), var(--glass-bot)); border:1px solid var(--rim-edge);
+  box-shadow:var(--inset), var(--lift); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur) }
+.card.glass { background:linear-gradient(180deg, var(--glass-top), var(--glass-bot)) }
+.card.dark { box-shadow:inset 0 1.5px 1px rgba(255,255,255,.22), inset 0 -1.5px 1px rgba(0,0,0,.25), var(--lift) }
 .stats .card { background:transparent; border:0; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none }
-aside { background:color-mix(in srgb, var(--card) var(--glass-tint), transparent); border:1px solid var(--rim-edge);
-  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo);
-  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur) }
-.inner-panel, .shape-block, .theme-panel, .dlg, dialog > form { border:1px solid var(--rim-edge);
-  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo), 0 6px 20px color-mix(in srgb, var(--text) 7%, transparent) }
+.inner-panel, .shape-block { box-shadow:var(--inset), var(--lift-sm) }
+.shape-block.sleep, .shape-block.unassigned { box-shadow:none }
 
-/* the controls get the same edge, without a blur each, so a long list still scrolls */
-.btn.secondary, .icon-btn, .chip-btn, .round-btn, .date-pill, .seg, .type-pill, .ml-filter, .bj-help kbd {
-  background:color-mix(in srgb, var(--card) 55%, transparent); border:1px solid color-mix(in srgb, var(--stroke) 42%, transparent);
-  box-shadow:inset 0 1px 0 var(--rim-hi), inset 0 -1px 0 var(--rim-lo) }
-.seg { -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px) }
-.icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] { background:var(--accent); color:var(--on-accent); border-color:transparent }
-.btn:not(.secondary) { box-shadow:inset 0 1px 0 rgba(255,255,255,.26), 0 4px 14px color-mix(in srgb, var(--pop, var(--accent)) 30%, transparent) }
-.seg button[aria-pressed="true"], .type-pill[aria-pressed="true"] { box-shadow:inset 0 1px 0 rgba(255,255,255,.3) }
-.ml-filter[aria-pressed="true"] { background:color-mix(in srgb, var(--card) 92%, transparent) }
-input, textarea, select { background:color-mix(in srgb, var(--input-bg) 70%, transparent); border:1px solid var(--input-border);
-  box-shadow:inset 0 1px 0 var(--rim-hi) }
-input:focus, textarea:focus, select:focus { border-color:var(--accent) }
-.tag { background:color-mix(in srgb, var(--card) 45%, transparent); border:1px solid color-mix(in srgb, var(--stroke) 22%, transparent) }
+/* pills: secondary buttons, icon buttons, chips, segments, inputs */
+.btn.secondary, .icon-btn, .chip-btn, .round-btn, .date-pill, .seg, .type-pill, .ml-filter, .bj-help kbd, .tag, .rh-task, .rh-mode.manager, .mode-btn, .shape-row.is-top {
+  background:linear-gradient(180deg, var(--glass-top), var(--glass-bot)); border:1px solid var(--rim-edge);
+  box-shadow:var(--inset), var(--lift-sm); color:var(--text) }
+.tag, .bj-help kbd, .rh-task { box-shadow:var(--inset) }
+.seg { padding:5px; -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%) }
+.seg button { border:1px solid transparent }
+.btn.secondary:hover, .chip-btn:hover, .type-pill:hover, .ml-filter:hover { background:linear-gradient(180deg, var(--rim-hi), var(--glass-top)); filter:none }
+.icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] { background:var(--accent); color:var(--on-accent); border-color:transparent; box-shadow:var(--lift-sm) }
+input, textarea, select { background:linear-gradient(180deg, var(--glass-bot), var(--glass-top)); border:1px solid var(--rim-edge);
+  box-shadow:inset 0 2px 4px rgba(60,70,90,.10), inset 0 -1px 0 var(--rim-hi); border-radius:999px; padding:12px 18px }
+textarea { border-radius:22px }
+input[type="date"], input[type="month"], select { border-radius:999px }
+input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(--pop, var(--accent)) 60%, transparent);
+  box-shadow:inset 0 2px 4px rgba(60,70,90,.10), 0 0 0 4px color-mix(in srgb, var(--pop, var(--accent)) 18%, transparent) }
+
+/* accent glass: the primary button, the pressed segment, the active nav, the picked pill */
+.btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .top-rank-pill, .pop-dot[aria-pressed="true"] {
+  background:linear-gradient(180deg, color-mix(in srgb, var(--pop, var(--accent)) 72%, white), var(--pop, var(--accent)) 55%, color-mix(in srgb, var(--pop, var(--accent)) 86%, black));
+  color:var(--on-pop, var(--on-accent)); border:1px solid color-mix(in srgb, var(--pop, var(--accent)) 60%, white);
+  box-shadow:inset 0 1.5px 1px rgba(255,255,255,.55), inset 0 -2px 2px rgba(0,0,0,.14),
+    0 4px 14px color-mix(in srgb, var(--pop, var(--accent)) 38%, transparent), 0 0 24px color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) }
+.btn:not(.secondary):hover { filter:brightness(1.06); transform:translateY(-1px) }
+.seg button[aria-pressed="true"], .type-pill[aria-pressed="true"] { box-shadow:inset 0 1.5px 1px rgba(255,255,255,.5), inset 0 -2px 2px rgba(0,0,0,.12), 0 3px 10px color-mix(in srgb, var(--pop, var(--accent)) 35%, transparent) }
+.nav button.active { border-radius:999px }
+.nav button.active .ico, .nav button.active span { color:inherit }
+.ml-filter[aria-pressed="true"] { background:linear-gradient(180deg, var(--rim-hi), var(--glass-top)); border-color:color-mix(in srgb, var(--pop, var(--accent)) 50%, transparent);
+  box-shadow:var(--inset), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 14%, transparent) }
+.check { width:20px; height:20px; border-radius:7px }
+.progress { box-shadow:inset 0 1px 2px rgba(60,70,90,.18) }
+.progress span { box-shadow:0 0 10px color-mix(in srgb, var(--pop, var(--accent)) 45%, transparent) }
+
+/* the frame itself: a thicker sheet of glass than the cards sitting on it */
+.app { box-shadow:var(--inset), var(--shadow); border-color:var(--rim-edge) }
 
 /* a phone paints every frame while scrolling, so the big blurs come off there */
 @media (max-width:860px) {
-  .card:not(.dark), aside { -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px) }
+  .card:not(.dark), aside, .inner-panel, .shape-block { -webkit-backdrop-filter:blur(10px) saturate(150%); backdrop-filter:blur(10px) saturate(150%) }
   .seg { -webkit-backdrop-filter:none; backdrop-filter:none }
+  input, textarea, select { padding:11px 16px }
 }
