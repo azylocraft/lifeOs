@@ -142,7 +142,7 @@
         <div class="field"><label for="authEmail">Email</label><input id="authEmail" type="email" required autocomplete="email" placeholder="you@example.com"></div>
         <div class="field"><label for="authPass">Password</label><input id="authPass" type="password" minlength="6" autocomplete="current-password" placeholder="At least 6 characters"></div>
         <div class="row"><button class="btn" type="submit" id="authIn">Sign in</button><button class="btn secondary" type="button" id="authUp">Create account</button></div>
-        <div class="row" style="margin-top:8px"><button class="btn secondary small" type="button" id="authLink">Email me a sign-in link instead</button></div>
+        <div class="row" style="margin-top:8px"><button class="btn secondary small" type="button" id="authLink">Email me a sign-in link instead</button><button class="btn secondary small" type="button" id="authReset">Forgot password?</button></div>
         <div class="auth-msg" id="authMsg" role="status" aria-live="polite"></div>
       </form>`;
     document.body.appendChild(el);
@@ -183,6 +183,14 @@
       const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect } });
       busy(false);
       say(error ? 'Could not send: ' + error.message : 'Check your inbox and open the link in this same browser.');
+    });
+    $('#authReset').addEventListener('click', async () => {
+      const { email } = creds();
+      if (!$('#authEmail').checkValidity() || !email) { say('Type your email first.'); return; }
+      busy(true); say('Sending reset email…');
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirect });
+      busy(false);
+      say(error ? 'Could not send: ' + error.message : 'Check your inbox for a password reset link. After setting your password, come back and sign in.');
     });
   }
 
