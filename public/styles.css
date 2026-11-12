@@ -623,7 +623,6 @@ button.bj-g:hover { background:var(--track) }
 .ml-line:focus { background:var(--input-bg) }
 .ml-habits { display:flex; gap:2px }
 .ml-cal-card.hide-habits .ml-habits { display:none }
-.ml-cal-card.done-tab { background-image:radial-gradient(circle, color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1.3px); background-size:20px 20px; background-position:10px 10px }
 .ml-hl { width:26px; text-align:center; font-size:11px; font-weight:600; color:var(--muted) }
 .ml-dot { width:26px; height:26px; border-radius:0; border:0; background:transparent; padding:0; display:grid; place-items:center; cursor:pointer }
 .ml-dot::after { content:"·"; color:var(--track); font-size:18px; line-height:1 }
@@ -653,9 +652,11 @@ button.bj-g:hover { background:var(--track) }
 .ml-row { grid-template-columns:38px minmax(0,1fr) auto }
 .ml-day { min-width:0 } .ml-line { min-width:0 }
 .ml-did { grid-column:1/-1; font-size:10.5px; color:var(--muted); padding:0 2px 2px 40px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.4 }
-.ml-week { border-top:1.5px solid var(--stroke); padding:2px 0 4px }
+.ml-week { padding:0 0 4px }
+.ml-week + .ml-week { margin-top:10px }
 .ml-week .ml-row:last-child { border-bottom:0 }
-.ml-wk { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:5px 4px 1px; cursor:default; border-radius:6px; transition:background .15s }
+.ml-wk { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:3px 9px; margin:0 0 3px 2px; cursor:default; border-radius:999px; transition:background .15s;
+  display:inline-block; background:color-mix(in srgb, var(--text) 6%, transparent) }
 .ml-wk.drop-over { background:color-mix(in srgb, var(--accent) 22%, transparent) }
 .ml-row.drop-over { background:color-mix(in srgb, var(--accent) 15%, transparent); border-radius:8px }
 .ml-wk-count { font-weight:400; font-size:10px; letter-spacing:0; text-transform:none; color:var(--text-2) }
@@ -827,74 +828,101 @@ button.bj-g:hover { background:var(--track) }
 
 
 /* ---- liquid glass ----
-   Every surface is a lozenge of frosted glass: a thick bright rim along the top and
-   left where the light enters, a cooler shade along the bottom, the backdrop blurred
-   through it, and a soft shadow lifting it off the page. Accent controls are the same
-   glass tinted with the accent and glowing. */
-:root { --rim-hi:rgba(255,255,255,.98); --rim-mid:rgba(255,255,255,.55); --rim-lo:rgba(140,150,170,.22); --rim-edge:rgba(255,255,255,.75);
-  --glass-top:rgba(255,255,255,.78); --glass-bot:rgba(255,255,255,.46);
-  --glass-blur:blur(20px) saturate(165%);
-  --lift:0 1px 2px rgba(60,70,90,.08), 0 10px 26px rgba(60,70,90,.13);
-  --lift-sm:0 1px 2px rgba(60,70,90,.08), 0 4px 12px rgba(60,70,90,.10);
-  --inset:inset 0 1.5px 1px var(--rim-hi), inset 1px 0 0 var(--rim-mid), inset 0 -1.5px 1px var(--rim-lo) }
+   Clear glass, not frosted plastic: a bright face, one crisp white edge, a single
+   specular line along the top, and a shadow that sits tight under the piece instead
+   of spreading into the next one. The blur lives on the big sheets only. */
+:root { --g-face:rgba(255,255,255,.88); --g-face-2:rgba(255,255,255,.74); --g-edge:rgba(255,255,255,.96); --g-spec:rgba(255,255,255,1);
+  --g-ring:rgba(255,255,255,.40); --g-sunk:rgba(255,255,255,.58);
+  --g-shadow:0 1px 1.5px rgba(40,50,70,.09), 0 3px 7px rgba(40,50,70,.06);
+  --g-shadow-lg:0 1px 2px rgba(40,50,70,.07), 0 8px 18px rgba(40,50,70,.07);
+  --g-blur:blur(16px) saturate(150%) }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --rim-hi:rgba(255,255,255,.22); --rim-mid:rgba(255,255,255,.08); --rim-lo:rgba(0,0,0,.35); --rim-edge:rgba(255,255,255,.14);
-  --glass-top:rgba(255,255,255,.11); --glass-bot:rgba(255,255,255,.05);
-  --lift:0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35); --lift-sm:0 1px 2px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.3) } }
+  --g-face:rgba(255,255,255,.10); --g-face-2:rgba(255,255,255,.055); --g-edge:rgba(255,255,255,.17); --g-spec:rgba(255,255,255,.30);
+  --g-ring:rgba(255,255,255,.06); --g-sunk:rgba(0,0,0,.22);
+  --g-shadow:0 1px 2px rgba(0,0,0,.35), 0 3px 8px rgba(0,0,0,.22); --g-shadow-lg:0 1px 2px rgba(0,0,0,.35), 0 10px 22px rgba(0,0,0,.30) } }
 :root[data-theme="dark"] {
-  --rim-hi:rgba(255,255,255,.22); --rim-mid:rgba(255,255,255,.08); --rim-lo:rgba(0,0,0,.35); --rim-edge:rgba(255,255,255,.14);
-  --glass-top:rgba(255,255,255,.11); --glass-bot:rgba(255,255,255,.05);
-  --lift:0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35); --lift-sm:0 1px 2px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.3) }
-/* the paper under the glass stays a touch darker than the glass itself, or the rims have nothing to catch */
-:root[data-palette="japan"] { --bg:#e3e4e9 }
+  --g-face:rgba(255,255,255,.10); --g-face-2:rgba(255,255,255,.055); --g-edge:rgba(255,255,255,.17); --g-spec:rgba(255,255,255,.30);
+  --g-ring:rgba(255,255,255,.06); --g-sunk:rgba(0,0,0,.22);
+  --g-shadow:0 1px 2px rgba(0,0,0,.35), 0 3px 8px rgba(0,0,0,.22); --g-shadow-lg:0 1px 2px rgba(0,0,0,.35), 0 10px 22px rgba(0,0,0,.30) }
+/* the paper under the glass is a shade darker than the glass, so the edge has something to catch */
+:root[data-palette="japan"] { --bg:#dfe1e6 }
+/* japan holds its white face on a dark phone, so it keeps the light glass tokens there as well */
+@media (prefers-color-scheme: dark) { :root[data-palette="japan"]:not([data-theme="dark"]) {
+  --g-face:rgba(255,255,255,.88); --g-face-2:rgba(255,255,255,.74); --g-edge:rgba(255,255,255,.96); --g-spec:rgba(255,255,255,1);
+  --g-ring:rgba(255,255,255,.40); --g-sunk:rgba(255,255,255,.58);
+  --g-shadow:0 1px 1.5px rgba(40,50,70,.09), 0 3px 7px rgba(40,50,70,.06);
+  --g-shadow-lg:0 1px 2px rgba(40,50,70,.07), 0 8px 18px rgba(40,50,70,.07) } }
 
-.card:not(.dark), aside, .theme-panel, .inner-panel, .shape-block, dialog > form, .dlg {
-  background:linear-gradient(180deg, var(--glass-top), var(--glass-bot)); border:1px solid var(--rim-edge);
-  box-shadow:var(--inset), var(--lift); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur) }
-.card.glass { background:linear-gradient(180deg, var(--glass-top), var(--glass-bot)) }
-.card.dark { box-shadow:inset 0 1.5px 1px rgba(255,255,255,.22), inset 0 -1.5px 1px rgba(0,0,0,.25), var(--lift) }
+/* the big sheets: cards, the sidebar, panels */
+.card:not(.dark), aside, .theme-panel, dialog > form, .dlg {
+  background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge);
+  box-shadow:inset 0 1px 0 var(--g-spec), inset 0 0 0 1px var(--g-ring), var(--g-shadow-lg);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur) }
+.card.glass { background:linear-gradient(180deg, var(--g-face), var(--g-face-2)) }
+.card.dark { box-shadow:inset 0 1px 0 rgba(255,255,255,.18), var(--g-shadow-lg) }
 .stats .card { background:transparent; border:0; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none }
-.inner-panel, .shape-block { box-shadow:var(--inset), var(--lift-sm) }
-.shape-block.sleep, .shape-block.unassigned { box-shadow:none }
+/* the month keeps its dotted paper, drawn on top of the glass face */
+.card.ml-cal-card:not(.dark) { background-image:radial-gradient(circle, color-mix(in srgb, var(--text) 12%, transparent) 1px, transparent 1.3px), linear-gradient(180deg, var(--g-face), var(--g-face-2)); background-size:20px 20px, auto; background-position:10px 10px, 0 0 }
+.app { border-color:var(--g-edge); box-shadow:inset 0 1px 0 var(--g-spec), var(--shadow) }
 
-/* pills: secondary buttons, icon buttons, chips, segments, inputs */
-.btn.secondary, .icon-btn, .chip-btn, .round-btn, .date-pill, .seg, .type-pill, .ml-filter, .bj-help kbd, .tag, .rh-task, .rh-mode.manager, .mode-btn, .shape-row.is-top {
-  background:linear-gradient(180deg, var(--glass-top), var(--glass-bot)); border:1px solid var(--rim-edge);
-  box-shadow:var(--inset), var(--lift-sm); color:var(--text) }
-.tag, .bj-help kbd, .rh-task { box-shadow:var(--inset) }
-.seg { padding:5px; -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%) }
-.seg button { border:1px solid transparent }
-.btn.secondary:hover, .chip-btn:hover, .type-pill:hover, .ml-filter:hover { background:linear-gradient(180deg, var(--rim-hi), var(--glass-top)); filter:none }
-.icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] { background:var(--accent); color:var(--on-accent); border-color:transparent; box-shadow:var(--lift-sm) }
-input, textarea, select { background:linear-gradient(180deg, var(--glass-bot), var(--glass-top)); border:1px solid var(--rim-edge);
-  box-shadow:inset 0 2px 4px rgba(60,70,90,.10), inset 0 -1px 0 var(--rim-hi); border-radius:999px; padding:12px 18px }
+/* pieces sitting on a sheet: one edge, one tight shadow, no blur of their own */
+.inner-panel, .shape-block, .hz-item, .item, .bj-day, .ml-project {
+  background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge);
+  box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow); -webkit-backdrop-filter:none; backdrop-filter:none }
+.shape-block.sleep { background:transparent; border-color:transparent; box-shadow:none }
+.shape-block.unassigned { background:transparent; border:1px dashed color-mix(in srgb, var(--text) 22%, transparent); box-shadow:none }
+.shape-block.drag-over, .rh-cell.rh-drop-over, .rh-pool.rh-drop-over { border-color:var(--pop, var(--accent)); box-shadow:inset 0 1px 0 var(--g-spec), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) }
+
+/* pills */
+.btn.secondary, .icon-btn, .chip-btn, .round-btn, .date-pill, .seg, .type-pill, .ml-filter, .mode-btn, .rh-mode.manager, .rh-task, .tag, .bj-help kbd, .pop-dot {
+  background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge); color:var(--text);
+  box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow) }
+.tag, .bj-help kbd, .rh-task { box-shadow:inset 0 1px 0 var(--g-spec), 0 1px 1.5px rgba(40,50,70,.08) }
+.seg { padding:5px; -webkit-backdrop-filter:blur(10px) saturate(150%); backdrop-filter:blur(10px) saturate(150%) }
+.seg button { border:1px solid transparent; box-shadow:none; background:transparent }
+.btn.secondary:hover, .chip-btn:hover, .type-pill:hover, .ml-filter:hover, .mode-btn:hover { background:var(--g-spec); filter:none; color:var(--text) }
+.icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] { background:var(--accent); color:var(--on-accent); border-color:transparent }
+
+/* fields sit a little below the surface */
+input, textarea, select { background:var(--g-sunk); border:1px solid var(--g-edge); border-radius:999px; padding:12px 18px;
+  box-shadow:inset 0 1.5px 3px rgba(40,50,70,.12), inset 0 0 0 1px var(--g-ring) }
 textarea { border-radius:22px }
-input[type="date"], input[type="month"], select { border-radius:999px }
-input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(--pop, var(--accent)) 60%, transparent);
-  box-shadow:inset 0 2px 4px rgba(60,70,90,.10), 0 0 0 4px color-mix(in srgb, var(--pop, var(--accent)) 18%, transparent) }
+input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(--pop, var(--accent)) 55%, white);
+  box-shadow:inset 0 1.5px 3px rgba(40,50,70,.10), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 16%, transparent) }
+.check { width:20px; height:20px; border-radius:7px }
 
-/* accent glass: the primary button, the pressed segment, the active nav, the picked pill */
-.btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .top-rank-pill, .pop-dot[aria-pressed="true"] {
-  background:linear-gradient(180deg, color-mix(in srgb, var(--pop, var(--accent)) 72%, white), var(--pop, var(--accent)) 55%, color-mix(in srgb, var(--pop, var(--accent)) 86%, black));
-  color:var(--on-pop, var(--on-accent)); border:1px solid color-mix(in srgb, var(--pop, var(--accent)) 60%, white);
-  box-shadow:inset 0 1.5px 1px rgba(255,255,255,.55), inset 0 -2px 2px rgba(0,0,0,.14),
-    0 4px 14px color-mix(in srgb, var(--pop, var(--accent)) 38%, transparent), 0 0 24px color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) }
-.btn:not(.secondary):hover { filter:brightness(1.06); transform:translateY(-1px) }
-.seg button[aria-pressed="true"], .type-pill[aria-pressed="true"] { box-shadow:inset 0 1.5px 1px rgba(255,255,255,.5), inset 0 -2px 2px rgba(0,0,0,.12), 0 3px 10px color-mix(in srgb, var(--pop, var(--accent)) 35%, transparent) }
+/* accent glass: a glossy tinted piece with a bright band along the top and a short glow */
+.btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .pop-dot[aria-pressed="true"] {
+  background:linear-gradient(180deg, color-mix(in srgb, var(--pop, var(--accent)) 62%, white) 0%, var(--pop, var(--accent)) 46%, color-mix(in srgb, var(--pop, var(--accent)) 84%, black) 100%);
+  color:var(--on-pop, var(--on-accent)); border:1px solid color-mix(in srgb, var(--pop, var(--accent)) 55%, white);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.70), inset 0 7px 8px -6px rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.16),
+    0 1px 2px color-mix(in srgb, var(--pop, var(--accent)) 35%, transparent), 0 3px 8px color-mix(in srgb, var(--pop, var(--accent)) 28%, transparent) }
+.btn:not(.secondary):hover { filter:brightness(1.05); transform:translateY(-1px) }
 .nav button.active { border-radius:999px }
 .nav button.active .ico, .nav button.active span { color:inherit }
-.ml-filter[aria-pressed="true"] { background:linear-gradient(180deg, var(--rim-hi), var(--glass-top)); border-color:color-mix(in srgb, var(--pop, var(--accent)) 50%, transparent);
-  box-shadow:var(--inset), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 14%, transparent) }
-.check { width:20px; height:20px; border-radius:7px }
-.progress { box-shadow:inset 0 1px 2px rgba(60,70,90,.18) }
-.progress span { box-shadow:0 0 10px color-mix(in srgb, var(--pop, var(--accent)) 45%, transparent) }
+.ml-filter[aria-pressed="true"] { background:var(--g-spec); border-color:color-mix(in srgb, var(--pop, var(--accent)) 55%, white); box-shadow:inset 0 1px 0 var(--g-spec), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 14%, transparent) }
+.progress { box-shadow:inset 0 1px 2px rgba(40,50,70,.16) }
 
-/* the frame itself: a thicker sheet of glass than the cards sitting on it */
-.app { box-shadow:var(--inset), var(--shadow); border-color:var(--rim-edge) }
-
-/* a phone paints every frame while scrolling, so the big blurs come off there */
+/* a phone paints every frame while scrolling, so the sheet blur eases off there */
 @media (max-width:860px) {
-  .card:not(.dark), aside, .inner-panel, .shape-block { -webkit-backdrop-filter:blur(10px) saturate(150%); backdrop-filter:blur(10px) saturate(150%) }
+  .card:not(.dark), aside { -webkit-backdrop-filter:blur(8px) saturate(150%); backdrop-filter:blur(8px) saturate(150%) }
   .seg { -webkit-backdrop-filter:none; backdrop-filter:none }
   input, textarea, select { padding:11px 16px }
 }
+
+/* ---- jump rail ---- */
+.jump-rail { position:fixed; right:10px; top:50%; transform:translateY(-50%); z-index:40; display:flex; flex-direction:column; align-items:center; gap:0;
+  padding:10px 6px; border-radius:999px; touch-action:none; user-select:none; -webkit-user-select:none;
+  background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge); box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow);
+  -webkit-backdrop-filter:blur(10px) saturate(150%); backdrop-filter:blur(10px) saturate(150%); transition:opacity .2s }
+.jump-rail[hidden] { display:none }
+.jump-rail i { display:block; width:5px; height:5px; margin:5px 0; border-radius:50%; background:color-mix(in srgb, var(--text) 30%, transparent); transition:transform .15s, background .15s }
+.jump-rail i.on { background:var(--pop, var(--accent)); transform:scale(1.5) }
+.jump-rail.scrubbing i { margin:7px 0 }
+.jump-bubble { position:fixed; right:38px; z-index:41; transform:translateY(-50%); pointer-events:none; white-space:nowrap;
+  font-size:13px; font-weight:600; padding:8px 14px; border-radius:999px; color:var(--text);
+  background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge); box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow-lg);
+  -webkit-backdrop-filter:blur(10px) saturate(150%); backdrop-filter:blur(10px) saturate(150%); opacity:0; transition:opacity .12s }
+.jump-bubble.show { opacity:1 }
+@media (min-width:861px) { .jump-rail { right:calc((100vw - min(100vw, 1380px)) / 2 + 2px) } .jump-bubble { right:calc((100vw - min(100vw, 1380px)) / 2 + 32px) } }
+@media (max-width:860px) { .jump-rail { right:4px; padding:8px 5px } .jump-rail i { width:4px; height:4px; margin:4px 0 } .jump-bubble { right:30px } }

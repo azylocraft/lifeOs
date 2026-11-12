@@ -2080,12 +2080,13 @@
     $('lgText').focus();
     const last = $('lgList').lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({block:'nearest'});
   });
-  const HOME_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
+  const HOME_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', habit:'e.g. workout', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
   let homeLgType = 'task', homeLgPicked = 'task';
   /* what each kind understands, said once under the box */
   const HOME_HINT = {
     task: 'A day in the words sets the due date — <b>buy milk tomorrow</b>. Start with <b>!</b> for high priority.',
     expense: '<b>in</b> names the category, <b>for</b> the subcategory — <b>400 in home for bike repair</b>. Without them the category is guessed.',
+    habit: 'Type the habit and it is ticked for today — <b>workout</b>. A name you have not used before becomes a new habit.',
     event: 'Put the time first and it is kept — <b>18:00 dentist</b>.',
     mood: 'A line about how the day felt. It shows in the month under the <b>=</b> icon.',
     idea: 'Something worth trying. Grouped under Ideas in the monthly log.',
@@ -2106,8 +2107,9 @@
     $('homeLgText').focus();
   });
   paintHomeType();
+  (function(){ const help = document.querySelector('#jnDay .bj-help'); if (help && $('homeLgHint')) $('homeLgHint').insertAdjacentElement('afterend', help.cloneNode(true)); })();
   $('homeLgText').addEventListener('input', e => {
-    if (homeLgPicked === 'expense') return;
+    if (homeLgPicked === 'expense' || homeLgPicked === 'habit') return;
     const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
     const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : homeLgPicked;
     if (t !== homeLgType) { homeLgType = t; paintHomeType(); }
@@ -2116,6 +2118,20 @@
     e.preventDefault();
     const raw = $('homeLgText').value.trim();
     if (!raw) return;
+    if (homeLgType === 'habit') {
+      const name = raw.slice(0, 24), q = name.toLowerCase();
+      const list = habitList().slice(), log = {...habitLog()};
+      let h = list.find(x => x.name.toLowerCase() === q) || list.find(x => x.name.toLowerCase().includes(q) || q.includes(x.name.toLowerCase()));
+      if (!h) { h = {id: uid(), name}; list.push(h); }
+      const set = new Set(log[isoToday] || []);
+      const already = set.has(h.id);
+      set.add(h.id); log[isoToday] = [...set];
+      saveHabits(list, log);
+      $('homeLgText').value = '';
+      toast(already ? h.name + ' was already ticked for today' : h.name + ' ticked for today');
+      $('homeLgText').focus();
+      return;
+    }
     if (homeLgType === 'expense') {
       const n = addQuickExpense(raw);
       if (!n) { toast('Try: 450 groceries or 200 coffee'); return; }
@@ -2720,4 +2736,77 @@
   showView(location.hash.slice(1) || 'home');
   renderAll();
   connect();
+})();
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const rail = document.createElement('nav'); rail.className = 'jump-rail'; rail.hidden = true; rail.setAttribute('aria-label', 'Jump to a section');
+  const bubble = document.createElement('div'); bubble.className = 'jump-bubble'; bubble.setAttribute('aria-hidden', 'true');
+  document.body.append(rail, bubble);
+  let sections = [], sig = '', scrubbing = false, lastIdx = -1;
+  const labelOf = el => {
+    const h = el.querySelector('h2, .cal-title, h3');
+    let t = (el.dataset.railLabel || (h && h.textContent) || '').trim().split(/\s+/).join(' ');
+    const NAMES = {nowBar:'Right now', reminderBar:'Reminders', mlCalCard:'Month'};
+    if (!t) t = NAMES[el.id] || (el.classList.contains('book') ? 'Log' : 'Section');
+    return t.length > 22 ? t.slice(0, 21) + '…' : t;
+  };
+  function build(){
+    const view = document.querySelector('.view.active');
+    const cands = view ? [...view.querySelectorAll('.card, .book')] : [];
+    const list = cands.filter(el => el.offsetParent !== null && !el.parentElement.closest('.card, .book'));
+    const now = $('nowBar') && !$('nowBar').hidden ? [$('nowBar')] : [];
+    sections = [...now, ...list].map(el => ({el, label: labelOf(el)}));
+    const s2 = sections.map(x => x.label).join('|');
+    if (s2 === sig) { mark(); return; }
+    sig = s2;
+    rail.hidden = sections.length < 3;
+    rail.innerHTML = sections.map((x, i) => '<i data-i="' + i + '" title="' + x.label.split('"').join('&quot;') + '"></i>').join('');
+    mark();
+  }
+  function mark(){
+    if (rail.hidden || scrubbing) return;
+    const line = window.scrollY + window.innerHeight * 0.38;
+    let idx = 0;
+    sections.forEach((x, i) => { if (x.el.getBoundingClientRect().top + window.scrollY <= line) idx = i; });
+    rail.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === idx));
+  }
+  function jump(idx, smooth){
+    const x = sections[idx]; if (!x) return;
+    const top = x.el.getBoundingClientRect().top + window.scrollY - 70;
+    window.scrollTo({top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto'});
+    rail.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === idx));
+  }
+  function idxAt(y){
+    const dots = [...rail.querySelectorAll('i')];
+    if (!dots.length) return 0;
+    let best = 0, bd = 1e9;
+    dots.forEach((d, i) => { const r = d.getBoundingClientRect(), c = r.top + r.height / 2, dd = Math.abs(c - y); if (dd < bd) { bd = dd; best = i; } });
+    return best;
+  }
+  function showBubble(idx, y){
+    bubble.textContent = sections[idx] ? sections[idx].label : '';
+    bubble.style.top = y + 'px';
+    bubble.classList.add('show');
+  }
+  rail.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    scrubbing = true; rail.classList.add('scrubbing');
+    try { rail.setPointerCapture(e.pointerId); } catch(err) {}
+    const i = idxAt(e.clientY); lastIdx = i; jump(i, false); showBubble(i, e.clientY);
+  });
+  rail.addEventListener('pointermove', e => {
+    if (!scrubbing) return;
+    const i = idxAt(e.clientY);
+    showBubble(i, e.clientY);
+    if (i !== lastIdx) { lastIdx = i; jump(i, false); try { if (navigator.vibrate) navigator.vibrate(4); } catch(err) {} }
+  });
+  const end = () => { if (!scrubbing) return; scrubbing = false; rail.classList.remove('scrubbing'); bubble.classList.remove('show'); setTimeout(mark, 150); };
+  rail.addEventListener('pointerup', end); rail.addEventListener('pointercancel', end);
+  let t = null;
+  const later = () => { clearTimeout(t); t = setTimeout(build, 60); };
+  document.addEventListener('click', later);
+  window.addEventListener('resize', later);
+  window.addEventListener('scroll', () => { if (!scrubbing) mark(); }, {passive:true});
+  setTimeout(build, 0); setTimeout(build, 1500); setTimeout(build, 4000);
 })();
