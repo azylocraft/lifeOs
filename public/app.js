@@ -1834,35 +1834,26 @@
     ].sort((a,b) => a.time.localeCompare(b.time));
     const loose = open.filter(t => !timedTask(t)).sort(byDoneThenAge);
     const activeBlocks = BLOCKS.filter(b => !b.sleep);
-    const blockOpts = (tid) => `<select class="block-pick" data-lg="block" data-id="${esc(tid)}">`
-      + activeBlocks.map(b => `<option value="${b.key}">${esc(b.label)}</option>`).join('') + '</select>';
     const homeBlock = t => {
       if (t.block && activeBlocks.some(b => b.key === t.block)) return t.block;
       const mode = workOf(t);
       const pool = activeBlocks.filter(b => shape[b.key] === mode);
       return pool.length ? pool[0].key : activeBlocks[0].key;
     };
-    const row = t => {
-      const hb = homeBlock(t);
-      return `<div class="shape-row"><span>• ${esc(t.title)}</span><div class="shape-actions">${blockOpts(t.id)}${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))])}</div></div>`;
-    };
+    const row = t => `<div class="shape-row" draggable="true" data-drag-id="${esc(t.id)}"><span>• ${esc(t.title)}</span>${chip('work', t.id, '→ ' + MODE_NAME[otherMode(workOf(t))])}</div>`;
     let html = BLOCKS.map(bl => {
       const mode = shape[bl.key] || 'sleep';
-      if (bl.sleep) return `<div class="shape-block glass sleep"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><span class="shape-sleep-tag">Sleep</span></div></div>`;
+      if (bl.sleep) return `<div class="shape-block sleep"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><span class="shape-sleep-tag">Sleep</span></div></div>`;
       const here = timed.filter(x => {
         const h = parseInt(x.time.split(':')[0], 10);
         return h >= bl.start && h < bl.start + 3;
       });
       const mine = loose.filter(t => homeBlock(t) === bl.key);
       const body = here.map(x => `<div class="shape-row"><span><b class="tm">${esc(x.time)}</b> ${esc(x.title)}</span></div>`).join('') + mine.map(row).join('');
-      return `<div class="shape-block glass"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn ${mode}" data-shape="${bl.key}" aria-label="${esc(bl.label)}: ${MODE_NAME[mode]} time. Tap to switch">${MODE_NAME[mode]} ⇄</button></div>
+      return `<div class="shape-block" data-block="${bl.key}"><div class="shape-head"><span class="shape-time">${esc(bl.label)}</span><button type="button" class="mode-btn ${mode}" data-shape="${bl.key}" aria-label="${esc(bl.label)}: ${MODE_NAME[mode]} time. Tap to switch">${MODE_NAME[mode]} ⇄</button></div>
         ${body || `<div class="shape-hint">${mode === 'maker' ? 'Deep work' : 'Quick tasks'}</div>`}</div>`;
     }).join('');
     $('lgShape').innerHTML = html;
-    $('lgShape').querySelectorAll('.block-pick').forEach(sel => {
-      const tid = sel.dataset.id, t = items.find(x => x.id === tid);
-      if (t) sel.value = homeBlock(t);
-    });
     const mk = open.filter(t => workOf(t) === 'maker').length;
     $('lgShapeSub').textContent = open.length ? `${mk} deep · ${open.length - mk} quick · for ${d === isoToday ? 'today' : shortDay(d)}` : '3-hour blocks · maker & manager';
   }
@@ -1982,10 +1973,73 @@
     saveRhythm(r.week || {}, days);
     const again = $('lgShape').querySelector(`[data-shape="${bk}"]`); if (again) again.focus();
   });
-  $('lgShape').addEventListener('change', e => {
-    const sel = e.target.closest('.block-pick');
-    if (!sel) return;
-    patchItem(sel.dataset.id, { block: sel.value });
+  let shapeDragId = null;
+  $('lgShape').addEventListener('dragstart', e => {
+    const row = e.target.closest('[data-drag-id]');
+    if (!row) return;
+    shapeDragId = row.dataset.dragId;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', shapeDragId);
+  });
+  $('lgShape').addEventListener('dragend', e => {
+    shapeDragId = null;
+    $('lgShape').querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    $('lgShape').querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  });
+  $('lgShape').addEventListener('dragover', e => {
+    if (!shapeDragId) return;
+    const block = e.target.closest('[data-block]');
+    if (!block) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    $('lgShape').querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    block.classList.add('drag-over');
+  });
+  $('lgShape').addEventListener('dragleave', e => {
+    const block = e.target.closest('[data-block]');
+    if (block && !block.contains(e.relatedTarget)) block.classList.remove('drag-over');
+  });
+  $('lgShape').addEventListener('drop', e => {
+    e.preventDefault();
+    const block = e.target.closest('[data-block]');
+    if (!block || !shapeDragId) return;
+    block.classList.remove('drag-over');
+    patchItem(shapeDragId, { block: block.dataset.block });
+    shapeDragId = null;
+  });
+  /* touch drag for mobile */
+  let touchDragId = null, touchGhost = null;
+  $('lgShape').addEventListener('touchstart', e => {
+    const row = e.target.closest('[data-drag-id]');
+    if (!row) return;
+    touchDragId = row.dataset.dragId;
+    row.classList.add('dragging');
+    touchGhost = row.cloneNode(true);
+    touchGhost.style.cssText = 'position:fixed;pointer-events:none;opacity:.7;z-index:999;width:' + row.offsetWidth + 'px';
+    document.body.appendChild(touchGhost);
+    const t = e.touches[0];
+    touchGhost.style.left = t.clientX - 20 + 'px';
+    touchGhost.style.top = t.clientY - 10 + 'px';
+  }, {passive:true});
+  $('lgShape').addEventListener('touchmove', e => {
+    if (!touchDragId) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    if (touchGhost) { touchGhost.style.left = t.clientX - 20 + 'px'; touchGhost.style.top = t.clientY - 10 + 'px'; }
+    $('lgShape').querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (el) { const block = el.closest('[data-block]'); if (block) block.classList.add('drag-over'); }
+  }, {passive:false});
+  $('lgShape').addEventListener('touchend', e => {
+    if (!touchDragId) return;
+    $('lgShape').querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+    const t = e.changedTouches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const block = el && el.closest('[data-block]');
+    if (block) { block.classList.remove('drag-over'); patchItem(touchDragId, { block: block.dataset.block }); }
+    touchDragId = null;
   });
   $('dayStartPick').addEventListener('change', e => {
     const h = Number(e.target.value), r = rhythmDoc();
