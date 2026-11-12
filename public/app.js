@@ -1693,11 +1693,18 @@
     if (topsOf(t.due).length >= 3) { toast('You already have 3. Take one off the top 3 first.'); return; }
     patchItem(id, {top:true, topAt:Date.now()});
   }
+  function entryTime(i) {
+    const ts = i.at || i.created;
+    if (!ts) return '';
+    const dt = new Date(ts);
+    return pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+  }
   function entryHTML({i, role}, d){
     const open = logOpen === i.id, more = `<button type="button" class="icon-btn bj-more" data-lg="more" data-id="${esc(i.id)}" aria-expanded="${open}" aria-label="More options">⋯</button>`;
+    const timeTag = entryTime(i) ? `<span class="bj-time">${entryTime(i)}</span>` : '';
     if (role === 'ghost') {
       const goal = i.kind === 'goal';
-      return `<div class="bj ghost"><span class="bj-g" aria-hidden="true">${goal ? '&lt;' : '&gt;'}</span><div class="bj-t"><span class="tx">${esc(i.title)}</span><span class="bj-m">${goal ? 'scheduled for ' + esc(whereLabel(i)) : 'moved to ' + esc(shortDay(i.due))}${i.done ? ' · done' : ''}</span></div></div>`;
+      return `<div class="bj ghost"><span class="bj-g" aria-hidden="true">${goal ? '&lt;' : '&gt;'}</span><div class="bj-t"><span class="tx">${esc(i.title)}</span><span class="bj-m">${goal ? 'scheduled for ' + esc(whereLabel(i)) : 'moved to ' + esc(shortDay(i.due))}${i.done ? ' · done' : ''}</span></div>${timeTag}</div>`;
     }
     if (role === 'task') {
       const meta = [];
@@ -1718,11 +1725,11 @@
       const star = (i.done && !rank) ? '' : `<button type="button" class="icon-btn bj-top ${rank ? 'on' : ''}" data-lg="top" data-id="${esc(i.id)}" aria-pressed="${!!rank}" aria-label="${rank ? 'Number ' + rank + ' of your top 3. Tap to remove' : 'Add to your top 3'}">${rank || '☆'}</button>`;
       return `<div class="bj ${i.done ? (i.cancelled ? 'cancel' : 'done') : ''} ${i.priority === 'High' && !i.done ? 'high' : ''} ${i.indent ? 'in' : ''} ${rank ? 'is-top' : ''}" data-row="${esc(i.id)}">
         <button type="button" class="bj-g" data-lg="done" data-id="${esc(i.id)}" aria-pressed="${!!i.done}" aria-label="${i.done ? 'Reopen' : 'Mark done'}: ${esc(i.title)}">${i.done && !i.cancelled ? '✕' : '•'}</button>
-        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${more}${strip}</div>`;
+        <div class="bj-t"><span class="tx">${esc(i.title)}</span>${meta.length ? `<span class="bj-m">${meta.join(' · ')}</span>` : ''}</div>${star}${timeTag}${more}${strip}</div>`;
     }
     const strip = !open ? '' : `<div class="bj-strip">${chip('todo', i.id, 'Make it a to-do today', ' data-when="today"')}${chip('todo', i.id, '…tomorrow', ' data-when="tomorrow"')}${chip('indent', i.id, i.indent ? '⇤ Outdent' : '⇥ Indent')}<button type="button" class="chip-btn" data-act="edit" data-id="${esc(i.id)}">Edit</button><button type="button" class="chip-btn" data-act="delete" data-id="${esc(i.id)}">Delete</button></div>`;
     return `<div class="bj ${role} ${i.indent ? 'in' : ''}" data-row="${esc(i.id)}"><span class="bj-g" role="img" aria-label="${role}">${GLYPH[role]}</span>
-      <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${i.made ? '<span class="bj-m">→ made into a to-do</span>' : ''}</div>${more}${strip}</div>`;
+      <div class="bj-t">${i.time ? `<span class="tm">${esc(i.time)}</span>` : ''}<span class="tx">${esc(i.text)}</span>${i.made ? '<span class="bj-m">→ made into a to-do</span>' : ''}</div>${timeTag}${more}${strip}</div>`;
   }
   function reviewHTML(t){
     return `<div class="bj"><span class="bj-g" aria-hidden="true">•</span><div class="bj-t"><span class="tx">${esc(t.title)}</span><span class="bj-m">from ${esc(shortDay(t.due))}${movedNote(t) ? ' · ' + movedNote(t) : ''}</span></div>
@@ -1756,22 +1763,21 @@
     const mk = loose.filter(t => workOf(t) === 'maker').length;
     $('lgShapeSub').textContent = open.length ? `${mk} deep · ${open.length - mk} quick · for ${d === isoToday ? 'today' : shortDay(d)}` : 'Maker time and manager time';
   }
-  /* the left page: the days before this one, newest first, each ruled off like a paper journal */
-  let pastCount = 5;
-  function pastDays(before){
-    const set = new Set();
-    items.forEach(i => {
-      if (i.kind === 'task' && i.due && i.due < before) set.add(i.due);
-      else if (i.kind === 'bullet' && isDate(i.date) && i.date < before) set.add(i.date);
-      if ((i.kind === 'task' || i.kind === 'goal') && Array.isArray(i.moved)) i.moved.forEach(d => { if (isDate(d) && d < before) set.add(d); });
-    });
-    return [...set].sort().reverse();
+  /* the left page: last 7 days before this one, each with plan/log tabs */
+  let pastCount = 7, pastTabs = {};
+  function pastDays7(before){
+    const days = [];
+    for (let n = 1; n <= 7; n++) {
+      const d = addDays(before, -n);
+      if (d) days.push(d);
+    }
+    return days;
   }
   function renderPast(){
-    const all = pastDays(logDate), shown = all.slice(0, pastCount);
-    $('lgPastSub').textContent = all.length ? `${all.length} earlier ${all.length === 1 ? 'day' : 'days'} with entries` : 'The pages before this one';
-    $('lgPastMore').hidden = all.length <= pastCount;
-    if (!shown.length) { safeHTML($('lgPast'), `<div class="hz-empty">${loading && !items.length ? 'Getting your saved items…' : 'Nothing before this day yet. Your past days collect here as you go.'}</div>`); return; }
+    const shown = pastDays7(logDate);
+    $('lgPastSub').textContent = 'Last 7 days';
+    $('lgPastMore').hidden = true;
+    if (!shown.length) { safeHTML($('lgPast'), '<div class="hz-empty">Nothing before this day yet.</div>'); return; }
     const weeks = [];
     let curWk = null;
     shown.forEach(d => {
@@ -1781,8 +1787,13 @@
     });
     safeHTML($('lgPast'), weeks.map(w => `<div class="past-week"><div class="past-wk-label">Week ${Number(w.wk.slice(6))}</div>${w.days.map(d => {
       const line = (monthDoc(monthKey(d)).lines || {})[d.slice(8)];
-      return `<section class="bj-day"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button>
-        ${line ? `<div class="bj-quote">"${esc(line)}"</div>` : ''}<div class="bj-list">${dayEntries(d).map(e => entryHTML(e, d)).join('')}</div></section>`;
+      const entries = dayEntries(d);
+      const planOnly = entries.filter(e => e.role === 'task' && !e.i.done);
+      const tab = pastTabs[d] || 'log';
+      const showing = tab === 'plan' ? planOnly : entries;
+      return `<section class="bj-day"><div class="past-day-head"><button type="button" class="bj-date" data-past-open="${d}" aria-label="Open the log for ${esc(dayLabel(d))}">${d === addDays(isoToday, -1) ? 'Yesterday · ' : ''}${esc(shortDay(d))}</button>
+        <div class="seg past-tabs"><button type="button" class="past-tab ${tab === 'plan' ? 'on' : ''}" data-past-tab="plan" data-past-day="${d}">Plan</button><button type="button" class="past-tab ${tab === 'log' ? 'on' : ''}" data-past-tab="log" data-past-day="${d}">Log</button></div></div>
+        ${line ? `<div class="bj-quote">"​${esc(line)}"</div>` : ''}<div class="bj-list">${showing.length ? showing.map(e => entryHTML(e, d)).join('') : `<div class="hz-empty">${tab === 'plan' ? 'No open tasks' : 'No entries'}</div>`}</div></section>`;
     }).join('')}</div>`).join(''));
   }
 
@@ -1858,7 +1869,7 @@
       }
     }
   }
-  ['lgList','lgPast','lgReview','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
+  ['lgList','lgDoneList','lgPast','lgReview','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
   $('lgShape').addEventListener('click', e => {
     const b = e.target.closest('[data-shape]');
     if (!b) return;
@@ -1903,7 +1914,11 @@
     toast('Lined up for tomorrow');
   });
   const setLogDate = d => { logDate = d; logOpen = null; pastCount = 5; renderLog(); };
-  $('lgPast').addEventListener('click', e => { const b = e.target.closest('[data-past-open]'); if (b) { setLogDate(b.dataset.pastOpen); $('lgDate').scrollIntoView({block:'center'}); $('lgPrev').focus(); } });
+  $('lgPast').addEventListener('click', e => {
+    const tab = e.target.closest('[data-past-tab]');
+    if (tab) { pastTabs[tab.dataset.pastDay] = tab.dataset.pastTab; renderPast(); return; }
+    const b = e.target.closest('[data-past-open]'); if (b) { setLogDate(b.dataset.pastOpen); $('lgDate').scrollIntoView({block:'center'}); $('lgPrev').focus(); }
+  });
   $('lgPastMore').addEventListener('click', () => { pastCount += 7; renderPast(); });
   $('lgPrev').addEventListener('click', () => setLogDate(addDays(logDate, -1)));
   $('lgNext').addEventListener('click', () => setLogDate(addDays(logDate, 1)));
