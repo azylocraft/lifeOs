@@ -544,11 +544,11 @@ button.bj-g:hover { background:var(--track) }
 .ml-line { border-color:transparent; background:transparent; padding:6px; border-radius:8px }
 .ml-line:focus { background:var(--input-bg) }
 .ml-habits { display:flex; gap:2px }
+.ml-cal-card.hide-habits .ml-habits { display:none }
 .ml-hl { width:26px; text-align:center; font-size:11px; font-weight:600; color:var(--muted) }
-.ml-dot { width:26px; height:26px; border-radius:0; border:0; background:transparent; padding:0; display:grid; place-items:center; font-size:14px; font-weight:700; color:transparent }
-.ml-dot::after { content:"·"; color:var(--track); font-size:16px }
-.ml-dot.on { color:var(--pop, var(--accent)) }
-.ml-dot.on::after { content:"✕"; color:var(--pop, var(--accent)); font-size:14px; font-weight:700 }
+.ml-dot { width:26px; height:26px; border-radius:0; border:0; background:transparent; padding:0; display:grid; place-items:center; cursor:pointer }
+.ml-dot::after { content:"·"; color:var(--track); font-size:18px; line-height:1 }
+.ml-dot.on::after { content:"✕"; color:var(--pop, var(--accent)); font-size:13px; font-weight:700 }
 .ml-dot:hover { background:var(--track) }
 
 @media (max-width:620px) {

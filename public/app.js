@@ -2431,6 +2431,7 @@
     document.querySelectorAll('#mlSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mltab === mlTab)));
     $('mlPlanView').hidden = mlTab !== 'plan';
     $('mlDoneView').hidden = mlTab !== 'done';
+    $('mlCalCard').classList.toggle('hide-habits', mlTab === 'plan');
     $('mlHabits').innerHTML = habits.length ? habits.map(h => {
       const n = Object.keys(log).filter(dk => monthKey(dk) === key && (log[dk] || []).includes(h.id)).length;
       return `<div class="item"><div class="item-main"><div class="item-title">${esc(h.name.charAt(0).toUpperCase())} · ${esc(h.name)}</div><div class="item-meta">${n} ${n === 1 ? 'day' : 'days'} in ${esc(monthName(key))}</div></div><button type="button" class="icon-btn" data-habit-del="${esc(h.id)}" aria-label="Remove ${esc(h.name)}">✕</button></div>`;
@@ -2463,6 +2464,7 @@
     mlTab = b.dataset.mltab;
     $('mlPlanView').hidden = mlTab !== 'plan';
     $('mlDoneView').hidden = mlTab !== 'done';
+    $('mlCalCard').classList.toggle('hide-habits', mlTab === 'plan');
     document.querySelectorAll('#mlSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mltab === mlTab)));
     renderMonthRight(mlMonth);
   });

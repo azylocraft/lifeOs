@@ -264,10 +264,11 @@
           <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
         <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
 
+        <div class="card ml-cal-card" id="mlCalCard">
+          <div id="mlRows"></div>
+        </div>
+
         <div id="mlPlanView">
-          <div class="card ml-cal-card">
-            <div id="mlRows"></div>
-          </div>
           <div class="card ml-cal-card ml-proj-card" style="margin-top:14px">
             <div class="card-head"><div><h2>Projects</h2><div class="sub">Create a project, add steps, drag them to a week</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
             <div class="ml-plan">
