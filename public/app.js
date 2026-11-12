@@ -2411,9 +2411,9 @@
       const wk = weekKey(iso);
       if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week" data-ml-wk="${wk}"><div class="ml-wk" data-ml-drop="${wk}">Week ${Number(wk.slice(6))}<span class="ml-wk-count" data-wk-count="${wk}"></span></div>`;
       const done = new Set(log[iso] || []);
-      const openStr = (open[iso] || []).map(t => `<span class="ml-day-task">□ ${esc(t)}</span>`).join(' ');
-      const didStr = did[iso] ? did[iso].map(esc).join(' · ') : '';
-      const planStr = (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join(' ');
+      const openStr = (open[iso] || []).map(t => `<span class="ml-day-task ml-plan-only">□ ${esc(t)}</span>`).join(' ');
+      const didStr = did[iso] ? `<span class="ml-done-only">${did[iso].map(esc).join(' · ')}</span>` : '';
+      const planStr = (planned[iso] || []).map(t => `<span class="ml-day-task ml-plan-only">◇ ${esc(t)}</span>`).join(' ');
       const belowStr = [openStr, planStr, didStr].filter(Boolean).join(' ');
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
