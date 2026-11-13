@@ -2478,8 +2478,9 @@
       if (mlTab === 'done' && dayItems.length === 0) continue;
       /* planned items sit inline with the date, not on a line below */
       const planInline = mlTab === 'done' ? '' : (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join('');
+      const didStr = dayItems.map(di => `<span class="ml-done-g g-${di.type}">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
       const mid = mlTab === 'done'
-        ? `<div class="ml-done-list">${dayItems.map(di => `<div class="ml-done-item"><span class="ml-done-g g-${di.type}">${di.glyph}</span><span class="ml-done-tx">${esc(di.text)}</span></div>`).join('')}</div>`
+        ? `<div class="ml-done-inline">${didStr}</div>`
         : `<div class="ml-mid">${planInline}</div>`;
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
