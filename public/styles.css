@@ -894,25 +894,25 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
    backdrop shows through, a faint sheen in the top third, a bright line along the top
    edge and a darker one along the bottom, a soft shadow, and the label in deep accent ink. */
 :root {
-  --ag-base:rgba(255,255,255,.70); --ag-mix:50%;
-  --ag-ink:color-mix(in oklch, var(--pop, var(--accent)) 72%, black);
-  --ag-rim:color-mix(in srgb, var(--pop, var(--accent)) 32%, rgba(255,255,255,.80));
-  --ag-top:rgba(255,255,255,.88); --ag-bot:color-mix(in srgb, var(--pop, var(--accent)) 40%, rgba(0,0,0,.28));
+  --ag-base:rgba(255,255,255,.70); --ag-mix:100%;
+  --ag-ink:var(--on-pop, var(--on-accent));
+  --ag-rim:color-mix(in srgb, var(--pop, var(--accent)) 62%, white);
+  --ag-top:rgba(255,255,255,.55); --ag-bot:rgba(0,0,0,.22);
   --ag-side:rgba(255,255,255,.32);
   --ag-sheen:linear-gradient(180deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.06) 38%, rgba(255,255,255,0) 60%, rgba(0,0,0,.025) 100%);
   --ag-drop:0 1px 2px rgba(0,0,0,.07), 0 6px 14px color-mix(in srgb, var(--pop, var(--accent)) 16%, transparent) }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-palette="japan"]) {
-  --ag-base:rgba(255,255,255,.18); --ag-mix:64%;
+  --ag-base:rgba(255,255,255,.18); --ag-mix:100%;
   --ag-ink:#ffffff;
-  --ag-rim:color-mix(in srgb, var(--pop, var(--accent)) 45%, rgba(255,255,255,.50));
-  --ag-top:rgba(255,255,255,.50); --ag-bot:rgba(0,0,0,.28); --ag-side:rgba(255,255,255,.16);
+  --ag-rim:color-mix(in srgb, var(--pop, var(--accent)) 62%, white);
+  --ag-top:rgba(255,255,255,.50); --ag-bot:rgba(0,0,0,.26); --ag-side:rgba(255,255,255,.16);
   --ag-sheen:linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.05) 38%, rgba(255,255,255,0) 60%, rgba(0,0,0,.04) 100%);
   --ag-drop:0 1px 2px rgba(0,0,0,.35), 0 6px 14px color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) } }
 :root[data-theme="dark"] {
-  --ag-base:rgba(255,255,255,.18); --ag-mix:64%;
+  --ag-base:rgba(255,255,255,.18); --ag-mix:100%;
   --ag-ink:#ffffff;
-  --ag-rim:color-mix(in srgb, var(--pop, var(--accent)) 45%, rgba(255,255,255,.50));
-  --ag-top:rgba(255,255,255,.50); --ag-bot:rgba(0,0,0,.28); --ag-side:rgba(255,255,255,.16);
+  --ag-rim:color-mix(in srgb, var(--pop, var(--accent)) 62%, white);
+  --ag-top:rgba(255,255,255,.50); --ag-bot:rgba(0,0,0,.26); --ag-side:rgba(255,255,255,.16);
   --ag-sheen:linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.05) 38%, rgba(255,255,255,0) 60%, rgba(0,0,0,.04) 100%);
   --ag-drop:0 1px 2px rgba(0,0,0,.35), 0 6px 14px color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) }
 .btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .pop-dot[aria-pressed="true"],
