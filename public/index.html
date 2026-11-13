@@ -181,24 +181,6 @@
               <div class="bj-key" aria-label="What the bullets mean"><span><b>•</b>Action</span><span><b>–</b>Note</span><span><b>○</b>Event</span><span><b>=</b>Mood</span><span><b>✕</b>Done</span><span><b>&gt;</b>Moved</span></div>
               <div class="bj-list" id="lgDoneList"></div>
             </div>
-            <dialog id="lgSheet" class="jot-sheet" aria-label="Jot an entry">
-              <div class="jot-sheet-grabber" aria-hidden="true"></div>
-              <div class="jot-sheet-head"><h2>Jot it down</h2><button type="button" class="icon-btn" id="lgSheetClose" aria-label="Close">✕</button></div>
-              <form id="lgForm" class="bj-add bj-add-stack">
-                <div class="type-pills" id="lgType" role="group" aria-label="Kind of entry"><button type="button" class="type-pill" data-btype="task" aria-pressed="true" title="Action"><span class="type-pill-g" aria-hidden="true">•</span><span class="type-pill-l">Action</span></button><button type="button" class="type-pill" data-btype="expense" aria-pressed="false" title="Expense"><span class="type-pill-g" aria-hidden="true">₹</span><span class="type-pill-l">Expense</span></button><button type="button" class="type-pill" data-btype="habit" aria-pressed="false" title="Habit"><span class="type-pill-g" aria-hidden="true">●</span><span class="type-pill-l">Habit</span></button><button type="button" class="type-pill" data-btype="note" aria-pressed="false" title="Note"><span class="type-pill-g" aria-hidden="true">–</span><span class="type-pill-l">Note</span></button><button type="button" class="type-pill" data-btype="event" aria-pressed="false" title="Event"><span class="type-pill-g" aria-hidden="true">○</span><span class="type-pill-l">Event</span></button><button type="button" class="type-pill" data-btype="mood" aria-pressed="false" title="Mood"><span class="type-pill-g" aria-hidden="true">=</span><span class="type-pill-l">Mood</span></button><button type="button" class="type-pill" data-btype="idea" aria-pressed="false" title="Idea"><span class="type-pill-g" aria-hidden="true">✦</span><span class="type-pill-l">Idea</span></button><button type="button" class="type-pill" data-btype="problem" aria-pressed="false" title="Problem"><span class="type-pill-g" aria-hidden="true">△</span><span class="type-pill-l">Problem</span></button><button type="button" class="type-pill" data-btype="mistake" aria-pressed="false" title="Mistake"><span class="type-pill-g" aria-hidden="true">✘</span><span class="type-pill-l">Mistake</span></button><button type="button" class="type-pill" data-btype="observation" aria-pressed="false" title="Observation"><span class="type-pill-g" aria-hidden="true">◎</span><span class="type-pill-l">Observation</span></button></div>
-                <input id="lgText" maxlength="500" required autocomplete="off" autofocus placeholder="e.g. buy milk tomorrow" aria-label="New entry">
-                <button class="btn" type="submit">Add</button>
-                <div class="bj-hint" id="lgHint"></div>
-              </form>
-              <details class="bj-help">
-                <summary>Shortcuts &amp; gestures</summary>
-                <div class="bj-help-h">Start a line with</div>
-                <div class="bj-help-grid"><span><kbd>-</kbd>Note</span><span><kbd>o</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>+</kbd>Idea</span><span><kbd>?</kbd>Problem</span><span><kbd>x</kbd>Mistake</span><span><kbd>@</kbd>Observation</span><span><kbd>!</kbd>Important</span></div>
-                <div class="bj-help-note">A time after the letter is kept — <i>o 4pm dentist</i>.</div>
-                <div class="bj-help-h">On any entry</div>
-                <div class="bj-help-grid wide"><span><kbd>Swipe right</kbd>Complete it</span><span><kbd>Swipe left</kbd>Delete it</span><span><kbd>Triple-tap</kbd>Move to tomorrow</span><span><kbd>☆</kbd>Pick your top 3</span></div>
-              </details>
-            </dialog>
           </div>
         </div>
         <div class="grid day-cards" style="margin-top:18px">
@@ -263,6 +245,24 @@
         </div>
       </div>
     </section>
+    <dialog id="lgSheet" class="jot-sheet" aria-label="Jot an entry">
+      <div class="jot-sheet-grabber" aria-hidden="true"></div>
+      <div class="jot-sheet-head"><h2>Jot it down</h2><button type="button" class="icon-btn" id="lgSheetClose" aria-label="Close">✕</button></div>
+      <form id="lgForm" class="bj-add bj-add-stack">
+        <div class="type-pills" id="lgType" role="group" aria-label="Kind of entry"><button type="button" class="type-pill" data-btype="task" aria-pressed="true" title="Action"><span class="type-pill-g" aria-hidden="true">•</span><span class="type-pill-l">Action</span></button><button type="button" class="type-pill" data-btype="expense" aria-pressed="false" title="Expense"><span class="type-pill-g" aria-hidden="true">₹</span><span class="type-pill-l">Expense</span></button><button type="button" class="type-pill" data-btype="habit" aria-pressed="false" title="Habit"><span class="type-pill-g" aria-hidden="true">●</span><span class="type-pill-l">Habit</span></button><button type="button" class="type-pill" data-btype="note" aria-pressed="false" title="Note"><span class="type-pill-g" aria-hidden="true">–</span><span class="type-pill-l">Note</span></button><button type="button" class="type-pill" data-btype="event" aria-pressed="false" title="Event"><span class="type-pill-g" aria-hidden="true">○</span><span class="type-pill-l">Event</span></button><button type="button" class="type-pill" data-btype="mood" aria-pressed="false" title="Mood"><span class="type-pill-g" aria-hidden="true">=</span><span class="type-pill-l">Mood</span></button><button type="button" class="type-pill" data-btype="idea" aria-pressed="false" title="Idea"><span class="type-pill-g" aria-hidden="true">✦</span><span class="type-pill-l">Idea</span></button><button type="button" class="type-pill" data-btype="problem" aria-pressed="false" title="Problem"><span class="type-pill-g" aria-hidden="true">△</span><span class="type-pill-l">Problem</span></button><button type="button" class="type-pill" data-btype="mistake" aria-pressed="false" title="Mistake"><span class="type-pill-g" aria-hidden="true">✘</span><span class="type-pill-l">Mistake</span></button><button type="button" class="type-pill" data-btype="observation" aria-pressed="false" title="Observation"><span class="type-pill-g" aria-hidden="true">◎</span><span class="type-pill-l">Observation</span></button></div>
+        <input id="lgText" maxlength="500" required autocomplete="off" autofocus placeholder="e.g. buy milk tomorrow" aria-label="New entry">
+        <button class="btn" type="submit">Add</button>
+        <div class="bj-hint" id="lgHint"></div>
+      </form>
+      <details class="bj-help">
+        <summary>Shortcuts &amp; gestures</summary>
+        <div class="bj-help-h">Start a line with</div>
+        <div class="bj-help-grid"><span><kbd>-</kbd>Note</span><span><kbd>o</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>+</kbd>Idea</span><span><kbd>?</kbd>Problem</span><span><kbd>x</kbd>Mistake</span><span><kbd>@</kbd>Observation</span><span><kbd>!</kbd>Important</span></div>
+        <div class="bj-help-note">A time after the letter is kept — <i>o 4pm dentist</i>.</div>
+        <div class="bj-help-h">On any entry</div>
+        <div class="bj-help-grid wide"><span><kbd>Swipe right</kbd>Complete it</span><span><kbd>Swipe left</kbd>Delete it</span><span><kbd>Triple-tap</kbd>Move to tomorrow</span><span><kbd>☆</kbd>Pick your top 3</span></div>
+      </details>
+    </dialog>
     <button type="button" class="jot-fab" id="lgFab" aria-label="Jot an entry" aria-controls="lgSheet" aria-expanded="false"><span aria-hidden="true">✎</span></button>
     <footer id="footerNote">My Life OS</footer>
   </main>

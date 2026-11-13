@@ -2090,12 +2090,12 @@
     const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : logPicked;
     if (t !== logType) { logType = t; paintLgType(); }
   });
-  function openJotSheet(){
+  function openJotSheet(date){
     const sh = $('lgSheet'); if (!sh) return;
-    /* a quick jot from any view goes to today; the journal's own day view keeps its date */
-    const onDay = !$('view-journal').classList.contains('active') || jnTab === 'day' ? false : false;
+    /* a passed date wins; otherwise the journal day tab keeps its date, and any other view jots for today */
     const activeIsJournalDay = $('view-journal').classList.contains('active') && jnTab === 'day';
-    if (!activeIsJournalDay && logDate !== isoToday) logDate = isoToday;
+    const target = (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : (activeIsJournalDay ? logDate : isoToday);
+    if (logDate !== target) logDate = target;
     if (typeof sh.showModal === 'function') { if (!sh.open) sh.showModal(); } else { sh.setAttribute('open', ''); }
     $('lgFab').setAttribute('aria-expanded', 'true');
     setTimeout(() => { try { $('lgText').focus(); } catch(e){} }, 20);
@@ -2467,12 +2467,16 @@
       const done = new Set(log[iso] || []);
       const dayItems = byDay[iso] || [];
       const didStr = dayItems.map(di => `<span class="ml-done-g g-${di.type}">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
-      const belowStr = mlTab === 'done' ? '' : (planned[iso] || []).map(t => `<span class="ml-day-task ml-plan-only">◇ ${esc(t)}</span>`).join(' ');
+      /* planned items sit inline with the date, not on a line below. A small + opens the jot sheet for this day. */
+      const planInline = mlTab === 'done' ? '' : (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join('');
+      const mid = mlTab === 'done'
+        ? `<div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>`
+        : `<div class="ml-mid">${planInline}<button type="button" class="ml-add-day" data-ml-add="${iso}" aria-label="Add to ${esc(dayLabel(iso))}" title="Add here">+</button></div>`;
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
-        ${mlTab === 'done' ? `<div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>` : '<span class="ml-line-space"></span>'}
+        ${mid}
         <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
-        ${belowStr ? `<div class="ml-did">${belowStr}</div>` : ''}</div>`;
+      </div>`;
     }
     safeHTML($('mlRows'), html + '</div>');
     monthWeeks(key).forEach(w => {
@@ -2510,6 +2514,8 @@
     safeHTML($('mlReflect'), html || empty('Nothing logged yet. Use ✦ idea, △ problem, ✘ mistake or ◎ observation in your daily log.'));
   }
   $('mlRows').addEventListener('click', e => {
+    const add = e.target.closest('[data-ml-add]');
+    if (add) { e.stopPropagation(); openJotSheet(add.dataset.mlAdd); return; }
     const open = e.target.closest('[data-ml-open]'), dot = e.target.closest('[data-ml-habit]');
     if (open) { setJournalTab('day'); setLogDate(open.dataset.mlOpen); window.scrollTo(0, 0); }
     else if (dot) {
