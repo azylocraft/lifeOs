@@ -3041,4 +3041,20 @@
   };
   view.addEventListener('mouseup', mouseEnd);
   view.addEventListener('mouseleave', mouseEnd);
+  /* touchpad horizontal swipe via wheel deltaX */
+  let wheelAccum = 0, wheelLock = false;
+  view.addEventListener('wheel', e => {
+    if (stash.swiping || mouseDragging) return;
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; /* vertical scroll — let it pass */
+    e.preventDefault();
+    if (wheelLock) return;
+    wheelAccum += e.deltaX;
+    if (Math.abs(wheelAccum) > 60) {
+      const want = wheelAccum > 0 ? 'month' : 'day';
+      const btn = tabs.querySelector('[data-jtab="' + want + '"]');
+      if (btn && btn.getAttribute('aria-pressed') !== 'true') btn.click();
+      wheelAccum = 0; wheelLock = true;
+      setTimeout(() => { wheelLock = false; wheelAccum = 0; }, 700);
+    }
+  }, {passive:false});
 })();
