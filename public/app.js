@@ -2063,7 +2063,7 @@
   const LG_HINT = {
     task: 'A day in the words sets the due date — <b>buy milk tomorrow</b>. Start with <b>!</b> for high priority.',
     expense: '<b>in</b> names the category, <b>for</b> the subcategory — <b>400 in home for bike repair</b>. Without them the category is guessed.',
-    habit: 'Type the habit and it is ticked for today — <b>workout</b>. A name you have not used before becomes a new habit.',
+    habit: 'Name a habit you already keep — <b>exercise</b> or <b>exercise done</b> — and it is ticked for today. Add new habits on the monthly log.',
     event: 'Put the time first and it is kept — <b>18:00 dentist</b>.',
     mood: 'A line about how the day felt. It shows in the month under the <b>=</b> icon.',
     idea: 'Something worth trying. Grouped under Ideas in the monthly log.',
@@ -2115,11 +2115,16 @@
     const raw = $('lgText').value.trim();
     if (!raw) return;
     if (logType === 'habit') {
-      const name = raw.slice(0, 24), q = name.toLowerCase();
-      const list = habitList().slice(), log = {...habitLog()};
-      let h = list.find(x => x.name.toLowerCase() === q) || list.find(x => x.name.toLowerCase().includes(q) || q.includes(x.name.toLowerCase()));
-      if (!h) { h = {id: uid(), name}; list.push(h); }
-      const set = new Set(log[isoToday] || []);
+      /* "exercise done" or "workout \u2713" \u2014 strip the status word, then look the habit up */
+      const q = raw.toLowerCase().replace(/\b(done|complete[d]?|finished|ok|yes|yep|y|tick|ticked|check(ed)?|\u2713|\u2714|\u2715|\u2716|x)\b/gi, '').replace(/\s+/g, ' ').trim();
+      if (!q) { toast('Say which habit \u2014 e.g. workout'); return; }
+      const list = habitList();
+      if (!list.length) { toast('No habits yet. Add them on the monthly log under Habits.'); return; }
+      const h = list.find(x => x.name.toLowerCase() === q)
+        || list.find(x => { const n = x.name.toLowerCase(); return n.split(/\s+/).includes(q) || q.split(/\s+/).includes(n); })
+        || list.find(x => { const n = x.name.toLowerCase(); return n.length > 2 && (n.includes(q) || q.includes(n)); });
+      if (!h) { toast('No habit named \u201c' + raw + '\u201d. Add it on the monthly log first.'); return; }
+      const log = {...habitLog()}, set = new Set(log[isoToday] || []);
       const already = set.has(h.id);
       set.add(h.id); log[isoToday] = [...set];
       saveHabits(list, log);
