@@ -2889,3 +2889,32 @@
   document.addEventListener('click', e => { if (e.target.closest('[data-jtab="day"]') || e.target.closest('[data-view="journal"]')) setTimeout(resnap, 60); });
   window.addEventListener('resize', resnap);
 })();
+
+(() => {
+  /* horizontal swipe on the journal view switches between the daily and monthly logs */
+  const view = document.getElementById('view-journal');
+  if (!view || typeof setJournalTab !== 'function') { /* setJournalTab lives inside the main IIFE; use a click instead */ }
+  const tabs = document.getElementById('jnTabs');
+  if (!view || !tabs) return;
+  let x0 = 0, y0 = 0, tracking = false;
+  view.addEventListener('touchstart', e => {
+    if (e.target.closest('.jn-pager, .shape-card, .rh-wrap, .ml-cal-card, .past-scroll, input, textarea, select, button, .rh-task')) {
+      /* leave horizontal scrollers and interactive controls alone */
+      tracking = false; return;
+    }
+    const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; tracking = true;
+  }, {passive:true});
+  view.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    const current = tabs.querySelector('[data-jtab][aria-pressed="true"]');
+    const curName = current ? current.dataset.jtab : 'day';
+    const want = dx < 0 ? 'month' : 'day';
+    if (curName !== want) {
+      const btn = tabs.querySelector('[data-jtab="' + want + '"]');
+      if (btn) btn.click();
+    }
+  }, {passive:true});
+})();
