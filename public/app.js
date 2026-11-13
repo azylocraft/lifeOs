@@ -2922,4 +2922,5 @@
   document.addEventListener('click', e => { schedule(); setTimeout(schedule, 50); setTimeout(schedule, 300); }, true);
   /* initial passes */
   setTimeout(sync, 60); setTimeout(sync, 300); setTimeout(sync, 1200); setTimeout(sync, 2500);
+  setInterval(sync, 400);
 })();
