@@ -1030,3 +1030,9 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .lg-empty-add { display:block; width:100%; text-align:center; border:1px dashed color-mix(in srgb, var(--stroke) 55%, transparent);
   background:transparent; color:var(--muted); border-radius:14px; padding:18px 12px; font-size:13px; cursor:pointer; transition:background .15s, color .15s }
 .lg-empty-add:hover { background:color-mix(in srgb, var(--text) 5%, transparent); color:var(--text-2) }
+
+
+/* the journal owns horizontal gestures (log swipe); the browser keeps vertical scrolling.
+   Scroll containers inside (week grid, day pager) still pan sideways on their own. */
+#view-journal { touch-action:pan-y }
+#jnDay, #jnMonth { backface-visibility:hidden }
