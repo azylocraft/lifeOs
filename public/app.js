@@ -2177,14 +2177,13 @@
   $('lgPrev').addEventListener('click', () => setLogDate(addDays(logDate, -1)));
   $('lgNext').addEventListener('click', () => setLogDate(addDays(logDate, 1)));
   $('lgToday').addEventListener('click', () => { setLogDate(isoToday); $('lgPrev').focus(); });
-  function setJournalTab(t, opts){
+  function setJournalTab(t){
     jnTab = t === 'month' ? 'month' : 'day';
+    $('jnDay').hidden = jnTab !== 'day'; $('jnMonth').hidden = jnTab !== 'month';
     document.querySelectorAll('#jnTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === jnTab)));
-    const pg = $('jnPager'), slide = jnTab === 'month' ? $('jnMonth') : $('jnDay');
-    if (pg && slide) pg.scrollTo({left:slide.offsetLeft, behavior: (opts && opts.smooth) ? 'smooth' : 'auto'});
     renderNow();
   }
-  $('jnTabs').addEventListener('click', e => { const b = e.target.closest('[data-jtab]'); if (b) setJournalTab(b.dataset.jtab, {smooth:true}); });
+  $('jnTabs').addEventListener('click', e => { const b = e.target.closest('[data-jtab]'); if (b) setJournalTab(b.dataset.jtab); });
 
   /* ---------- gestures on log entries ----------
      swipe right = done · swipe left = delete · triple tap = move to the next day */
@@ -2889,38 +2888,4 @@
   const resnap = () => { const idx = Math.max(0, slides().findIndex((_, i) => tabs.children[i] && tabs.children[i].getAttribute('aria-pressed') === 'true')); go(Math.max(0, idx), false); };
   document.addEventListener('click', e => { if (e.target.closest('[data-jtab="day"]') || e.target.closest('[data-view="journal"]')) setTimeout(resnap, 60); });
   window.addEventListener('resize', resnap);
-})();
-
-(() => {
-  const pg = document.getElementById('jnPager'), tabs = document.getElementById('jnTabs');
-  if (!pg || !tabs) return;
-  const names = ['day', 'month'];
-  const getSlide = idx => document.getElementById(idx === 1 ? 'jnMonth' : 'jnDay');
-  function sync(){
-    const view = document.getElementById('view-journal');
-    if (!view || !view.classList.contains('active')) return;
-    const w = pg.clientWidth; if (!w) return;
-    const idx = Math.max(0, Math.min(1, Math.round(pg.scrollLeft / w)));
-    const t = names[idx];
-    tabs.querySelectorAll('[data-jtab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === t)));
-    const active = getSlide(idx);
-    if (active) {
-      const h = active.scrollHeight || active.offsetHeight;
-      if (h > 10 && Math.abs(pg.clientHeight - h) > 2) pg.style.height = h + 'px';
-    }
-  }
-  let rq = null;
-  const schedule = () => { if (rq) cancelAnimationFrame(rq); rq = requestAnimationFrame(sync); };
-  pg.addEventListener('scroll', schedule);
-  window.addEventListener('resize', schedule);
-  try {
-    const ro = new ResizeObserver(() => schedule());
-    const d = document.getElementById('jnDay'), m = document.getElementById('jnMonth');
-    if (d) ro.observe(d); if (m) ro.observe(m);
-  } catch(e) {}
-  /* every click anywhere nudges a re-sync — cheap, and catches view activation + content changes */
-  document.addEventListener('click', e => { schedule(); setTimeout(schedule, 50); setTimeout(schedule, 300); }, true);
-  /* initial passes */
-  setTimeout(sync, 60); setTimeout(sync, 300); setTimeout(sync, 1200); setTimeout(sync, 2500);
-  setInterval(sync, 400);
 })();
