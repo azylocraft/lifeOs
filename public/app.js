@@ -2771,10 +2771,26 @@
     sections.forEach((x, i) => { if (x.el.getBoundingClientRect().top + window.scrollY <= line) idx = i; });
     rail.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === idx));
   }
-  function jump(idx, smooth){
+  /* the page glides to the section over a third of a second, easing out; a new target
+     mid-glide simply redirects it, so a fast scrub still feels continuous */
+  let anim = null;
+  const still = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e) { return false; } };
+  function glide(to, ms){
+    if (anim) cancelAnimationFrame(anim);
+    if (still()) { window.scrollTo(0, to); return; }
+    const from = window.scrollY, d = to - from, t0 = performance.now();
+    const ease = p => 1 - Math.pow(1 - p, 3);
+    const step = now => {
+      const p = Math.min(1, (now - t0) / ms);
+      window.scrollTo(0, from + d * ease(p));
+      anim = p < 1 ? requestAnimationFrame(step) : null;
+    };
+    anim = requestAnimationFrame(step);
+  }
+  function jump(idx){
     const x = sections[idx]; if (!x) return;
     const top = x.el.getBoundingClientRect().top + window.scrollY - 70;
-    window.scrollTo({top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto'});
+    glide(Math.max(0, top), 380);
     rail.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === idx));
   }
   function idxAt(y){
