@@ -2474,16 +2474,17 @@
       if (d === 1 || dow === 1) html += `${d === 1 ? '' : '</div>'}<div class="ml-week" data-ml-wk="${wk}"><div class="ml-wk" data-ml-drop="${wk}">Week ${Number(wk.slice(6))}<span class="ml-wk-count" data-wk-count="${wk}"></span></div>`;
       const done = new Set(log[iso] || []);
       const dayItems = byDay[iso] || [];
-      const didStr = dayItems.map(di => `<span class="ml-done-g g-${di.type}">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
-      /* planned items sit inline with the date, not on a line below. A small + opens the jot sheet for this day. */
+      /* in the Done tab skip days with nothing to show */
+      if (mlTab === 'done' && dayItems.length === 0) continue;
+      /* planned items sit inline with the date, not on a line below */
       const planInline = mlTab === 'done' ? '' : (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join('');
       const mid = mlTab === 'done'
-        ? `<div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>`
+        ? `<div class="ml-done-list">${dayItems.map(di => `<div class="ml-done-item"><span class="ml-done-g g-${di.type}">${di.glyph}</span><span class="ml-done-tx">${esc(di.text)}</span></div>`).join('')}</div>`
         : `<div class="ml-mid">${planInline}</div>`;
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
         ${mid}
-        <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
+        ${mlTab === 'done' ? '' : `<div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>`}
       </div>`;
     }
     safeHTML($('mlRows'), html + '</div>');
