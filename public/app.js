@@ -8,7 +8,8 @@
     expenses: ['Expense tracker', 'Record spending and see where your money goes. Amounts are in Indian rupees (₹).'],
     planner:  ['Planner', 'Day, week, month, year and life on one board, with your maker and manager time.'],
     journal:  ['Journal', 'Jot everything in one place. Decide what matters afterwards.'],
-    travel:   ['Travel planner', 'Keep destinations, dates, budgets, and trip notes together.']
+    travel:   ['Travel planner', 'Keep destinations, dates, budgets, and trip notes together.'],
+    pages:    ['Pages', 'All your notes, ideas, moods and entries — organised by category. Start entries with /category or /cat /sub to group them.']
   };
 
   const $ = id => document.getElementById(id);
@@ -735,7 +736,102 @@
       return `<div class="item ${isPast(t) ? 'past' : ''}"><div class="item-main"><div class="item-title">${esc(t.name)} ${isPast(t) ? '<span class="tag">Past</span>' : ''}</div><div class="item-meta">${esc(when)}${budget}</div>${t.notes ? `<div class="item-body" style="margin-top:8px;font-size:12px">${esc(t.notes)}</div>` : ''}</div>${delBtn(t.id, 'Delete trip')}</div>`;
     }).join('') : empty('No trips yet. Plan your first one on the left.');
   }
-  function renderAll(){ migrateCats(); renderHome(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); }
+  function renderAll(){ migrateCats(); renderHome(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); renderPages(); }
+
+  /* ---- Pages view ---- */
+  let pagesTypeFilter = 'all';
+  const PAGE_TYPES = ['mood','idea','problem','mistake','observation','custom','note','event'];
+  const PAGE_LABELS = {mood:'Mood',idea:'Ideas',problem:'Problems',mistake:'Mistakes',observation:'Observations',custom:'Custom',note:'Notes',event:'Events',expense:'Expenses'};
+
+  function renderPages(){
+    const doc = $('pagesDoc');
+    if (!doc) return;
+    const bullets = ofKind('bullet').filter(b => PAGE_TYPES.includes(b.type));
+    const expenses = ofKind('expense').filter(e => e.cat);
+    const grouped = {};
+    bullets.forEach(b => {
+      const t=b.type, c=b.cat||'', s=b.subcat||'';
+      if(!grouped[t]) grouped[t]={};
+      if(!grouped[t][c]) grouped[t][c]={};
+      if(!grouped[t][c][s]) grouped[t][c][s]=[];
+      grouped[t][c][s].push(b);
+    });
+    expenses.forEach(e => {
+      const c=e.cat||'', s=e.subcat||'';
+      if(!grouped.expense) grouped.expense={};
+      if(!grouped.expense[c]) grouped.expense[c]={};
+      if(!grouped.expense[c][s]) grouped.expense[c][s]=[];
+      grouped.expense[c][s].push(e);
+    });
+    const sortCats = obj => Object.keys(obj).sort((a,b)=> a===''?-1:b===''?1:a.localeCompare(b));
+    const typesToShow = pagesTypeFilter==='all' ? [...PAGE_TYPES,'expense'] : [pagesTypeFilter];
+    let html = '';
+    typesToShow.forEach(type => {
+      if (!grouped[type]) return;
+      const typeData = grouped[type];
+      const label = PAGE_LABELS[type]||type;
+      let typeHtml = '';
+      sortCats(typeData).forEach(cat => {
+        const catData = typeData[cat];
+        let catHtml = '';
+        sortCats(catData).forEach(subcat => {
+          const entries = catData[subcat].slice().sort((a,b)=>(b.at||b.created||0)-(a.at||a.created||0));
+          const rows = entries.map(entry=>{
+            const text = esc(entry.text||entry.name||'');
+            const amount = entry.kind==='expense'?`<span class="pages-amount">${money(entry.amount)}</span>`:'';
+            const date = entry.date?`<span class="pages-date">${prettyDate(entry.date)}</span>`:'';
+            return `<li class="pages-entry" data-id="${esc(entry.id)}"><span class="pages-glyph">${GLYPH[entry.type]||'₹'}</span><span class="pages-entry-text">${text}</span>${amount}${date}<button type="button" class="pages-edit-btn" data-act="edit" data-id="${esc(entry.id)}" aria-label="Edit">✎</button></li>`;
+          }).join('');
+          if (subcat) {
+            catHtml += `<div class="pages-subcat"><h3 class="pages-subcat-h">${esc(subcat)}</h3><ul class="pages-list">${rows}</ul></div>`;
+          } else {
+            catHtml += `<ul class="pages-list">${rows}</ul>`;
+          }
+        });
+        if (cat) {
+          typeHtml += `<div class="pages-cat"><h2 class="pages-cat-h">${esc(cat)}</h2>${catHtml}</div>`;
+        } else {
+          typeHtml += `<div class="pages-cat pages-cat-general">${catHtml}</div>`;
+        }
+      });
+      if (typeHtml) html += `<div class="pages-type"><h1 class="pages-type-h"><span class="pages-type-g">${GLYPH[type]||'₹'}</span>${esc(label)}</h1>${typeHtml}</div>`;
+    });
+    if (!html) html = `<div class="pages-empty"><p>No entries yet.</p><p class="pages-hint">Use the <strong>+</strong> button to jot entries. Start with <code>/category</code> to organise them, e.g. <code>/work this idea</code> or <code>/sad /depression feeling low</code>.</p></div>`;
+    safeHTML(doc, html);
+  }
+
+  function downloadPagesWord(){
+    const bullets = ofKind('bullet').filter(b => PAGE_TYPES.includes(b.type));
+    const expenses = ofKind('expense').filter(e => e.cat);
+    const grouped = {};
+    bullets.forEach(b => { const t=b.type,c=b.cat||'',s=b.subcat||''; if(!grouped[t]) grouped[t]={}; if(!grouped[t][c]) grouped[t][c]={}; if(!grouped[t][c][s]) grouped[t][c][s]=[]; grouped[t][c][s].push(b); });
+    expenses.forEach(e => { const c=e.cat||'',s=e.subcat||''; if(!grouped.expense) grouped.expense={}; if(!grouped.expense[c]) grouped.expense[c]={}; if(!grouped.expense[c][s]) grouped.expense[c][s]=[]; grouped.expense[c][s].push(e); });
+    const sortCats = obj => Object.keys(obj).sort((a,b)=>a===''?-1:b===''?1:a.localeCompare(b));
+    let body = '';
+    [...PAGE_TYPES,'expense'].filter(t=>grouped[t]).forEach(type => {
+      const label = PAGE_LABELS[type]||type;
+      body += `<h1>${label}</h1>`;
+      sortCats(grouped[type]).forEach(cat => {
+        if (cat) body += `<h2>${cat}</h2>`;
+        sortCats(grouped[type][cat]).forEach(subcat => {
+          if (subcat) body += `<h3>${subcat}</h3>`;
+          const entries = grouped[type][cat][subcat].slice().sort((a,b)=>(b.at||b.created||0)-(a.at||a.created||0));
+          body += '<ul>';
+          entries.forEach(e => {
+            const amount = e.kind==='expense'?` — ${money(e.amount)}`:'';
+            const date = e.date?` (${prettyDate(e.date)})`:'';
+            body += `<li>${e.text||e.name||''}${amount}${date}</li>`;
+          });
+          body += '</ul>';
+        });
+      });
+    });
+    if (!body) { toast('Nothing to export yet.'); return; }
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pages</title><style>body{font-family:Calibri,Arial,sans-serif;margin:2cm;line-height:1.6;color:#111}h1{font-size:20pt;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:4pt;margin-top:24pt}h2{font-size:15pt;color:#2d3561;margin-top:14pt}h3{font-size:12pt;color:#555;margin-top:10pt}ul{margin:0 0 8pt;padding-left:18pt}li{margin-bottom:4pt}</style></head><body><h1>My Pages</h1>${body}</body></html>`;
+    const blob = new Blob(['﻿'+html],{type:'application/msword'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='my-pages.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
 
   /* ---------- navigation ---------- */
   function showView(name){
@@ -945,9 +1041,10 @@
       category: cat || quickCat(name + (sub ? ' ' + sub : '')), sub, date};
   }
   /* expense text like "450 groceries" typed into the log card */
-  function addQuickExpense(text){
+  function addQuickExpense(text, extra){
     const list = String(text || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).map(parseExpenseLine).filter(Boolean);
     if (!list.length) return 0;
+    if (extra) list.forEach(x => Object.assign(x, extra));
     addMany(list);
     return list.length;
   }
@@ -1718,6 +1815,13 @@
   const REFLECT = {idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
   const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood', '+':'idea', '✦':'idea', 'x':'mistake', 'X':'mistake', '✘':'mistake', '@':'observation', '◎':'observation', '?':'problem', '△':'problem'};
   let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', jnTab = 'day', lgTab = 'plan';
+  /* extract /cat or /cat /sub prefix from jot text, e.g. "/work /project idea here" */
+  function parseCategoryPrefix(raw) {
+    const m = String(raw).match(/^\/([\wऀ-ॿ]+)(?:\s+\/([\wऀ-ॿ]+))?\s+([\s\S]+)/);
+    if (!m) return {cat:'', subcat:'', text:raw};
+    return {cat:m[1].toLowerCase(), subcat:(m[2]||'').toLowerCase(), text:m[3].trim()};
+  }
+
   function parseEntry(raw, type){
     let text = String(raw).trim(), t = type, high = false, time = '';
     const m = text.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s+(.+)$/);
@@ -2138,14 +2242,16 @@
       return;
     }
     if (logType === 'expense') {
-      const n = addQuickExpense(raw);
-      if (!n) { toast('Try: 450 groceries or 200 coffee'); return; }
+      const {cat:eCat, subcat:eSub, text:eText} = parseCategoryPrefix(raw);
+      const n = addQuickExpense(eText, eCat ? {cat:eCat, subcat:eSub||''} : undefined);
+      if (!n) { toast('Try: 450 groceries or 200 coffee — or /fuel 450 diesel'); return; }
       $('lgText').value = '';
       toast('Added ' + n + (n === 1 ? ' expense' : ' expenses'));
       closeJotSheet();
       return;
     }
-    const p = parseEntry(raw, logType);
+    const {cat:bCat, subcat:bSub, text:bRaw} = parseCategoryPrefix(raw);
+    const p = parseEntry(bRaw, logType);
     if (!p.text) return;
     $('lgText').value = '';
     logType = logPicked;
@@ -2157,7 +2263,7 @@
         const list = (logDate === isoToday) ? quickParse(p.text) : [];
         if (list.length) addMany(list); else newTask(p.text, logDate);
       }
-    } else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
+    } else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now(), cat:bCat||undefined, subcat:bSub||undefined});
     closeJotSheet();
   });
   $('lgTomForm').addEventListener('submit', e => {
@@ -2774,6 +2880,26 @@
   showView(location.hash.slice(1) || 'home');
   renderAll();
   connect();
+
+  /* ---- Pages view events ---- */
+  $('pagesTypeFilter') && $('pagesTypeFilter').addEventListener('click', e => {
+    const btn = e.target.closest('[data-ptype]');
+    if (!btn) return;
+    pagesTypeFilter = btn.dataset.ptype;
+    $('pagesTypeFilter').querySelectorAll('[data-ptype]').forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    renderPages();
+  });
+  $('pagesDownload') && $('pagesDownload').addEventListener('click', downloadPagesWord);
+  $('pagesDoc') && $('pagesDoc').addEventListener('click', e => {
+    const btn = e.target.closest('[data-act="edit"][data-id]');
+    if (!btn) return;
+    const item = items.find(i => i.id === btn.dataset.id);
+    if (item) openEdit(item);
+  });
 })();
 
 (() => {

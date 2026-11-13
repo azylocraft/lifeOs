@@ -22,6 +22,7 @@
         <button type="button" data-view="journal"><span class="ico" aria-hidden="true">✎</span><span class="nav-text">Journal</span></button>
         <button type="button" data-view="expenses"><span class="ico" aria-hidden="true">◈</span><span class="nav-text">Expenses</span></button>
         <button type="button" data-view="travel"><span class="ico" aria-hidden="true">⌁</span><span class="nav-text">Travel</span></button>
+        <button type="button" data-view="pages"><span class="ico" aria-hidden="true">≡</span><span class="nav-text">Pages</span></button>
       </nav>
     </div>
     <div class="sidebar-bottom"><strong id="saveTitle">Private by default</strong><span id="saveBody">Getting your saved items…</span></div>
@@ -267,6 +268,25 @@
           </div>
         </div>
     </section>
+
+    <section class="view" id="view-pages">
+      <div class="pages-toolbar">
+        <div class="pages-filter" id="pagesTypeFilter" role="group" aria-label="Filter by type">
+          <button type="button" class="pages-pill active" data-ptype="all" aria-pressed="true">All</button>
+          <button type="button" class="pages-pill" data-ptype="mood" aria-pressed="false">= Mood</button>
+          <button type="button" class="pages-pill" data-ptype="idea" aria-pressed="false">✦ Ideas</button>
+          <button type="button" class="pages-pill" data-ptype="problem" aria-pressed="false">△ Problems</button>
+          <button type="button" class="pages-pill" data-ptype="mistake" aria-pressed="false">✘ Mistakes</button>
+          <button type="button" class="pages-pill" data-ptype="observation" aria-pressed="false">◎ Observations</button>
+          <button type="button" class="pages-pill" data-ptype="custom" aria-pressed="false">◆ Custom</button>
+          <button type="button" class="pages-pill" data-ptype="note" aria-pressed="false">– Notes</button>
+          <button type="button" class="pages-pill" data-ptype="expense" aria-pressed="false">₹ Expenses</button>
+        </div>
+        <button type="button" class="btn secondary small" id="pagesDownload">↓ Word</button>
+      </div>
+      <div id="pagesDoc" class="pages-doc"></div>
+    </section>
+
     <dialog id="lgSheet" class="jot-sheet" aria-label="Jot an entry">
       <div class="jot-sheet-inner">
         <div class="jot-sheet-grabber" aria-hidden="true"></div>
@@ -281,7 +301,7 @@
           <summary>Shortcuts &amp; gestures</summary>
           <div class="bj-help-h">Entry types</div>
           <div class="bj-help-grid"><span><kbd>•</kbd>Action</span><span><kbd>₹</kbd>Expense</span><span><kbd>●</kbd>Habit</span><span><kbd>–</kbd>Note</span><span><kbd>○</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>✦</kbd>Idea</span><span><kbd>△</kbd>Problem</span><span><kbd>✘</kbd>Mistake</span><span><kbd>◎</kbd>Observation</span><span><kbd>◆</kbd>Custom</span></div>
-          <div class="bj-help-note">Add a time to any entry — e.g. <i>4pm dentist</i>.</div>
+          <div class="bj-help-note">Add a time to any entry — e.g. <i>4pm dentist</i>. Use <kbd>/cat</kbd> or <kbd>/cat /sub</kbd> to group entries in Pages, e.g. <i>/work /project idea here</i>.</div>
         </details>
       </div>
     </dialog>
