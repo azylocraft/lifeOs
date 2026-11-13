@@ -2058,15 +2058,37 @@
     const b = e.target.closest('[data-lgtab]');
     if (b) { lgTab = b.dataset.lgtab; renderLog(); }
   });
+  /* the sheet's pill row + input / hint — one jot box for the whole app */
+  const LG_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', habit:'e.g. workout', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
+  const LG_HINT = {
+    task: 'A day in the words sets the due date — <b>buy milk tomorrow</b>. Start with <b>!</b> for high priority.',
+    expense: '<b>in</b> names the category, <b>for</b> the subcategory — <b>400 in home for bike repair</b>. Without them the category is guessed.',
+    habit: 'Type the habit and it is ticked for today — <b>workout</b>. A name you have not used before becomes a new habit.',
+    event: 'Put the time first and it is kept — <b>18:00 dentist</b>.',
+    mood: 'A line about how the day felt. It shows in the month under the <b>=</b> icon.',
+    idea: 'Something worth trying. Grouped under Ideas in the monthly log.',
+    problem: 'Something in the way. Grouped under Problems in the monthly log.',
+    mistake: 'Something that went wrong, so it is there to learn from later.',
+    observation: 'Something you noticed, kept without judging it.'
+  };
+  const paintLgType = () => {
+    document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType)));
+    if ($('lgHint')) safeHTML($('lgHint'), LG_HINT[logType] || '');
+    if ($('lgText')) $('lgText').placeholder = LG_PH[logType] || 'Jot it down and press Enter';
+  };
   $('lgType').addEventListener('click', e => {
     const b = e.target.closest('[data-btype]');
     if (!b) return;
-    logType = logPicked = b.dataset.btype; renderLog(); $('lgText').focus();
+    logType = logPicked = b.dataset.btype;
+    paintLgType();
+    $('lgText').focus();
   });
+  paintLgType();
   $('lgText').addEventListener('input', e => {
+    if (logPicked === 'expense' || logPicked === 'habit') return;
     const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
     const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : logPicked;
-    if (t !== logType) { logType = t; document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType))); }
+    if (t !== logType) { logType = t; paintLgType(); }
   });
   function openJotSheet(){
     const sh = $('lgSheet'); if (!sh) return;
@@ -2090,54 +2112,9 @@
   $('lgSheet').addEventListener('close', () => $('lgFab').setAttribute('aria-expanded', 'false'));
   $('lgForm').addEventListener('submit', e => {
     e.preventDefault();
-    const p = parseEntry($('lgText').value, logType);
-    if (!p.text) return;
-    $('lgText').value = '';
-    logType = logPicked;
-    if (p.type === 'task') newTask(p.text, logDate, p.high ? {priority:'High'} : null);
-    else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
-    closeJotSheet();
-    const last = $('lgList').lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({block:'nearest'});
-  });
-  const HOME_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', habit:'e.g. workout', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
-  let homeLgType = 'task', homeLgPicked = 'task';
-  /* what each kind understands, said once under the box */
-  const HOME_HINT = {
-    task: 'A day in the words sets the due date — <b>buy milk tomorrow</b>. Start with <b>!</b> for high priority.',
-    expense: '<b>in</b> names the category, <b>for</b> the subcategory — <b>400 in home for bike repair</b>. Without them the category is guessed.',
-    habit: 'Type the habit and it is ticked for today — <b>workout</b>. A name you have not used before becomes a new habit.',
-    event: 'Put the time first and it is kept — <b>18:00 dentist</b>.',
-    mood: 'A line about how the day felt. It shows in the month under the <b>=</b> icon.',
-    idea: 'Something worth trying. Grouped under Ideas in the monthly log.',
-    problem: 'Something in the way. Grouped under Problems in the monthly log.',
-    mistake: 'Something that went wrong, so it is there to learn from later.',
-    observation: 'Something you noticed, kept without judging it.'
-  };
-  const paintHomeType = () => {
-    document.querySelectorAll('#homeLgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hbtype === homeLgType)));
-    safeHTML($('homeLgHint'), HOME_HINT[homeLgType] || '');
-  };
-  $('homeLgType').addEventListener('click', e => {
-    const b = e.target.closest('[data-hbtype]');
-    if (!b) return;
-    homeLgType = homeLgPicked = b.dataset.hbtype;
-    paintHomeType();
-    $('homeLgText').placeholder = HOME_PH[homeLgType] || 'Jot it down and press Enter';
-    $('homeLgText').focus();
-  });
-  paintHomeType();
-  (function(){ const help = document.querySelector('#jnDay .bj-help'); if (help && $('homeLgHint')) $('homeLgHint').insertAdjacentElement('afterend', help.cloneNode(true)); })();
-  $('homeLgText').addEventListener('input', e => {
-    if (homeLgPicked === 'expense' || homeLgPicked === 'habit') return;
-    const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
-    const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : homeLgPicked;
-    if (t !== homeLgType) { homeLgType = t; paintHomeType(); }
-  });
-  $('homeLgForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const raw = $('homeLgText').value.trim();
+    const raw = $('lgText').value.trim();
     if (!raw) return;
-    if (homeLgType === 'habit') {
+    if (logType === 'habit') {
       const name = raw.slice(0, 24), q = name.toLowerCase();
       const list = habitList().slice(), log = {...habitLog()};
       let h = list.find(x => x.name.toLowerCase() === q) || list.find(x => x.name.toLowerCase().includes(q) || q.includes(x.name.toLowerCase()));
@@ -2146,33 +2123,33 @@
       const already = set.has(h.id);
       set.add(h.id); log[isoToday] = [...set];
       saveHabits(list, log);
-      $('homeLgText').value = '';
+      $('lgText').value = '';
       toast(already ? h.name + ' was already ticked for today' : h.name + ' ticked for today');
-      $('homeLgText').focus();
+      closeJotSheet();
       return;
     }
-    if (homeLgType === 'expense') {
+    if (logType === 'expense') {
       const n = addQuickExpense(raw);
       if (!n) { toast('Try: 450 groceries or 200 coffee'); return; }
-      $('homeLgText').value = '';
+      $('lgText').value = '';
       toast('Added ' + n + (n === 1 ? ' expense' : ' expenses'));
-      $('homeLgText').focus();
+      closeJotSheet();
       return;
     }
-    const p = parseEntry(raw, homeLgType);
+    const p = parseEntry(raw, logType);
     if (!p.text) return;
-    $('homeLgText').value = '';
-    homeLgType = homeLgPicked;
-    paintHomeType();
+    $('lgText').value = '';
+    logType = logPicked;
+    paintLgType();
     if (p.type === 'task') {
-      if (p.high) newTask(p.text, isoToday, {priority:'High'});
+      if (p.high) newTask(p.text, logDate, {priority:'High'});
       else {
-        const list = quickParse(p.text);
-        if (list.length) addMany(list); else newTask(p.text, isoToday);
+        /* let "buy milk tomorrow" catch the date word even when the kind is Action */
+        const list = (logDate === isoToday) ? quickParse(p.text) : [];
+        if (list.length) addMany(list); else newTask(p.text, logDate);
       }
-    } else addItem('bullet', {date:isoToday, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
-    $('homeLgText').focus();
-    toast('Added to today’s log');
+    } else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
+    closeJotSheet();
   });
   $('lgTomForm').addEventListener('submit', e => {
     e.preventDefault();
