@@ -747,6 +747,8 @@
   /* ---------- navigation ---------- */
   function showView(name){
     if (!VIEWS[name]) name = 'home';
+    /* close the jot sheet when navigating so it never persists across pages */
+    const _sh = $('lgSheet'); if (_sh && _sh.open) { try { _sh.close(); } catch(e){} _sh.removeAttribute('open'); const _fab = $('lgFab'); if (_fab) _fab.setAttribute('aria-expanded','false'); }
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
     document.querySelectorAll('.nav button').forEach(b => {
       const on = b.dataset.view === name;
@@ -2111,7 +2113,8 @@
   }
   function closeJotSheet(){
     const sh = $('lgSheet'); if (!sh) return;
-    if (typeof sh.close === 'function') { if (sh.open) sh.close(); } else { sh.removeAttribute('open'); }
+    try { if (sh.close) sh.close(); } catch(e){}
+    sh.removeAttribute('open');
     $('lgFab').setAttribute('aria-expanded', 'false');
   }
   $('lgFab').addEventListener('click', openJotSheet);

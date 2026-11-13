@@ -1008,7 +1008,7 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .jot-sheet .bj-help { margin:0 16px 14px; padding-top:10px }
 @media (max-width:620px) {
   .jot-fab { right:14px; bottom:84px; width:54px; height:54px }
-  .jot-sheet { width:min(100%, 480px); max-width:none; max-height:72vh; border-radius:22px; margin:40px auto auto auto }
+  .jot-sheet { width:min(100%, 480px); max-width:none; max-height:72vh; border-radius:22px; margin:auto }
   .jot-sheet-grabber { display:none }
   .jot-sheet-head { padding-top:8px }
 }
