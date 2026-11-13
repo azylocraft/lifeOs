@@ -2908,7 +2908,7 @@
   const month = document.getElementById('jnMonth');
   const tabs = document.getElementById('jnTabs');
   if (!view || !day || !month || !tabs) return;
-  const IGNORE = '.rh-wrap, .day-pager-track, .bj, .shape-row, .rh-task, [draggable="true"], input, textarea, select, dialog, .seg, .ml-wk-sel, .ml-done-inline';
+  const IGNORE = '.rh-wrap, .day-pager-track, .shape-card, .bj, .shape-row, .rh-task, [draggable="true"], input, textarea, select, dialog, .seg, .ml-wk-sel, .ml-done-inline';
   const stash = { current:null, other:null, startX:0, startY:0, w:0, swiping:false, prevState:null, lastX:0, lastT:0, vx:0, raf:0, dx:0 };
   function begin(dx) {
     const now = tabs.querySelector('[data-jtab][aria-pressed="true"]')?.dataset.jtab || 'day';
@@ -3046,6 +3046,7 @@
   view.addEventListener('wheel', e => {
     if (stash.swiping || mouseDragging) return;
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; /* vertical scroll — let it pass */
+    if (e.target.closest('.day-pager-track')) return; /* let the pager scroll natively */
     e.preventDefault();
     if (wheelLock) return;
     wheelAccum += e.deltaX;
