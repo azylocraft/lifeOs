@@ -1005,3 +1005,14 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .jot-sheet[open]::backdrop { animation:jot-fade .18s ease-out }
 @keyframes jot-in { from { transform:translateY(16px); opacity:0 } to { transform:none; opacity:1 } }
 @keyframes jot-fade { from { opacity:0 } to { opacity:1 } }
+
+
+/* ---- day pager ----
+   Shape of the day and the weekly maker/manager rhythm share one slot, swapped by
+   tapping the tabs on top or swiping the slides. Each slide is a full-width panel. */
+.day-pager { grid-column:1 / -1; min-width:0 }
+.day-pager-tabs { align-self:start; margin-bottom:10px; width:max-content; max-width:100% }
+.day-pager-track { display:grid; grid-auto-columns:100%; grid-auto-flow:column; gap:0; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; overscroll-behavior-x:contain }
+.day-pager-track::-webkit-scrollbar { display:none }
+.day-pager-slide { scroll-snap-align:start; min-width:0 }
+.day-pager-slide > .card { height:100% }

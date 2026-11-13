@@ -2666,8 +2666,8 @@
     toast('Habit removed', () => saveHabits(before, log));
   });
 
-  function renderPlanner(){ renderHorizons(); renderRhythm(); }
-  function renderJournal(){ renderLog(); renderMonthLog(); }
+  function renderPlanner(){ renderHorizons(); }
+  function renderJournal(){ renderLog(); renderMonthLog(); renderRhythm(); }
 
   /* ---------- colour themes ---------- */
   const THEME_KEY = 'myLifeOS.theme2';
@@ -2830,4 +2830,32 @@
   window.addEventListener('resize', later);
   window.addEventListener('scroll', () => { if (!scrubbing) mark(); }, {passive:true});
   setTimeout(build, 0); setTimeout(build, 1500); setTimeout(build, 4000);
+})();
+
+(() => {
+  const tabs = document.getElementById('dayPagerTabs'), track = document.getElementById('dayPagerTrack');
+  if (!tabs || !track) return;
+  /* day pager: swipe between Shape of the day and Week rhythm */
+  const slides = () => Array.from(track.querySelectorAll('.day-pager-slide'));
+  const go = (idx, smooth) => { const el = slides()[idx]; if (el) track.scrollTo({left:el.offsetLeft, behavior:smooth ? 'smooth' : 'auto'}); };
+  const names = ['shape', 'rhythm'];
+  const paint = idx => { Array.from(tabs.querySelectorAll('[data-pager-tab]')).forEach((b, i) => b.setAttribute('aria-pressed', String(i === idx))); };
+  tabs.addEventListener('click', e => {
+    const b = e.target.closest('[data-pager-tab]'); if (!b) return;
+    const idx = names.indexOf(b.dataset.pagerTab); if (idx < 0) return;
+    paint(idx); go(idx, true);
+  });
+  let st = null;
+  track.addEventListener('scroll', () => {
+    if (st) cancelAnimationFrame(st);
+    st = requestAnimationFrame(() => {
+      const w = track.clientWidth; if (!w) return;
+      const idx = Math.round(track.scrollLeft / w);
+      paint(Math.max(0, Math.min(1, idx)));
+    });
+  });
+  /* when the journal view becomes active or layout changes, snap back to the current tab */
+  const resnap = () => { const idx = Math.max(0, slides().findIndex((_, i) => tabs.children[i] && tabs.children[i].getAttribute('aria-pressed') === 'true')); go(Math.max(0, idx), false); };
+  document.addEventListener('click', e => { if (e.target.closest('[data-jtab="day"]') || e.target.closest('[data-view="journal"]')) setTimeout(resnap, 60); });
+  window.addEventListener('resize', resnap);
 })();
