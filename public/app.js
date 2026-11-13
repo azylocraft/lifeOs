@@ -1860,6 +1860,9 @@
     }
     $('lgShape').innerHTML = html;
     $('lgShapeSub').textContent = '';
+    /* mirror into the Overview shape card */
+    const _hs = $('homeShape'); if (_hs) { _hs.innerHTML = html; $('homeShapeSub').textContent = ''; }
+    const _hp = $('homeStartPick'); if (_hp) { if (_hp.options.length !== 24) { _hp.innerHTML = ''; for (let _hh = 0; _hh < 24; _hh++) _hp.add(new Option(fmtHour(_hh), _hh)); } _hp.value = dayStart; }
   }
   /* the left page: last 7 days before this one, each with plan/log tabs */
   let pastCount = 7, pastTab = 'plan';
@@ -1953,107 +1956,112 @@
       }
     }
   }
-  ['lgList','lgDoneList','lgPast','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
+  ['lgList','lgDoneList','lgPast','lgShape','homeShape','lgTomorrow'].forEach(id => { const _el = $(id); if (_el) { _el.addEventListener('click', onLogClick); _el.addEventListener('change', onLogChange); } });
   $('lgList').addEventListener('click', e => { const b = e.target.closest('[data-lg-jot]'); if (b) openJotSheet(b.dataset.lgJot); });
-  $('lgShape').addEventListener('click', e => {
-    const b = e.target.closest('[data-shape]');
-    if (!b) return;
-    const bk = b.dataset.shape, r = rhythmDoc(), days = {...(r.days || {})}, shape = shapeFor(logDate);
-    const cur = shape[bk] || 'maker';
-    const next = {...shape, [bk]: nextMode(cur)};
-    const usual = weekShape(new Date(logDate + 'T12:00:00').getDay());
-    const same = BLOCKS.every(bl => (next[bl.key] || 'maker') === (usual[bl.key] || 'maker'));
-    if (same) delete days[logDate]; else days[logDate] = next;
-    saveRhythm(r.week || {}, days);
-    const again = $('lgShape').querySelector(`[data-shape="${bk}"]`); if (again) again.focus();
-  });
-  let shapeDragId = null;
-  $('lgShape').addEventListener('dragstart', e => {
-    const row = e.target.closest('[data-drag-id]');
-    if (!row) return;
-    shapeDragId = row.dataset.dragId;
-    row.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', shapeDragId);
-  });
-  $('lgShape').addEventListener('dragend', e => {
-    shapeDragId = null;
-    $('lgShape').querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-    $('lgShape').querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-  });
-  $('lgShape').addEventListener('dragover', e => {
-    if (!shapeDragId) return;
-    const block = e.target.closest('[data-block]');
-    if (!block) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    $('lgShape').querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-    block.classList.add('drag-over');
-  });
-  $('lgShape').addEventListener('dragleave', e => {
-    const block = e.target.closest('[data-block]');
-    if (block && !block.contains(e.relatedTarget)) block.classList.remove('drag-over');
-  });
-  $('lgShape').addEventListener('drop', e => {
-    e.preventDefault();
-    const block = e.target.closest('[data-block]');
-    if (!block || !shapeDragId) return;
-    block.classList.remove('drag-over');
-    const bk = block.dataset.block;
-    patchItem(shapeDragId, { block: bk === 'unassigned' ? '' : bk });
-    shapeDragId = null;
-  });
-  /* touch: swipe right = done, long hold + move = drag */
-  let touchState = null;
-  $('lgShape').addEventListener('touchstart', e => {
-    const row = e.target.closest('[data-drag-id]');
-    if (!row) return;
-    const t = e.touches[0];
-    touchState = { id: row.dataset.dragId, row, x0: t.clientX, y0: t.clientY, dragging: false, ghost: null, timer: null };
-    touchState.timer = setTimeout(() => { if (touchState) { touchState.dragging = true; row.classList.add('dragging');
-      const g = row.cloneNode(true); g.style.cssText = 'position:fixed;pointer-events:none;opacity:.7;z-index:999;width:' + row.offsetWidth + 'px;left:' + (t.clientX - 20) + 'px;top:' + (t.clientY - 10) + 'px';
-      document.body.appendChild(g); touchState.ghost = g; } }, 300);
-  }, {passive:true});
-  $('lgShape').addEventListener('touchmove', e => {
-    if (!touchState) return;
-    const t = e.touches[0], dx = t.clientX - touchState.x0, dy = t.clientY - touchState.y0;
-    if (touchState.dragging) {
+  let shapeDragId = null, touchState = null;
+  function bindShapeListeners(el) {
+    el.addEventListener('click', e => {
+      const b = e.target.closest('[data-shape]');
+      if (!b) return;
+      const bk = b.dataset.shape, r = rhythmDoc(), days = {...(r.days || {})}, shape = shapeFor(logDate);
+      const cur = shape[bk] || 'maker';
+      const next = {...shape, [bk]: nextMode(cur)};
+      const usual = weekShape(new Date(logDate + 'T12:00:00').getDay());
+      const same = BLOCKS.every(bl => (next[bl.key] || 'maker') === (usual[bl.key] || 'maker'));
+      if (same) delete days[logDate]; else days[logDate] = next;
+      saveRhythm(r.week || {}, days);
+      const again = el.querySelector('[data-shape="' + bk + '"]'); if (again) again.focus();
+    });
+    el.addEventListener('dragstart', e => {
+      const row = e.target.closest('[data-drag-id]');
+      if (!row) return;
+      shapeDragId = row.dataset.dragId;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', shapeDragId);
+    });
+    el.addEventListener('dragend', () => {
+      shapeDragId = null;
+      el.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging'));
+      el.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+    });
+    el.addEventListener('dragover', e => {
+      if (!shapeDragId) return;
+      const block = e.target.closest('[data-block]');
+      if (!block) return;
       e.preventDefault();
-      if (touchState.ghost) { touchState.ghost.style.left = t.clientX - 20 + 'px'; touchState.ghost.style.top = t.clientY - 10 + 'px'; }
-      $('lgShape').querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      if (el) { const block = el.closest('[data-block]'); if (block) block.classList.add('drag-over'); }
-    } else if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-      clearTimeout(touchState.timer);
-      if (dx > 60 && Math.abs(dy) < 40) {
-        touchState.row.style.transform = 'translateX(' + dx + 'px)';
-        touchState.row.style.opacity = String(Math.max(0, 1 - dx / 200));
-        touchState.swiping = true;
+      e.dataTransfer.dropEffect = 'move';
+      el.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+      block.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', e => {
+      const block = e.target.closest('[data-block]');
+      if (block && !block.contains(e.relatedTarget)) block.classList.remove('drag-over');
+    });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      const block = e.target.closest('[data-block]');
+      if (!block || !shapeDragId) return;
+      block.classList.remove('drag-over');
+      const bk = block.dataset.block;
+      patchItem(shapeDragId, { block: bk === 'unassigned' ? '' : bk });
+      shapeDragId = null;
+    });
+    el.addEventListener('touchstart', e => {
+      const row = e.target.closest('[data-drag-id]');
+      if (!row) return;
+      const t = e.touches[0];
+      touchState = { id: row.dataset.dragId, row, x0: t.clientX, y0: t.clientY, dragging: false, ghost: null, timer: null };
+      touchState.timer = setTimeout(() => { if (touchState) { touchState.dragging = true; row.classList.add('dragging');
+        const g = row.cloneNode(true); g.style.cssText = 'position:fixed;pointer-events:none;opacity:.7;z-index:999;width:' + row.offsetWidth + 'px;left:' + (t.clientX - 20) + 'px;top:' + (t.clientY - 10) + 'px';
+        document.body.appendChild(g); touchState.ghost = g; } }, 300);
+    }, {passive:true});
+    el.addEventListener('touchmove', e => {
+      if (!touchState) return;
+      const t = e.touches[0], dx = t.clientX - touchState.x0, dy = t.clientY - touchState.y0;
+      if (touchState.dragging) {
         e.preventDefault();
+        if (touchState.ghost) { touchState.ghost.style.left = t.clientX - 20 + 'px'; touchState.ghost.style.top = t.clientY - 10 + 'px'; }
+        el.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+        const p = document.elementFromPoint(t.clientX, t.clientY);
+        if (p) { const block = p.closest('[data-block]'); if (block) block.classList.add('drag-over'); }
+      } else if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        clearTimeout(touchState.timer);
+        if (dx > 60 && Math.abs(dy) < 40) {
+          touchState.row.style.transform = 'translateX(' + dx + 'px)';
+          touchState.row.style.opacity = String(Math.max(0, 1 - dx / 200));
+          touchState.swiping = true;
+          e.preventDefault();
+        }
       }
-    }
-  }, {passive:false});
-  $('lgShape').addEventListener('touchend', e => {
-    if (!touchState) return;
-    clearTimeout(touchState.timer);
-    const ts = touchState; touchState = null;
-    $('lgShape').querySelectorAll('.dragging,.drag-over').forEach(el => el.classList.remove('dragging', 'drag-over'));
-    if (ts.ghost) ts.ghost.remove();
-    if (ts.dragging) {
-      const t = e.changedTouches[0], el = document.elementFromPoint(t.clientX, t.clientY);
-      const block = el && el.closest('[data-block]');
-      if (block) { const bk = block.dataset.block; patchItem(ts.id, { block: bk === 'unassigned' ? '' : bk }); }
-    } else if (ts.swiping) {
-      const t = e.changedTouches[0], dx = t.clientX - ts.x0;
-      ts.row.style.transform = ''; ts.row.style.opacity = '';
-      if (dx > 80) { patchItem(ts.id, { done: true }); toast('Done', () => patchItem(ts.id, { done: false })); }
-    }
-  });
-  $('dayStartPick').addEventListener('change', e => {
-    const h = Number(e.target.value), r = rhythmDoc();
-    upsertDoc('rhythm', 'rhythm', { ...r, dayStart: h });
-    refreshBlocks();
-    renderShape();
+    }, {passive:false});
+    el.addEventListener('touchend', e => {
+      if (!touchState) return;
+      clearTimeout(touchState.timer);
+      const ts = touchState; touchState = null;
+      el.querySelectorAll('.dragging,.drag-over').forEach(x => x.classList.remove('dragging', 'drag-over'));
+      if (ts.ghost) ts.ghost.remove();
+      if (ts.dragging) {
+        const t = e.changedTouches[0], p = document.elementFromPoint(t.clientX, t.clientY);
+        const block = p && p.closest('[data-block]');
+        if (block) { const bk = block.dataset.block; patchItem(ts.id, { block: bk === 'unassigned' ? '' : bk }); }
+      } else if (ts.swiping) {
+        const t = e.changedTouches[0], dx = t.clientX - ts.x0;
+        ts.row.style.transform = ''; ts.row.style.opacity = '';
+        if (dx > 80) { patchItem(ts.id, { done: true }); toast('Done', () => patchItem(ts.id, { done: false })); }
+      }
+    });
+  }
+  bindShapeListeners($('lgShape'));
+  bindShapeListeners($('homeShape'));
+  ['dayStartPick','homeStartPick'].forEach(id => {
+    const pick = $(id); if (!pick) return;
+    pick.addEventListener('change', e => {
+      const hh = Number(e.target.value), r = rhythmDoc();
+      upsertDoc('rhythm', 'rhythm', { ...r, dayStart: hh });
+      refreshBlocks();
+      renderShape();
+    });
   });
   $('lgSubTabs').addEventListener('click', e => {
     const b = e.target.closest('[data-lgtab]');
