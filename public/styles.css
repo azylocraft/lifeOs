@@ -1016,3 +1016,12 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .day-pager-track::-webkit-scrollbar { display:none }
 .day-pager-slide { scroll-snap-align:start; min-width:0 }
 .day-pager-slide > .card { height:100% }
+
+
+/* ---- journal pager ----
+   Daily log and Monthly log live side by side; tapping a tab or swiping scrolls between them. */
+.jn-pager { display:grid; grid-auto-columns:100%; grid-auto-flow:column; overflow-x:auto;
+  scroll-snap-type:x mandatory; overscroll-behavior-x:contain; scrollbar-width:none;
+  touch-action:pan-x pan-y }
+.jn-pager::-webkit-scrollbar { display:none }
+.jn-slide { scroll-snap-align:start; min-width:0; min-height:1px }

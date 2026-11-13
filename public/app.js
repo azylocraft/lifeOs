@@ -1862,7 +1862,7 @@
     $('lgShapeSub').textContent = '';
   }
   /* the left page: last 7 days before this one, each with plan/log tabs */
-  let pastCount = 7, pastTab = 'log';
+  let pastCount = 7, pastTab = 'plan';
   function pastDays7(before){
     const days = [];
     for (let n = 1; n <= 7; n++) {
@@ -2176,13 +2176,14 @@
   $('lgPrev').addEventListener('click', () => setLogDate(addDays(logDate, -1)));
   $('lgNext').addEventListener('click', () => setLogDate(addDays(logDate, 1)));
   $('lgToday').addEventListener('click', () => { setLogDate(isoToday); $('lgPrev').focus(); });
-  function setJournalTab(t){
+  function setJournalTab(t, opts){
     jnTab = t === 'month' ? 'month' : 'day';
-    $('jnDay').hidden = jnTab !== 'day'; $('jnMonth').hidden = jnTab !== 'month';
     document.querySelectorAll('#jnTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === jnTab)));
+    const pg = $('jnPager'), slide = jnTab === 'month' ? $('jnMonth') : $('jnDay');
+    if (pg && slide) pg.scrollTo({left:slide.offsetLeft, behavior: (opts && opts.smooth) ? 'smooth' : 'auto'});
     renderNow();
   }
-  $('jnTabs').addEventListener('click', e => { const b = e.target.closest('[data-jtab]'); if (b) setJournalTab(b.dataset.jtab); });
+  $('jnTabs').addEventListener('click', e => { const b = e.target.closest('[data-jtab]'); if (b) setJournalTab(b.dataset.jtab, {smooth:true}); });
 
   /* ---------- gestures on log entries ----------
      swipe right = done · swipe left = delete · triple tap = move to the next day */
@@ -2858,4 +2859,22 @@
   const resnap = () => { const idx = Math.max(0, slides().findIndex((_, i) => tabs.children[i] && tabs.children[i].getAttribute('aria-pressed') === 'true')); go(Math.max(0, idx), false); };
   document.addEventListener('click', e => { if (e.target.closest('[data-jtab="day"]') || e.target.closest('[data-view="journal"]')) setTimeout(resnap, 60); });
   window.addEventListener('resize', resnap);
+})();
+
+(() => {
+  const pg = document.getElementById('jnPager');
+  if (!pg) return;
+  let st = null;
+  pg.addEventListener('scroll', () => {
+    if (st) cancelAnimationFrame(st);
+    st = requestAnimationFrame(() => {
+      const w = pg.clientWidth; if (!w) return;
+      const idx = Math.round(pg.scrollLeft / w);
+      const t = idx === 1 ? 'month' : 'day';
+      if (typeof jnTab !== 'undefined' && jnTab !== t) {
+        jnTab = t;
+        document.querySelectorAll('#jnTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === jnTab)));
+      }
+    });
+  });
 })();

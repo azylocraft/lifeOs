@@ -59,6 +59,7 @@
       <div class="grid two-col">
         <div class="card"><div class="card-head"><div><h2>Today’s focus</h2><div class="sub" id="homeFocusSub">Your next few tasks</div></div><button type="button" class="btn secondary small" data-go="journal">Open log</button></div><div id="homeTasks" class="list"></div></div>
         <div class="card"><div class="card-head"><div><h2>Recent expenses</h2><div class="sub">Latest entries</div></div><button type="button" class="btn secondary small" data-go="expenses">View all</button></div><div id="homeExpenses" class="list"></div></div>
+        </div>
       </div>
     </section>
 
@@ -155,125 +156,126 @@
     <section class="view" id="view-journal">
       <div class="seg jn-tabs" id="jnTabs" role="group" aria-label="Journal pages"><button type="button" data-jtab="day" aria-pressed="true">Daily log</button><button type="button" data-jtab="month" aria-pressed="false">Monthly log</button></div>
 
-      <div id="jnDay">
-        <div class="book day">
-          <div class="page left">
-            <div class="cal-head"><div class="cal-title">Earlier days <span class="sub" id="lgPastSub" style="font-weight:400;font-size:12px;margin-left:6px">Last 7 days</span></div><div class="seg ml-tabs" id="pastTabsGlobal"><button data-pasttab="plan">Plan</button><button data-pasttab="log">Log</button></div></div>
-            <div class="past-scroll" id="lgPastScroll">
-              <div id="lgPast"></div>
-              <button type="button" class="btn secondary small" id="lgPastMore" hidden style="margin-top:12px">Show earlier days</button>
-            </div>
-          </div>
-          <div class="page right">
-            <div class="cal-head"><div><div class="cal-title" id="lgDate">Today</div><div class="sub" id="lgSub"></div></div>
-              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div class="seg ml-tabs" id="lgSubTabs" role="group" aria-label="Plan or Log" style="margin:0;flex-shrink:0"><button type="button" data-lgtab="plan" aria-pressed="true">Plan</button><button type="button" data-lgtab="done" aria-pressed="false">Log</button></div><div class="cal-nav" style="flex-shrink:0"><button type="button" class="btn secondary small" id="lgToday">Today</button><button type="button" class="icon-btn" id="lgPrev" aria-label="Previous day">‹</button><button type="button" class="icon-btn" id="lgNext" aria-label="Next day">›</button></div></div></div>
-            <div id="lgPlanView">
-              <div class="bj-list" id="lgList"></div>
-            </div>
-            <div id="lgDoneView" hidden>
-              <div class="bj-key" aria-label="What the bullets mean"><span><b>•</b>Action</span><span><b>–</b>Note</span><span><b>○</b>Event</span><span><b>=</b>Mood</span><span><b>✕</b>Done</span><span><b>&gt;</b>Moved</span></div>
-              <div class="bj-list" id="lgDoneList"></div>
-            </div>
-          </div>
-        </div>
-        <div class="grid day-cards" style="margin-top:18px">
-          <div class="day-pager" id="dayPager">
-            <div class="seg day-pager-tabs" id="dayPagerTabs" role="tablist" aria-label="Time view">
-              <button type="button" data-pager-tab="shape" aria-pressed="true">Shape of the day</button>
-              <button type="button" data-pager-tab="rhythm" aria-pressed="false">Week rhythm</button>
-            </div>
-            <div class="day-pager-track" id="dayPagerTrack">
-              <div class="day-pager-slide" data-pager-slide="shape">
-              <div class="card shape-card">
-                <div class="card-head"><div><h2>Shape of the day</h2><div class="sub" id="lgShapeSub"></div></div><select id="dayStartPick" class="day-start-pick" aria-label="Day starts at"></select></div>
-                <div class="list" id="lgShape"></div>
+      <div class="jn-pager" id="jnPager">
+          <div id="jnDay" class="jn-slide">
+          <div class="book day">
+            <div class="page left">
+              <div class="cal-head"><div class="cal-title">Earlier days <span class="sub" id="lgPastSub" style="font-weight:400;font-size:12px;margin-left:6px">Last 7 days</span></div><div class="seg ml-tabs" id="pastTabsGlobal"><button data-pasttab="plan">Plan</button><button data-pasttab="log">Log</button></div></div>
+              <div class="past-scroll" id="lgPastScroll">
+                <div id="lgPast"></div>
+                <button type="button" class="btn secondary small" id="lgPastMore" hidden style="margin-top:12px">Show earlier days</button>
               </div>
+            </div>
+            <div class="page right">
+              <div class="cal-head"><div><div class="cal-title" id="lgDate">Today</div><div class="sub" id="lgSub"></div></div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div class="seg ml-tabs" id="lgSubTabs" role="group" aria-label="Plan or Log" style="margin:0;flex-shrink:0"><button type="button" data-lgtab="plan" aria-pressed="true">Plan</button><button type="button" data-lgtab="done" aria-pressed="false">Log</button></div><div class="cal-nav" style="flex-shrink:0"><button type="button" class="btn secondary small" id="lgToday">Today</button><button type="button" class="icon-btn" id="lgPrev" aria-label="Previous day">‹</button><button type="button" class="icon-btn" id="lgNext" aria-label="Next day">›</button></div></div></div>
+              <div id="lgPlanView">
+                <div class="bj-list" id="lgList"></div>
               </div>
-              <div class="day-pager-slide" data-pager-slide="rhythm">
-              <div class="card">
-                <div class="card-head" style="flex-wrap:wrap"><div><h2>Maker and manager rhythm</h2><div class="sub">Maker time is long, unbroken stretches for deep work. Manager time is for calls, messages and errands, batched together. Tap the dot in the corner of a block to switch its kind, and drag an action into the block you will do it in.</div></div><span class="stat-icon" aria-hidden="true">◐</span></div>
-                <div class="rh-wrap"><div class="rh-grid" id="rhGrid"></div></div>
-                <div class="rh-pool" id="rhPool" data-rh-drop="unplanned"></div>
-                <div class="divider"></div>
-                <div class="mini-stats" id="rhStats" style="margin-bottom:0"></div>
-              </div>
+              <div id="lgDoneView" hidden>
+                <div class="bj-key" aria-label="What the bullets mean"><span><b>•</b>Action</span><span><b>–</b>Note</span><span><b>○</b>Event</span><span><b>=</b>Mood</span><span><b>✕</b>Done</span><span><b>&gt;</b>Moved</span></div>
+                <div class="bj-list" id="lgDoneList"></div>
               </div>
             </div>
           </div>
-          <div class="card">
-            <div class="card-head"><div><h2>Focus session</h2><div class="sub" id="fcToday">Protect a stretch of maker time</div></div><span class="stat-icon" aria-hidden="true">◎</span></div>
-            <div id="fcIdle">
-              <div class="field"><label for="fcTask">Focus on</label><select id="fcTask"></select></div>
-              <div class="seg" id="fcMins" role="group" aria-label="Length of the session" style="margin-bottom:14px"><button type="button" data-mins="30" aria-pressed="false">30 min</button><button type="button" data-mins="60" aria-pressed="true">60 min</button><button type="button" data-mins="90" aria-pressed="false">90 min</button><button type="button" data-mins="180" aria-pressed="false">3 hrs</button></div>
-              <button type="button" class="btn" id="fcStart">▶ Start focus</button>
+          <div class="grid day-cards" style="margin-top:18px">
+            <div class="day-pager" id="dayPager">
+              <div class="seg day-pager-tabs" id="dayPagerTabs" role="tablist" aria-label="Time view">
+                <button type="button" data-pager-tab="shape" aria-pressed="true">Shape of the day</button>
+                <button type="button" data-pager-tab="rhythm" aria-pressed="false">Week rhythm</button>
+              </div>
+              <div class="day-pager-track" id="dayPagerTrack">
+                <div class="day-pager-slide" data-pager-slide="shape">
+                <div class="card shape-card">
+                  <div class="card-head"><div><h2>Shape of the day</h2><div class="sub" id="lgShapeSub"></div></div><select id="dayStartPick" class="day-start-pick" aria-label="Day starts at"></select></div>
+                  <div class="list" id="lgShape"></div>
+                </div>
+                </div>
+                <div class="day-pager-slide" data-pager-slide="rhythm">
+                <div class="card">
+                  <div class="card-head" style="flex-wrap:wrap"><div><h2>Maker and manager rhythm</h2><div class="sub">Maker time is long, unbroken stretches for deep work. Manager time is for calls, messages and errands, batched together. Tap the dot in the corner of a block to switch its kind, and drag an action into the block you will do it in.</div></div><span class="stat-icon" aria-hidden="true">◐</span></div>
+                  <div class="rh-wrap"><div class="rh-grid" id="rhGrid"></div></div>
+                  <div class="rh-pool" id="rhPool" data-rh-drop="unplanned"></div>
+                  <div class="divider"></div>
+                  <div class="mini-stats" id="rhStats" style="margin-bottom:0"></div>
+                </div>
+                </div>
+              </div>
             </div>
-            <div id="fcRun" hidden>
-              <div class="fc-clock" id="fcClock" role="timer">50:00</div>
-              <div class="sub" id="fcWhat" style="margin-bottom:10px"></div>
-              <div class="progress"><span id="fcBar" style="width:0%"></span></div>
-              <button type="button" class="btn secondary small" id="fcStop" style="margin-top:14px">Stop and log it</button>
+            <div class="card">
+              <div class="card-head"><div><h2>Focus session</h2><div class="sub" id="fcToday">Protect a stretch of maker time</div></div><span class="stat-icon" aria-hidden="true">◎</span></div>
+              <div id="fcIdle">
+                <div class="field"><label for="fcTask">Focus on</label><select id="fcTask"></select></div>
+                <div class="seg" id="fcMins" role="group" aria-label="Length of the session" style="margin-bottom:14px"><button type="button" data-mins="30" aria-pressed="false">30 min</button><button type="button" data-mins="60" aria-pressed="true">60 min</button><button type="button" data-mins="90" aria-pressed="false">90 min</button><button type="button" data-mins="180" aria-pressed="false">3 hrs</button></div>
+                <button type="button" class="btn" id="fcStart">▶ Start focus</button>
+              </div>
+              <div id="fcRun" hidden>
+                <div class="fc-clock" id="fcClock" role="timer">50:00</div>
+                <div class="sub" id="fcWhat" style="margin-bottom:10px"></div>
+                <div class="progress"><span id="fcBar" style="width:0%"></span></div>
+                <button type="button" class="btn secondary small" id="fcStop" style="margin-top:14px">Stop and log it</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div><h2 id="lgTomTitle">Tomorrow</h2><div class="sub">What you’ve already lined up</div></div><span class="stat-icon" aria-hidden="true">→</span></div>
+              <div class="bj-list" id="lgTomorrow"></div>
+              <form id="lgTomForm" class="hz-add" style="margin-top:12px"><input id="lgTomText" maxlength="120" required autocomplete="off" placeholder="Add an action for tomorrow" aria-label="Add an action for tomorrow"><button class="btn small" type="submit">＋ Add</button></form>
             </div>
           </div>
-          <div class="card">
-            <div class="card-head"><div><h2 id="lgTomTitle">Tomorrow</h2><div class="sub">What you’ve already lined up</div></div><span class="stat-icon" aria-hidden="true">→</span></div>
-            <div class="bj-list" id="lgTomorrow"></div>
-            <form id="lgTomForm" class="hz-add" style="margin-top:12px"><input id="lgTomText" maxlength="120" required autocomplete="off" placeholder="Add an action for tomorrow" aria-label="Add an action for tomorrow"><button class="btn small" type="submit">＋ Add</button></form>
+        </div>
+
+        <div id="jnMonth" class="jn-slide">
+          <div class="cal-head ml-top-head"><div><div class="cal-title" id="mlTitle">This month</div><div class="sub" id="mlPlanSub">Your month at a glance</div></div>
+            <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
+          <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
+          <div class="ml-filters" id="mlFilters" role="group" aria-label="Also show on each day" hidden></div>
+          <div class="ml-legend" id="mlLegend" hidden><span><i class="g-task">✓</i> task done</span><span><i class="g-event">○</i> event</span><span><i class="g-goal">◆</i> project</span></div>
+
+          <div class="card ml-cal-card" id="mlCalCard">
+            <div id="mlRows"></div>
           </div>
-        </div>
-      </div>
 
-      <div id="jnMonth" hidden>
-        <div class="cal-head ml-top-head"><div><div class="cal-title" id="mlTitle">This month</div><div class="sub" id="mlPlanSub">Your month at a glance</div></div>
-          <div class="cal-nav"><button type="button" class="btn secondary small" id="mlToday">This month</button><button type="button" class="icon-btn" id="mlPrev" aria-label="Previous month">‹</button><button type="button" class="icon-btn" id="mlNext" aria-label="Next month">›</button></div></div>
-        <div class="seg ml-tabs" id="mlSubTabs" role="group" aria-label="Monthly log view"><button type="button" data-mltab="plan" aria-pressed="true">Plan</button><button type="button" data-mltab="done" aria-pressed="false">Done</button></div>
-        <div class="ml-filters" id="mlFilters" role="group" aria-label="Also show on each day" hidden></div>
-        <div class="ml-legend" id="mlLegend" hidden><span><i class="g-task">✓</i> task done</span><span><i class="g-event">○</i> event</span><span><i class="g-goal">◆</i> project</span></div>
-
-        <div class="card ml-cal-card" id="mlCalCard">
-          <div id="mlRows"></div>
-        </div>
-
-        <div id="mlPlanView">
-          <div class="card ml-cal-card ml-proj-card" style="margin-top:14px">
-            <div class="card-head"><div><h2>Projects</h2><div class="sub">Create a project, add steps, drag them to a week</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
-            <div class="ml-plan">
-              <div class="ml-col"><h3>Personal</h3><div class="bj-list" id="mlPersonal"></div>
-                <form class="hz-add ml-goal-form" data-area="personal"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a personal project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
-              <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
-                <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a work project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+          <div id="mlPlanView">
+            <div class="card ml-cal-card ml-proj-card" style="margin-top:14px">
+              <div class="card-head"><div><h2>Projects</h2><div class="sub">Create a project, add steps, drag them to a week</div></div><span class="stat-icon" aria-hidden="true">◇</span></div>
+              <div class="ml-plan">
+                <div class="ml-col"><h3>Personal</h3><div class="bj-list" id="mlPersonal"></div>
+                  <form class="hz-add ml-goal-form" data-area="personal"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a personal project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+                <div class="ml-col"><h3>Work</h3><div class="bj-list" id="mlWork"></div>
+                  <form class="hz-add ml-goal-form" data-area="work"><input maxlength="120" required autocomplete="off" placeholder="New project or task" aria-label="Add a work project"><button class="icon-btn" type="submit" aria-label="Add">＋</button></form></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="card" style="margin-top:14px">
-          <div class="card-head"><div><h2>Ideas, problems &amp; lessons</h2><div class="sub">Everything you noticed this month, grouped</div></div><span class="stat-icon" aria-hidden="true">✦</span></div>
-          <div id="mlReflect"></div>
-        </div>
+          <div class="card" style="margin-top:14px">
+            <div class="card-head"><div><h2>Ideas, problems &amp; lessons</h2><div class="sub">Everything you noticed this month, grouped</div></div><span class="stat-icon" aria-hidden="true">✦</span></div>
+            <div id="mlReflect"></div>
+          </div>
 
-        <div class="card" style="margin-top:14px">
-          <div class="card-head"><div><h2>Habits</h2><div class="sub">Each one gets a column of dots in the calendar</div></div><span class="stat-icon" aria-hidden="true">●</span></div>
-          <div class="list habit-list" id="mlHabits"></div>
-          <form id="mlHabitForm" class="hz-add" style="margin-top:12px;max-width:420px"><input id="mlHabitText" maxlength="24" required autocomplete="off" placeholder="e.g. Workout, Read, Meditate" aria-label="New habit"><button class="btn small" type="submit">＋ Add</button></form>
+          <div class="card" style="margin-top:14px">
+            <div class="card-head"><div><h2>Habits</h2><div class="sub">Each one gets a column of dots in the calendar</div></div><span class="stat-icon" aria-hidden="true">●</span></div>
+            <div class="list habit-list" id="mlHabits"></div>
+            <form id="mlHabitForm" class="hz-add" style="margin-top:12px;max-width:420px"><input id="mlHabitText" maxlength="24" required autocomplete="off" placeholder="e.g. Workout, Read, Meditate" aria-label="New habit"><button class="btn small" type="submit">＋ Add</button></form>
+          </div>
         </div>
-      </div>
     </section>
     <dialog id="lgSheet" class="jot-sheet" aria-label="Jot an entry">
-      <div class="jot-sheet-grabber" aria-hidden="true"></div>
-      <div class="jot-sheet-head"><h2>Jot it down</h2><button type="button" class="icon-btn" id="lgSheetClose" aria-label="Close">✕</button></div>
-      <form id="lgForm" class="bj-add bj-add-stack">
-        <div class="type-pills" id="lgType" role="group" aria-label="Kind of entry"><button type="button" class="type-pill" data-btype="task" aria-pressed="true" title="Action"><span class="type-pill-g" aria-hidden="true">•</span><span class="type-pill-l">Action</span></button><button type="button" class="type-pill" data-btype="expense" aria-pressed="false" title="Expense"><span class="type-pill-g" aria-hidden="true">₹</span><span class="type-pill-l">Expense</span></button><button type="button" class="type-pill" data-btype="habit" aria-pressed="false" title="Habit"><span class="type-pill-g" aria-hidden="true">●</span><span class="type-pill-l">Habit</span></button><button type="button" class="type-pill" data-btype="note" aria-pressed="false" title="Note"><span class="type-pill-g" aria-hidden="true">–</span><span class="type-pill-l">Note</span></button><button type="button" class="type-pill" data-btype="event" aria-pressed="false" title="Event"><span class="type-pill-g" aria-hidden="true">○</span><span class="type-pill-l">Event</span></button><button type="button" class="type-pill" data-btype="mood" aria-pressed="false" title="Mood"><span class="type-pill-g" aria-hidden="true">=</span><span class="type-pill-l">Mood</span></button><button type="button" class="type-pill" data-btype="idea" aria-pressed="false" title="Idea"><span class="type-pill-g" aria-hidden="true">✦</span><span class="type-pill-l">Idea</span></button><button type="button" class="type-pill" data-btype="problem" aria-pressed="false" title="Problem"><span class="type-pill-g" aria-hidden="true">△</span><span class="type-pill-l">Problem</span></button><button type="button" class="type-pill" data-btype="mistake" aria-pressed="false" title="Mistake"><span class="type-pill-g" aria-hidden="true">✘</span><span class="type-pill-l">Mistake</span></button><button type="button" class="type-pill" data-btype="observation" aria-pressed="false" title="Observation"><span class="type-pill-g" aria-hidden="true">◎</span><span class="type-pill-l">Observation</span></button></div>
-        <input id="lgText" maxlength="500" required autocomplete="off" autofocus placeholder="e.g. buy milk tomorrow" aria-label="New entry">
-        <button class="btn" type="submit">Add</button>
-        <div class="bj-hint" id="lgHint"></div>
-      </form>
-      <details class="bj-help">
-        <summary>Shortcuts &amp; gestures</summary>
-        <div class="bj-help-h">Start a line with</div>
-        <div class="bj-help-grid"><span><kbd>-</kbd>Note</span><span><kbd>o</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>+</kbd>Idea</span><span><kbd>?</kbd>Problem</span><span><kbd>x</kbd>Mistake</span><span><kbd>@</kbd>Observation</span><span><kbd>!</kbd>Important</span></div>
-        <div class="bj-help-note">A time after the letter is kept — <i>o 4pm dentist</i>.</div>
-        <div class="bj-help-h">On any entry</div>
-        <div class="bj-help-grid wide"><span><kbd>Swipe right</kbd>Complete it</span><span><kbd>Swipe left</kbd>Delete it</span><span><kbd>Triple-tap</kbd>Move to tomorrow</span><span><kbd>☆</kbd>Pick your top 3</span></div>
-      </details>
+        <div class="jot-sheet-grabber" aria-hidden="true"></div>
+        <div class="jot-sheet-head"><h2>Jot it down</h2><button type="button" class="icon-btn" id="lgSheetClose" aria-label="Close">✕</button></div>
+        <form id="lgForm" class="bj-add bj-add-stack">
+          <div class="type-pills" id="lgType" role="group" aria-label="Kind of entry"><button type="button" class="type-pill" data-btype="task" aria-pressed="true" title="Action"><span class="type-pill-g" aria-hidden="true">•</span><span class="type-pill-l">Action</span></button><button type="button" class="type-pill" data-btype="expense" aria-pressed="false" title="Expense"><span class="type-pill-g" aria-hidden="true">₹</span><span class="type-pill-l">Expense</span></button><button type="button" class="type-pill" data-btype="habit" aria-pressed="false" title="Habit"><span class="type-pill-g" aria-hidden="true">●</span><span class="type-pill-l">Habit</span></button><button type="button" class="type-pill" data-btype="note" aria-pressed="false" title="Note"><span class="type-pill-g" aria-hidden="true">–</span><span class="type-pill-l">Note</span></button><button type="button" class="type-pill" data-btype="event" aria-pressed="false" title="Event"><span class="type-pill-g" aria-hidden="true">○</span><span class="type-pill-l">Event</span></button><button type="button" class="type-pill" data-btype="mood" aria-pressed="false" title="Mood"><span class="type-pill-g" aria-hidden="true">=</span><span class="type-pill-l">Mood</span></button><button type="button" class="type-pill" data-btype="idea" aria-pressed="false" title="Idea"><span class="type-pill-g" aria-hidden="true">✦</span><span class="type-pill-l">Idea</span></button><button type="button" class="type-pill" data-btype="problem" aria-pressed="false" title="Problem"><span class="type-pill-g" aria-hidden="true">△</span><span class="type-pill-l">Problem</span></button><button type="button" class="type-pill" data-btype="mistake" aria-pressed="false" title="Mistake"><span class="type-pill-g" aria-hidden="true">✘</span><span class="type-pill-l">Mistake</span></button><button type="button" class="type-pill" data-btype="observation" aria-pressed="false" title="Observation"><span class="type-pill-g" aria-hidden="true">◎</span><span class="type-pill-l">Observation</span></button></div>
+          <input id="lgText" maxlength="500" required autocomplete="off" autofocus placeholder="e.g. buy milk tomorrow" aria-label="New entry">
+          <button class="btn" type="submit">Add</button>
+          <div class="bj-hint" id="lgHint"></div>
+        </form>
+        <details class="bj-help">
+          <summary>Shortcuts &amp; gestures</summary>
+          <div class="bj-help-h">Start a line with</div>
+          <div class="bj-help-grid"><span><kbd>-</kbd>Note</span><span><kbd>o</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>+</kbd>Idea</span><span><kbd>?</kbd>Problem</span><span><kbd>x</kbd>Mistake</span><span><kbd>@</kbd>Observation</span><span><kbd>!</kbd>Important</span></div>
+          <div class="bj-help-note">A time after the letter is kept — <i>o 4pm dentist</i>.</div>
+          <div class="bj-help-h">On any entry</div>
+          <div class="bj-help-grid wide"><span><kbd>Swipe right</kbd>Complete it</span><span><kbd>Swipe left</kbd>Delete it</span><span><kbd>Triple-tap</kbd>Move to tomorrow</span><span><kbd>☆</kbd>Pick your top 3</span></div>
+        </details>
     </dialog>
     <button type="button" class="jot-fab" id="lgFab" aria-label="Jot an entry" aria-controls="lgSheet" aria-expanded="false"><span aria-hidden="true">✎</span></button>
     <footer id="footerNote">My Life OS</footer>
