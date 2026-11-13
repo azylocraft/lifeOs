@@ -1721,7 +1721,7 @@
   })();
 
   /* ---------- daily log ---------- */
-  const GLYPH = {task:'•', note:'–', event:'○', mood:'=', idea:'✦', mistake:'✘', observation:'◎', problem:'△'};
+  const GLYPH = {task:'•', note:'–', event:'○', mood:'=', idea:'✦', mistake:'✘', observation:'◎', problem:'△', expense:'₹', habit:'●', custom:'◆'};
   const REFLECT = {idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
   const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood', '+':'idea', '✦':'idea', 'x':'mistake', 'X':'mistake', '✘':'mistake', '@':'observation', '◎':'observation', '?':'problem', '△':'problem'};
   let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', jnTab = 'day', lgTab = 'plan';
@@ -2070,7 +2070,7 @@
     if (b) { lgTab = b.dataset.lgtab; renderLog(); }
   });
   /* the sheet's pill row + input / hint — one jot box for the whole app */
-  const LG_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', habit:'e.g. workout', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
+  const LG_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', habit:'e.g. workout', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed', custom:'Anything else'};
   const LG_HINT = {
     task: 'A day in the words sets the due date — <b>buy milk tomorrow</b>. Start with <b>!</b> for high priority.',
     expense: '<b>in</b> names the category, <b>for</b> the subcategory — <b>400 in home for bike repair</b>. Without them the category is guessed.',
