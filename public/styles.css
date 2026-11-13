@@ -887,6 +887,12 @@ button.bj-g:hover { background:var(--track) }
   box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow); -webkit-backdrop-filter:none; backdrop-filter:none }
 .shape-block.sleep { background:transparent; border-color:transparent; box-shadow:none }
 .shape-block.unassigned { background:transparent; border:1px dashed color-mix(in srgb, var(--text) 22%, transparent); box-shadow:none }
+/* unassigned: lay the tasks out in three compact columns */
+.shape-block.unassigned .shape-row { display:inline-flex }
+.shape-block.unassigned { display:grid; gap:4px 10px }
+.shape-block.unassigned .shape-head { grid-column:1 / -1 }
+.shape-block.unassigned > .shape-row { margin:0 }
+@media (min-width:380px) { .shape-block.unassigned { grid-template-columns:repeat(3, minmax(0,1fr)) } }
 .shape-block.drag-over, .rh-cell.rh-drop-over, .rh-pool.rh-drop-over { border-color:var(--pop, var(--accent)); box-shadow:inset 0 1px 0 var(--g-spec), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) }
 
 /* pills */

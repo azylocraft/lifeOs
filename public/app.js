@@ -2324,7 +2324,7 @@
   function renderNow(){
     const view = (document.querySelector('.view.active') || {}).id;
     const bar = $('nowBar');
-    bar.hidden = !(view === 'view-home' || (view === 'view-journal' && jnTab !== 'month'));
+    bar.hidden = true;
     if (bar.hidden) return;
     const {mode, pick, count} = nextAction();
     const btn = (act, label, cls) => `<button type="button" class="btn ${cls || ''} small" data-now="${act}">${label}</button>`;
