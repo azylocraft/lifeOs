@@ -3010,4 +3010,35 @@
     stash.startX = 0;
     end(0);
   });
+  /* mouse drag for desktop — same logic as the touch path */
+  let mouseDragging = false;
+  view.addEventListener('mousedown', e => {
+    if (stash.swiping || e.button !== 0 || e.target.closest(IGNORE)) return;
+    stash.startX = e.clientX; stash.startY = e.clientY;
+    stash.lastX = e.clientX; stash.lastT = e.timeStamp; stash.vx = 0;
+    mouseDragging = true;
+  });
+  view.addEventListener('mousemove', e => {
+    if (!mouseDragging) return;
+    const dx = e.clientX - stash.startX, dy = e.clientY - stash.startY;
+    if (!stash.swiping) {
+      if (Math.abs(dx) < 10 || Math.abs(dy) > Math.abs(dx) * 0.9) return;
+      begin(dx);
+    }
+    const dt = Math.max(1, e.timeStamp - stash.lastT);
+    stash.vx = 0.6 * stash.vx + 0.4 * ((e.clientX - stash.lastX) / dt);
+    stash.lastX = e.clientX; stash.lastT = e.timeStamp;
+    move(dx);
+    if (stash.swiping) view.style.cursor = 'grabbing';
+  });
+  const mouseEnd = e => {
+    if (!mouseDragging) return;
+    mouseDragging = false;
+    view.style.cursor = '';
+    if (!stash.swiping) { stash.startX = 0; return; }
+    end(e.clientX - stash.startX);
+    stash.startX = 0;
+  };
+  view.addEventListener('mouseup', mouseEnd);
+  view.addEventListener('mouseleave', mouseEnd);
 })();
