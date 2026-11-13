@@ -2891,30 +2891,100 @@
 })();
 
 (() => {
-  /* horizontal swipe on the journal view switches between the daily and monthly logs */
+  /* a finger-tracked swipe between the daily and monthly logs. The inactive log
+     is brought in as an absolutely-positioned overlay during the gesture so its
+     height never affects the stage; after the swipe settles we drop back to the
+     ordinary hide/show that the tabs use. */
   const view = document.getElementById('view-journal');
-  if (!view || typeof setJournalTab !== 'function') { /* setJournalTab lives inside the main IIFE; use a click instead */ }
+  const day = document.getElementById('jnDay');
+  const month = document.getElementById('jnMonth');
   const tabs = document.getElementById('jnTabs');
-  if (!view || !tabs) return;
-  let x0 = 0, y0 = 0, tracking = false;
+  if (!view || !day || !month || !tabs) return;
+  const IGNORE = '.shape-card, .rh-wrap, .ml-cal-card, .past-scroll, input, textarea, select, button, .rh-task, .day-pager, .day-pager-track, .ml-plan, dialog';
+  const stash = { current:null, other:null, startX:0, startY:0, w:0, swiping:false, prevState:null };
+  function begin(dx) {
+    const now = tabs.querySelector('[data-jtab][aria-pressed="true"]')?.dataset.jtab || 'day';
+    stash.current = now === 'day' ? day : month;
+    stash.other   = now === 'day' ? month : day;
+    stash.w = view.clientWidth;
+    stash.prevState = {
+      viewPos: view.style.position, viewOv: view.style.overflow,
+      otherTop: stash.other.offsetTop
+    };
+    view.style.position = 'relative';
+    view.style.overflow = 'hidden';
+    stash.other.hidden = false;
+    const topPx = stash.current.offsetTop;
+    stash.other.style.position = 'absolute';
+    stash.other.style.top = topPx + 'px';
+    stash.other.style.left = '0';
+    stash.other.style.right = '0';
+    stash.other.style.willChange = 'transform';
+    stash.current.style.willChange = 'transform';
+    stash.swiping = true;
+  }
+  function move(dx) {
+    stash.current.style.transform = 'translateX(' + dx + 'px)';
+    const off = dx < 0 ? stash.w + dx : -stash.w + dx;
+    stash.other.style.transform = 'translateX(' + off + 'px)';
+  }
+  function end(dx) {
+    const commit = Math.abs(dx) > stash.w * 0.28;
+    stash.current.style.transition = 'transform .22s cubic-bezier(.3,.9,.4,1)';
+    stash.other.style.transition   = 'transform .22s cubic-bezier(.3,.9,.4,1)';
+    if (commit) {
+      stash.current.style.transform = 'translateX(' + (dx < 0 ? -stash.w : stash.w) + 'px)';
+      stash.other.style.transform = 'translateX(0)';
+    } else {
+      stash.current.style.transform = '';
+      stash.other.style.transform = 'translateX(' + (dx < 0 ? stash.w : -stash.w) + 'px)';
+    }
+    const finish = () => {
+      [stash.current, stash.other].forEach(el => {
+        el.style.transition = ''; el.style.transform = ''; el.style.position = '';
+        el.style.top = ''; el.style.left = ''; el.style.right = ''; el.style.willChange = '';
+      });
+      view.style.position = stash.prevState.viewPos || '';
+      view.style.overflow = stash.prevState.viewOv || '';
+      if (commit) {
+        /* tab click handles hiding and aria-pressed + whatever state the app tracks */
+        const want = stash.other.id === 'jnMonth' ? 'month' : 'day';
+        const btn = tabs.querySelector('[data-jtab="' + want + '"]');
+        if (btn) btn.click();
+      } else {
+        stash.other.hidden = true;
+      }
+      stash.current = stash.other = null;
+      stash.swiping = false;
+    };
+    setTimeout(finish, 240);
+  }
   view.addEventListener('touchstart', e => {
-    if (e.target.closest('.jn-pager, .shape-card, .rh-wrap, .ml-cal-card, .past-scroll, input, textarea, select, button, .rh-task')) {
-      /* leave horizontal scrollers and interactive controls alone */
-      tracking = false; return;
-    }
-    const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; tracking = true;
+    if (stash.swiping) return;
+    if (e.target.closest(IGNORE)) { stash.startX = 0; return; }
+    const t = e.touches[0];
+    stash.startX = t.clientX; stash.startY = t.clientY;
   }, {passive:true});
+  view.addEventListener('touchmove', e => {
+    if (!stash.startX) return;
+    const t = e.touches[0];
+    const dx = t.clientX - stash.startX, dy = t.clientY - stash.startY;
+    if (!stash.swiping) {
+      if (Math.abs(dx) < 12 || Math.abs(dy) > Math.abs(dx)) return;
+      begin(dx);
+    }
+    move(dx);
+    e.preventDefault();
+  }, {passive:false});
   view.addEventListener('touchend', e => {
-    if (!tracking) return;
-    tracking = false;
-    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-    const current = tabs.querySelector('[data-jtab][aria-pressed="true"]');
-    const curName = current ? current.dataset.jtab : 'day';
-    const want = dx < 0 ? 'month' : 'day';
-    if (curName !== want) {
-      const btn = tabs.querySelector('[data-jtab="' + want + '"]');
-      if (btn) btn.click();
-    }
-  }, {passive:true});
+    if (!stash.swiping) { stash.startX = 0; return; }
+    const dx = e.changedTouches[0].clientX - stash.startX;
+    stash.startX = 0;
+    end(dx);
+  });
+  view.addEventListener('touchcancel', () => {
+    if (!stash.swiping) { stash.startX = 0; return; }
+    stash.startX = 0;
+    end(0);
+  });
 })();
