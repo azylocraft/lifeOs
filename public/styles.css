@@ -891,22 +891,46 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   box-shadow:inset 0 1.5px 3px rgba(40,50,70,.10), 0 0 0 3px color-mix(in srgb, var(--pop, var(--accent)) 16%, transparent) }
 .check { width:20px; height:20px; border-radius:7px }
 
-/* accent glass: the same glass, poured in the accent colour. A translucent body so the
-   backdrop tints it, a gloss that curves across the top half, the colour deepening at the
-   bottom in oklch so it stays red rather than going brown, a light-tinted edge and a glow. */
-:root { --ag-gloss:linear-gradient(180deg, rgba(255,255,255,.60) 0%, rgba(255,255,255,.28) 34%, rgba(255,255,255,.03) 50%, rgba(255,255,255,0) 72%, rgba(255,255,255,.07) 100%);
-  --ag-body:linear-gradient(180deg, color-mix(in oklch, var(--pop, var(--accent)) 78%, white) 0%, color-mix(in srgb, var(--pop, var(--accent)) 88%, transparent) 48%, color-mix(in oklch, var(--pop, var(--accent)) 86%, black) 100%);
-  --ag-edge:color-mix(in srgb, var(--pop, var(--accent)) 42%, white);
-  --ag-shadow:inset 0 1px 0 rgba(255,255,255,.80), inset 0 -1px 1px rgba(0,0,0,.10),
-    0 1px 2px color-mix(in srgb, var(--pop, var(--accent)) 38%, transparent), 0 3px 9px color-mix(in srgb, var(--pop, var(--accent)) 32%, transparent), 0 0 18px color-mix(in srgb, var(--pop, var(--accent)) 20%, transparent) }
+/* accent glass: clear inflated glass in the accent colour. A pale see-through body, the
+   colour pooling thick along the rim, a broad soft reflection top-left, a thin bright line
+   on the top edge, and the label written in the deep accent ink so it stays legible. */
+:root {
+  --ag-ink:color-mix(in oklch, var(--pop, var(--accent)) 76%, black);
+  --ag-sheet:rgba(255,255,255,.52); --ag-tint-a:color-mix(in srgb, var(--pop, var(--accent)) 26%, transparent); --ag-tint-b:color-mix(in srgb, var(--pop, var(--accent)) 42%, transparent);
+  --ag-spec:rgba(255,255,255,.95); --ag-spec-lo:rgba(255,255,255,.42); --ag-ring:rgba(255,255,255,.88);
+  --ag-edge:color-mix(in srgb, var(--pop, var(--accent)) 60%, white);
+  --ag-pool:color-mix(in srgb, var(--pop, var(--accent)) 46%, transparent); --ag-pool-lo:color-mix(in srgb, var(--pop, var(--accent)) 72%, transparent);
+  --ag-drop:0 1px 2px rgba(0,0,0,.08), 0 8px 18px color-mix(in srgb, var(--pop, var(--accent)) 20%, transparent) }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-palette="japan"]) {
+  --ag-ink:#ffffff; --ag-sheet:rgba(255,255,255,.07); --ag-tint-a:color-mix(in srgb, var(--pop, var(--accent)) 34%, transparent); --ag-tint-b:color-mix(in srgb, var(--pop, var(--accent)) 52%, transparent);
+  --ag-spec:rgba(255,255,255,.55); --ag-spec-lo:rgba(255,255,255,.22); --ag-ring:rgba(255,255,255,.34);
+  --ag-pool:color-mix(in srgb, var(--pop, var(--accent)) 55%, transparent); --ag-pool-lo:color-mix(in srgb, var(--pop, var(--accent)) 80%, transparent);
+  --ag-drop:0 1px 2px rgba(0,0,0,.35), 0 8px 18px color-mix(in srgb, var(--pop, var(--accent)) 26%, transparent) } }
+:root[data-theme="dark"] {
+  --ag-ink:#ffffff; --ag-sheet:rgba(255,255,255,.07); --ag-tint-a:color-mix(in srgb, var(--pop, var(--accent)) 34%, transparent); --ag-tint-b:color-mix(in srgb, var(--pop, var(--accent)) 52%, transparent);
+  --ag-spec:rgba(255,255,255,.55); --ag-spec-lo:rgba(255,255,255,.22); --ag-ring:rgba(255,255,255,.34);
+  --ag-pool:color-mix(in srgb, var(--pop, var(--accent)) 55%, transparent); --ag-pool-lo:color-mix(in srgb, var(--pop, var(--accent)) 80%, transparent);
+  --ag-drop:0 1px 2px rgba(0,0,0,.35), 0 8px 18px color-mix(in srgb, var(--pop, var(--accent)) 26%, transparent) }
 .btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .pop-dot[aria-pressed="true"],
 .bj-top.on, .brand-icon, .cal-day.sel, .icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] {
-  background:var(--ag-gloss), var(--ag-body); color:var(--on-pop, var(--on-accent)); border:1px solid var(--ag-edge); box-shadow:var(--ag-shadow) }
-.btn:not(.secondary):hover { filter:brightness(1.06) saturate(1.05); transform:translateY(-1px) }
-.btn:not(.secondary):active, .seg button[aria-pressed="true"]:active { filter:brightness(.97); transform:none }
-/* bars and dots: the same pour, no edge */
+  color:var(--ag-ink); border:1.5px solid var(--ag-edge);
+  background:
+    radial-gradient(70% 58% at 28% 12%, var(--ag-spec), rgba(255,255,255,0) 68%),
+    linear-gradient(180deg, var(--ag-spec) 0%, rgba(255,255,255,0) 20%),
+    radial-gradient(60% 42% at 74% 102%, var(--ag-spec-lo), rgba(255,255,255,0) 70%),
+    linear-gradient(180deg, var(--ag-tint-a), var(--ag-tint-b)),
+    linear-gradient(var(--ag-sheet), var(--ag-sheet));
+  box-shadow:inset 0 0 0 1px var(--ag-ring), inset 0 0 14px 3px var(--ag-pool), inset 0 -9px 12px -6px var(--ag-pool-lo), inset 0 9px 10px -8px var(--ag-spec), var(--ag-drop);
+  -webkit-backdrop-filter:blur(8px) saturate(170%); backdrop-filter:blur(8px) saturate(170%);
+  text-shadow:0 1px 0 rgba(255,255,255,.35) }
+.btn:not(.secondary) { font-weight:600 }
+.btn:not(.secondary):hover { filter:saturate(1.12) brightness(1.03); transform:translateY(-1px) }
+.btn:not(.secondary):active, .seg button[aria-pressed="true"]:active { filter:saturate(1.1) brightness(.98); transform:none }
+.bj-top.on, .brand-icon { font-weight:700 }
+/* bars and dots: a solid pour of the colour with a gloss, since a bar cannot be see-through */
 #homeBar, #fcBar, #taskProgress, .progress span, .hz-item .progress span, .proj .progress span, .jump-rail i.on {
-  background:var(--ag-gloss), var(--ag-body); box-shadow:0 0 10px color-mix(in srgb, var(--pop, var(--accent)) 45%, transparent) }
+  background:linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.12) 45%, rgba(255,255,255,0) 60%), linear-gradient(180deg, color-mix(in oklch, var(--pop, var(--accent)) 80%, white), var(--pop, var(--accent)) 55%, color-mix(in oklch, var(--pop, var(--accent)) 86%, black));
+  box-shadow:0 0 10px color-mix(in srgb, var(--pop, var(--accent)) 45%, transparent) }
 .jump-rail i.on { border:0 }
 .nav button.active { border-radius:999px }
 .nav button.active .ico, .nav button.active span { color:inherit }

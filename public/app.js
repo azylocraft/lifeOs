@@ -2331,7 +2331,7 @@
       $('nowActions').innerHTML = `<span id="nowClock" role="timer"></span>` + btn('stop', 'Stop and log it', 'secondary');
       drawFocus();
     } else if (pick) {
-      $('nowLabel').textContent = `Right now · ${MODE_NAME[mode]} time · ${count} open today`;
+      $('nowLabel').textContent = `Right now · ${MODE_NAME[mode] || 'Quiet'} time · ${count} open today`;
       $('nowTitle').textContent = pick.title;
       $('nowActions').innerHTML = btn('start', `▶ Start ${minsLabel(focusMins)}`) + btn('done', '✕ Done', 'secondary') + (count > 1 ? btn('skip', 'Skip', 'secondary') : '');
       bar.dataset.id = pick.id;
