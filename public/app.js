@@ -2107,13 +2107,12 @@
     const activeIsJournalDay = $('view-journal').classList.contains('active') && jnTab === 'day';
     const target = (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : (activeIsJournalDay ? logDate : isoToday);
     if (logDate !== target) logDate = target;
-    if (typeof sh.showModal === 'function') { if (!sh.open) sh.showModal(); } else { sh.setAttribute('open', ''); }
+    sh.setAttribute('open', '');
     $('lgFab').setAttribute('aria-expanded', 'true');
     setTimeout(() => { try { $('lgText').focus(); } catch(e){} }, 20);
   }
   function closeJotSheet(){
     const sh = $('lgSheet'); if (!sh) return;
-    try { if (sh.close) sh.close(); } catch(e){}
     sh.removeAttribute('open');
     $('lgFab').setAttribute('aria-expanded', 'false');
   }

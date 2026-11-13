@@ -992,14 +992,20 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
    Desktop lays it near the corner; a phone slides it up from the bottom. */
 .jot-fab { position:fixed; right:70px; bottom:28px; z-index:45; width:56px; height:56px; border-radius:50%; display:grid; place-items:center; font-size:22px; line-height:1; border:0; padding:0; cursor:pointer }
 .jot-fab[aria-expanded="true"] { opacity:0; pointer-events:none }
-.jot-sheet { border:0; padding:0; max-width:560px; width:min(560px, calc(100vw - 32px)); max-height:85vh; border-radius:22px; display:flex; flex-direction:column; overflow:visible;
+/* #lgSheet is the full-screen backdrop — never inline in the page */
+#lgSheet { position:fixed; inset:0; margin:0; padding:0; border:0; width:100%; max-width:none; height:100%; max-height:none;
+  display:none; align-items:center; justify-content:center;
+  background:rgba(10,15,25,.38); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+  z-index:200; overflow:hidden }
+#lgSheet[open] { display:flex }
+/* the glass card inside the overlay */
+.jot-sheet-inner { max-width:560px; width:min(560px, calc(100vw - 32px)); max-height:85vh; border-radius:22px;
+  display:flex; flex-direction:column; overflow:hidden;
   background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); color:var(--text);
   -webkit-backdrop-filter:blur(18px) saturate(150%); backdrop-filter:blur(18px) saturate(150%);
-  box-shadow:inset 0 1px 0 var(--g-spec), 0 20px 50px rgba(20,25,40,.28), 0 0 0 1px var(--g-edge);
-  margin:auto; overflow:hidden }
-.jot-sheet::backdrop { background:rgba(10,15,25,.38); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px) }
+  box-shadow:inset 0 1px 0 var(--g-spec), 0 20px 50px rgba(20,25,40,.28), 0 0 0 1px var(--g-edge) }
 .jot-sheet-head { display:flex; align-items:center; justify-content:space-between; padding:14px 16px 2px; flex-shrink:0 }
-.jot-sheet > form { overflow-y:auto; flex-shrink:1; min-height:0 }
+.jot-sheet-inner > form { overflow-y:auto; flex-shrink:1; min-height:0 }
 .jot-sheet-head h2 { font-size:15px }
 .jot-sheet-grabber { display:none }
 /* inside the sheet the form is bare — no inner outline of its own, the sheet is the frame */
@@ -1008,13 +1014,13 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .jot-sheet .bj-help { margin:0 16px 14px; padding-top:10px }
 @media (max-width:620px) {
   .jot-fab { right:14px; bottom:84px; width:54px; height:54px }
-  .jot-sheet { width:min(100%, 480px); max-width:none; max-height:72vh; border-radius:22px; margin:auto }
+  .jot-sheet-inner { width:min(100%, 480px); max-width:none; max-height:72vh; border-radius:22px }
   .jot-sheet-grabber { display:none }
   .jot-sheet-head { padding-top:8px }
 }
 /* animate it in */
-.jot-sheet[open] { animation:jot-in .18s ease-out }
-.jot-sheet[open]::backdrop { animation:jot-fade .18s ease-out }
+#lgSheet[open] .jot-sheet-inner { animation:jot-in .18s ease-out }
+#lgSheet[open] { animation:jot-fade .18s ease-out }
 @keyframes jot-in { from { transform:translateY(16px); opacity:0 } to { transform:none; opacity:1 } }
 @keyframes jot-fade { from { opacity:0 } to { opacity:1 } }
 
