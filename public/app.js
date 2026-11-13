@@ -2585,20 +2585,42 @@
       return null;
     };
     const clearHL = () => { document.querySelectorAll('.drop-over').forEach(el => el.classList.remove('drop-over')); };
+    /* a single cleanup that any pointer event can safely call */
+    const dragCleanup = () => {
+      document.querySelectorAll('.ml-drag-ghost').forEach(g => g.remove());
+      document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+      clearHL();
+      dragId = null; dragEl = null; ghostEl = null;
+    };
     document.querySelector('.ml-plan').addEventListener('pointerdown', e => {
+      /* clean up anything left behind from a previous gesture before starting fresh */
+      dragCleanup();
       const row = e.target.closest('.ml-kids .bj.sub');
       if (!row || e.target.closest('button, select, input')) return;
       const id = row.querySelector('[data-ml-done]')?.dataset.mlDone;
       if (!id) return;
-      e.preventDefault();
+      /* require a modest hold-and-drag; a quick tap falls through to click */
+      let started = false;
+      const startAt = {x: e.clientX, y: e.clientY};
+      const begin = () => {
+        if (started || !dragId) return;
+        started = true;
+        try { row.setPointerCapture(e.pointerId); } catch(err) {}
+        ghostEl = document.createElement('div');
+        ghostEl.className = 'ml-drag-ghost';
+        ghostEl.textContent = row.querySelector('.tx')?.textContent || '';
+        ghostEl.style.cssText = `position:fixed;top:${e.clientY - 16}px;left:${e.clientX + 12}px;pointer-events:none;z-index:9999`;
+        document.body.appendChild(ghostEl);
+        row.classList.add('dragging');
+      };
       dragId = id; dragEl = row;
-      row.setPointerCapture(e.pointerId);
-      ghostEl = document.createElement('div');
-      ghostEl.className = 'ml-drag-ghost';
-      ghostEl.textContent = row.querySelector('.tx')?.textContent || '';
-      ghostEl.style.cssText = `position:fixed;top:${e.clientY - 16}px;left:${e.clientX + 12}px;pointer-events:none;z-index:9999`;
-      document.body.appendChild(ghostEl);
-      row.classList.add('dragging');
+      const probeMove = ev => {
+        if (!dragId) { document.removeEventListener('pointermove', probeMove); return; }
+        const dx = ev.clientX - startAt.x, dy = ev.clientY - startAt.y;
+        if (Math.hypot(dx, dy) > 6) { begin(); document.removeEventListener('pointermove', probeMove); }
+      };
+      document.addEventListener('pointermove', probeMove);
+      setTimeout(begin, 220);  /* also start on a long press */
     });
     document.addEventListener('pointermove', e => {
       if (!dragId) return;
@@ -2609,20 +2631,25 @@
     });
     document.addEventListener('pointerup', e => {
       if (!dragId) return;
-      clearHL();
-      const t = findTarget(e.clientX, e.clientY);
-      if (t && t.type === 'day') {
-        const wk = weekKey(t.day);
-        patchItem(dragId, {targetWeek: wk, due: t.day});
-        toast('Planned for ' + shortDay(t.day));
-      } else if (t && t.type === 'week') {
-        patchItem(dragId, {targetWeek: t.wk});
-        toast('Moved to Week ' + Number(t.wk.slice(6)));
+      /* only commit a move when the ghost actually appeared — a tap falls through */
+      if (ghostEl) {
+        const t = findTarget(e.clientX, e.clientY);
+        if (t && t.type === 'day') {
+          const wk = weekKey(t.day);
+          patchItem(dragId, {targetWeek: wk, due: t.day});
+          toast('Planned for ' + shortDay(t.day));
+        } else if (t && t.type === 'week') {
+          patchItem(dragId, {targetWeek: t.wk});
+          toast('Moved to Week ' + Number(t.wk.slice(6)));
+        }
       }
-      if (dragEl) dragEl.classList.remove('dragging');
-      if (ghostEl) { ghostEl.remove(); ghostEl = null; }
-      dragId = null; dragEl = null;
+      dragCleanup();
     });
+    document.addEventListener('pointercancel', dragCleanup);
+    document.addEventListener('pointerleave', e => { if (!e.relatedTarget) dragCleanup(); });
+    /* backstop: when the window loses focus or becomes hidden, wipe any orphan ghost */
+    window.addEventListener('blur', dragCleanup);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) dragCleanup(); });
   })();
   document.querySelector('.ml-plan').addEventListener('click', e => {
     const hit = name => { const b = e.target.closest(`[data-ml-${name}]`); return b ? items.find(i => i.id === b.getAttribute('data-ml-' + name)) : null; };
