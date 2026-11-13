@@ -2069,6 +2069,22 @@
     const t = m ? PREFIX[m[1]] : /^!/.test(e.target.value) ? 'task' : logPicked;
     if (t !== logType) { logType = t; document.querySelectorAll('#lgType button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.btype === logType))); }
   });
+  function openJotSheet(){
+    const sh = $('lgSheet'); if (!sh) return;
+    if (typeof sh.showModal === 'function') { if (!sh.open) sh.showModal(); } else { sh.setAttribute('open', ''); }
+    $('lgFab').setAttribute('aria-expanded', 'true');
+    setTimeout(() => { try { $('lgText').focus(); } catch(e){} }, 20);
+  }
+  function closeJotSheet(){
+    const sh = $('lgSheet'); if (!sh) return;
+    if (typeof sh.close === 'function') { if (sh.open) sh.close(); } else { sh.removeAttribute('open'); }
+    $('lgFab').setAttribute('aria-expanded', 'false');
+  }
+  $('lgFab').addEventListener('click', openJotSheet);
+  $('lgSheetClose').addEventListener('click', closeJotSheet);
+  /* a tap on the backdrop (outside the sheet body) closes it */
+  $('lgSheet').addEventListener('click', e => { if (e.target === $('lgSheet')) closeJotSheet(); });
+  $('lgSheet').addEventListener('close', () => $('lgFab').setAttribute('aria-expanded', 'false'));
   $('lgForm').addEventListener('submit', e => {
     e.preventDefault();
     const p = parseEntry($('lgText').value, logType);
@@ -2077,7 +2093,7 @@
     logType = logPicked;
     if (p.type === 'task') newTask(p.text, logDate, p.high ? {priority:'High'} : null);
     else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now()});
-    $('lgText').focus();
+    closeJotSheet();
     const last = $('lgList').lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({block:'nearest'});
   });
   const HOME_PH = {task:'e.g. buy milk tomorrow', expense:'e.g. 450 groceries, 200 coffee', habit:'e.g. workout', note:'A thought worth keeping', event:'e.g. 18:00 dentist', mood:'How the day feels', idea:'Something worth trying', problem:'What is in the way', mistake:'What went wrong', observation:'What you noticed'};
@@ -2347,7 +2363,7 @@
     if (!b) return;
     const act = b.dataset.now, t = items.find(i => i.id === $('nowBar').dataset.id);
     if (act === 'stop') endFocus(false);
-    else if (act === 'review' || act === 'jot') { go('journal'); setJournalTab('day'); setLogDate(isoToday); if (act === 'jot') $('lgText').focus(); }
+    else if (act === 'review' || act === 'jot') { go('journal'); setJournalTab('day'); setLogDate(isoToday); if (act === 'jot') openJotSheet(); }
     else if (!t) return;
     else if (act === 'start') { focus = {title:t.title, mins:focusMins, start:Date.now()}; saveFocus(); renderFocus(); }
     else if (act === 'done') { patchItem(t.id, {done:true}); toast('Done. Next one is up.', () => patchItem(t.id, {done:false})); }

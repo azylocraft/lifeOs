@@ -172,6 +172,7 @@
       <div class="seg jn-tabs" id="jnTabs" role="group" aria-label="Journal pages"><button type="button" data-jtab="day" aria-pressed="true">Daily log</button><button type="button" data-jtab="month" aria-pressed="false">Monthly log</button></div>
 
       <div id="jnDay">
+        <button type="button" class="jot-fab" id="lgFab" aria-label="Jot an entry" aria-controls="lgSheet" aria-expanded="false"><span aria-hidden="true">✎</span></button>
         <div class="book day">
           <div class="page left">
             <div class="cal-head"><div class="cal-title">Earlier days <span class="sub" id="lgPastSub" style="font-weight:400;font-size:12px;margin-left:6px">Last 7 days</span></div><div class="seg ml-tabs" id="pastTabsGlobal"><button data-pasttab="plan">Plan</button><button data-pasttab="log">Log</button></div></div>
@@ -190,19 +191,23 @@
               <div class="bj-key" aria-label="What the bullets mean"><span><b>•</b>Action</span><span><b>–</b>Note</span><span><b>○</b>Event</span><span><b>=</b>Mood</span><span><b>✕</b>Done</span><span><b>&gt;</b>Moved</span></div>
               <div class="bj-list" id="lgDoneList"></div>
             </div>
-            <form id="lgForm" class="bj-add">
-              <div class="seg bj-type" id="lgType" role="group" aria-label="Kind of entry"><button type="button" data-btype="task" aria-label="Action" title="Action">•</button><button type="button" data-btype="note" aria-label="Note" title="Note">–</button><button type="button" data-btype="event" aria-label="Event" title="Event">○</button><button type="button" data-btype="mood" aria-label="Mood" title="Mood">=</button><button type="button" data-btype="idea" aria-label="Idea" title="Idea">✦</button><button type="button" data-btype="problem" aria-label="Problem" title="Problem">△</button><button type="button" data-btype="mistake" aria-label="Mistake" title="Mistake">✘</button><button type="button" data-btype="observation" aria-label="Observation" title="Observation">◎</button></div>
-              <input id="lgText" maxlength="500" required autocomplete="off" placeholder="Jot it down and press Enter" aria-label="New entry">
-              <button class="btn" type="submit">Add</button>
-            </form>
-            <details class="bj-help">
-              <summary>Shortcuts &amp; gestures</summary>
-              <div class="bj-help-h">Start a line with</div>
-              <div class="bj-help-grid"><span><kbd>-</kbd>Note</span><span><kbd>o</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>+</kbd>Idea</span><span><kbd>?</kbd>Problem</span><span><kbd>x</kbd>Mistake</span><span><kbd>@</kbd>Observation</span><span><kbd>!</kbd>Important</span></div>
-              <div class="bj-help-note">A time after the letter is kept — <i>o 4pm dentist</i>.</div>
-              <div class="bj-help-h">On any entry</div>
-              <div class="bj-help-grid wide"><span><kbd>Swipe right</kbd>Complete it</span><span><kbd>Swipe left</kbd>Delete it</span><span><kbd>Triple-tap</kbd>Move to tomorrow</span><span><kbd>☆</kbd>Pick your top 3</span></div>
-            </details>
+            <dialog id="lgSheet" class="jot-sheet" aria-label="Jot an entry">
+              <div class="jot-sheet-grabber" aria-hidden="true"></div>
+              <div class="jot-sheet-head"><h2>Jot it down</h2><button type="button" class="icon-btn" id="lgSheetClose" aria-label="Close">✕</button></div>
+              <form id="lgForm" class="bj-add">
+                <div class="seg bj-type" id="lgType" role="group" aria-label="Kind of entry"><button type="button" data-btype="task" aria-label="Action" title="Action">•</button><button type="button" data-btype="note" aria-label="Note" title="Note">–</button><button type="button" data-btype="event" aria-label="Event" title="Event">○</button><button type="button" data-btype="mood" aria-label="Mood" title="Mood">=</button><button type="button" data-btype="idea" aria-label="Idea" title="Idea">✦</button><button type="button" data-btype="problem" aria-label="Problem" title="Problem">△</button><button type="button" data-btype="mistake" aria-label="Mistake" title="Mistake">✘</button><button type="button" data-btype="observation" aria-label="Observation" title="Observation">◎</button></div>
+                <input id="lgText" maxlength="500" required autocomplete="off" autofocus placeholder="Jot it down and press Enter" aria-label="New entry">
+                <button class="btn" type="submit">Add</button>
+              </form>
+              <details class="bj-help">
+                <summary>Shortcuts &amp; gestures</summary>
+                <div class="bj-help-h">Start a line with</div>
+                <div class="bj-help-grid"><span><kbd>-</kbd>Note</span><span><kbd>o</kbd>Event</span><span><kbd>=</kbd>Mood</span><span><kbd>+</kbd>Idea</span><span><kbd>?</kbd>Problem</span><span><kbd>x</kbd>Mistake</span><span><kbd>@</kbd>Observation</span><span><kbd>!</kbd>Important</span></div>
+                <div class="bj-help-note">A time after the letter is kept — <i>o 4pm dentist</i>.</div>
+                <div class="bj-help-h">On any entry</div>
+                <div class="bj-help-grid wide"><span><kbd>Swipe right</kbd>Complete it</span><span><kbd>Swipe left</kbd>Delete it</span><span><kbd>Triple-tap</kbd>Move to tomorrow</span><span><kbd>☆</kbd>Pick your top 3</span></div>
+              </details>
+            </dialog>
           </div>
         </div>
         <div class="grid day-cards" style="margin-top:18px">
