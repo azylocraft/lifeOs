@@ -42,20 +42,19 @@
     </div>
 
     <section class="view active" id="view-home">
-      <div class="grid home-grid">
-        <div class="card dark overall"><div class="card-head"><h2>Overall</h2><span class="stat-icon" aria-hidden="true">✓</span></div>
-          <div class="big-row"><div><span class="big" id="statDone">0</span><span class="big-l">tasks done<br>so far</span></div><span class="sep" aria-hidden="true"></span><div><span class="big" id="statOverdue">0</span><span class="big-l">tasks are<br>overdue</span></div></div>
-          <div class="progress" style="margin-top:0"><span id="homeBar" style="width:0%"></span></div>
-          <div class="tiles3"><div class="t"><b id="statTasks">0</b><span>Open tasks</span></div><div class="t"><b id="statExpenses">₹0</b><span>Spent this month</span></div><div class="t"><b id="statTrips">0</b><span>Upcoming trips</span></div></div>
-        </div>
-        <div class="card glass"><div class="card-head"><div><h2>Spending</h2><div class="sub">Last 6 months against your budget</div></div></div><div class="cols compact" id="homeMonths"></div></div>
-        <div class="card"><div class="card-head"><div><h2>Month budget</h2><div class="sub">Total budget against all spending</div></div><span class="stat-icon" aria-hidden="true">₹</span></div>
-          <div class="ring-row"><div class="ring big" id="budgetRing" role="img" aria-label="Budget used"><div><b id="budgetRingText">0%</b><small>used</small></div></div>
-            <div class="ring-side"><div><span class="l">Spent</span><b id="homeSpent">₹0</b></div><div><span class="l">Budget</span><b id="homeBudget">Not set</b></div><div><span class="l" id="homeLeftLabel">Left to spend</span><b id="homeLeft">–</b></div></div></div>
-          <p class="sub" id="homeAside" style="margin-top:12px"></p>
-          <button type="button" class="btn secondary small" data-go="expenses" style="margin-top:18px">View expenses</button>
+      <div class="card bud-compact">
+        <div class="bud-compact-label">Month budget</div>
+        <div class="bud-compact-row">
+          <div class="ring" id="budgetRing" role="img" aria-label="Budget used"><div><b id="budgetRingText">0%</b><small>used</small></div></div>
+          <div class="bud-compact-stats">
+            <div><span class="l">Spent</span><b id="homeSpent">₹0</b></div>
+            <div><span class="l">Budget</span><b id="homeBudget">Not set</b></div>
+            <div><span class="l" id="homeLeftLabel">Left</span><b id="homeLeft">–</b></div>
+          </div>
+          <div class="bud-compact-extra"><p class="sub" id="homeAside"></p><button type="button" class="btn secondary small" data-go="expenses">View expenses</button></div>
         </div>
       </div>
+      <div class="card glass"><div class="card-head"><div><h2>Spending</h2><div class="sub">Last 6 months against your budget</div></div></div><div class="cols compact" id="homeMonths"></div></div>
       <div class="grid two-col">
         <div class="card"><div class="card-head"><div><h2>Today’s focus</h2><div class="sub" id="homeFocusSub">Your next few tasks</div></div><button type="button" class="btn secondary small" data-go="journal">Open log</button></div><div id="homeTasks" class="list"></div></div>
         <div class="card"><div class="card-head"><div><h2>Recent expenses</h2><div class="sub">Latest entries</div></div><button type="button" class="btn secondary small" data-go="expenses">View all</button></div><div id="homeExpenses" class="list"></div></div>

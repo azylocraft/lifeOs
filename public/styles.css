@@ -154,6 +154,16 @@
   .ring-side { display:grid; gap:10px; min-width:0 }
   .ring-side .l { display:block; font-size:11.5px; color:var(--muted) }
   .ring-side b { font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere }
+  /* compact month-budget hero at the top of Overview */
+  .bud-compact { padding:14px 16px; margin-bottom:0 }
+  .bud-compact-label { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:10px }
+  .bud-compact-row { display:flex; align-items:center; gap:18px; flex-wrap:wrap }
+  .bud-compact-stats { display:flex; gap:22px; flex:1; flex-wrap:wrap }
+  .bud-compact-stats > div { display:flex; flex-direction:column; gap:1px }
+  .bud-compact-stats .l { font-size:11.5px; color:var(--muted) }
+  .bud-compact-stats b { font-size:16px; font-weight:600; font-variant-numeric:tabular-nums }
+  .bud-compact-extra { display:flex; flex-direction:column; align-items:flex-end; gap:6px; margin-left:auto }
+  .bud-compact-extra .sub { margin:0; font-size:11.5px; text-align:right; max-width:200px }
 
   .btn { border:1px solid transparent; border-radius:999px; padding:12px 22px; background:var(--accent); color:var(--on-accent); font-weight:500; font-size:13px; white-space:nowrap; transition:filter .15s,transform .15s }
   .btn:hover { filter:brightness(1.15); transform:translateY(-1px) }

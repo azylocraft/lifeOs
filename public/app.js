@@ -327,13 +327,6 @@
   function renderHome(){
     const tasks = sortedTasks(), open = tasks.filter(t => !t.done);
     const exps = sortedExpenses();
-    $('statTasks').textContent = open.length;
-    const doneCount = tasks.length - open.length;
-    $('statDone').textContent = doneCount;
-    $('statOverdue').textContent = open.filter(t => t.due && t.due < isoToday).length;
-    $('homeBar').style.width = tasks.length ? Math.round(doneCount / tasks.length * 100) + '%' : '0%';
-    $('statExpenses').textContent = money(sum(exps.filter(e => monthKey(e.date) === monthKey(isoToday))));
-    $('statTrips').textContent = ofKind('trip').filter(t => !isPast(t)).length;
     /* Today's focus is only what you picked as your top 3; nothing else fills the card */
     const tops = topsOf(isoToday).filter(t => !t.done);
     $('homeFocusSub').textContent = tops.length ? `Your top ${tops.length} for today` : 'Nothing picked yet';
