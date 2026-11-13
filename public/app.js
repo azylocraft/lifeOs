@@ -334,14 +334,12 @@
     $('homeBar').style.width = tasks.length ? Math.round(doneCount / tasks.length * 100) + '%' : '0%';
     $('statExpenses').textContent = money(sum(exps.filter(e => monthKey(e.date) === monthKey(isoToday))));
     $('statTrips').textContent = ofKind('trip').filter(t => !isPast(t)).length;
+    /* Today's focus is only what you picked as your top 3; nothing else fills the card */
     const tops = topsOf(isoToday).filter(t => !t.done);
-    /* only today's work fills the card — overdue tasks are counted above, not listed here */
-    const rest = open.filter(t => !tops.some(x => x.id === t.id) && !(t.due && t.due < isoToday));
-    const focus = [...tops, ...rest.slice(0, Math.max(0, 4 - tops.length))];
-    $('homeFocusSub').textContent = tops.length ? `Your top ${tops.length} for today` : 'Pick your top 3 in the daily log';
-    $('homeTasks').innerHTML = focus.length
-      ? focus.map(t => taskHTML(t, tops.findIndex(x => x.id === t.id) + 1)).join('')
-      : empty(tasks.length ? 'Everything is done. Add a task when something comes up.' : 'No tasks yet. Add your first one in today’s log above.');
+    $('homeFocusSub').textContent = tops.length ? `Your top ${tops.length} for today` : 'Nothing picked yet';
+    $('homeTasks').innerHTML = tops.length
+      ? tops.map(t => taskHTML(t, tops.findIndex(x => x.id === t.id) + 1)).join('')
+      : empty(open.length ? 'Pick up to 3 important actions for today in the daily log.' : 'No tasks yet. Add one with the pencil, then star it as top 3.');
     $('homeExpenses').innerHTML = exps.length ? exps.slice(0,4).map(e =>
       `<div class="item"><div class="item-main"><div class="item-title">${esc(e.name)}</div><div class="item-meta">${esc(prettyDate(e.date))} &nbsp; <span class="tag">${esc(e.category)}</span></div></div><div class="item-side">${esc(money(e.amount))}</div></div>`).join('')
       : empty('No expenses yet. Add your first one under Expenses.');
@@ -2072,6 +2070,10 @@
   });
   function openJotSheet(){
     const sh = $('lgSheet'); if (!sh) return;
+    /* a quick jot from any view goes to today; the journal's own day view keeps its date */
+    const onDay = !$('view-journal').classList.contains('active') || jnTab === 'day' ? false : false;
+    const activeIsJournalDay = $('view-journal').classList.contains('active') && jnTab === 'day';
+    if (!activeIsJournalDay && logDate !== isoToday) logDate = isoToday;
     if (typeof sh.showModal === 'function') { if (!sh.open) sh.showModal(); } else { sh.setAttribute('open', ''); }
     $('lgFab').setAttribute('aria-expanded', 'true');
     setTimeout(() => { try { $('lgText').focus(); } catch(e){} }, 20);
