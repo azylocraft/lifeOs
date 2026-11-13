@@ -2594,7 +2594,7 @@
     document.querySelector('.ml-plan').addEventListener('pointerdown', e => {
       /* clean up anything left behind from a previous gesture before starting fresh */
       dragCleanup();
-      const row = e.target.closest('.ml-kids .bj.sub');
+      const row = e.target.closest('.ml-kids .bj.sub, .ml-sub-kids .bj.sub-sub');
       if (!row || e.target.closest('button, select, input')) return;
       const id = row.querySelector('[data-ml-done]')?.dataset.mlDone;
       if (!id) return;
