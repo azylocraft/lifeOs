@@ -665,10 +665,7 @@ button.bj-g:hover { background:var(--track) }
 /* middle column of a week row: planned chips inline, then a small + to jot on this day */
 .ml-mid { display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden; padding:0 4px }
 .ml-mid .ml-day-task { font-size:10.5px; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px }
-.ml-add-day { border:0; background:transparent; color:color-mix(in srgb, var(--text) 42%, transparent); width:18px; height:18px; border-radius:50%; font-size:14px; line-height:1; display:inline-grid; place-items:center; padding:0; opacity:0; transition:opacity .15s, background .15s, color .15s; cursor:pointer; flex-shrink:0 }
-.ml-row:hover .ml-add-day, .ml-add-day:focus-visible { opacity:1 }
-.ml-row.today .ml-add-day { opacity:.7 }
-.ml-add-day:hover { background:color-mix(in srgb, var(--text) 10%, transparent); color:var(--text) }
+
 .ml-week { padding:0 0 4px }
 .ml-week + .ml-week { margin-top:10px }
 .ml-week .ml-row:last-child { border-bottom:0 }
@@ -769,7 +766,7 @@ button.bj-g:hover { background:var(--track) }
   .ml-mid { padding:0 2px }
   .ml-mid .ml-day-task { font-size:9.5px; max-width:160px }
   /* on a phone the add button stays visible, since there is no hover */
-  .ml-add-day { opacity:.6 }
+
 }
 
 /* project rows in monthly plan */

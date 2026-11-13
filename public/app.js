@@ -2476,7 +2476,7 @@
       const planInline = mlTab === 'done' ? '' : (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join('');
       const mid = mlTab === 'done'
         ? `<div class="ml-done-inline">${didStr || '<span class="ml-done-empty"></span>'}</div>`
-        : `<div class="ml-mid">${planInline}<button type="button" class="ml-add-day" data-ml-add="${iso}" aria-label="Add to ${esc(dayLabel(iso))}" title="Add here">+</button></div>`;
+        : `<div class="ml-mid">${planInline}</div>`;
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
         ${mid}
@@ -2519,8 +2519,6 @@
     safeHTML($('mlReflect'), html || empty('Nothing logged yet. Use ✦ idea, △ problem, ✘ mistake or ◎ observation in your daily log.'));
   }
   $('mlRows').addEventListener('click', e => {
-    const add = e.target.closest('[data-ml-add]');
-    if (add) { e.stopPropagation(); openJotSheet(add.dataset.mlAdd); return; }
     const open = e.target.closest('[data-ml-open]'), dot = e.target.closest('[data-ml-habit]');
     if (open) { setJournalTab('day'); setLogDate(open.dataset.mlOpen); window.scrollTo(0, 0); }
     else if (dot) {
