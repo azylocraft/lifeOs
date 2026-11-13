@@ -524,12 +524,17 @@ button.bj-g:hover { background:var(--track) }
 .shape-row .tm { font-variant-numeric:tabular-nums }
 .shape-hint { font-size:11px; color:var(--muted); font-style:italic; padding:2px 0 }
 /* the cheat sheet: folded away, and laid out as a key beside its meaning when opened */
-.bj-help { margin-top:12px; padding-top:10px; border-top:1px solid var(--line-soft) }
-.bj-help summary { font-size:11.5px; color:var(--muted); cursor:pointer; list-style:none; display:flex; align-items:center; gap:5px }
-.bj-help summary::-webkit-details-marker { display:none }
-.bj-help summary::before { content:"›"; display:inline-block; transition:transform .15s; font-size:13px; line-height:1 }
-.bj-help[open] summary::before { transform:rotate(90deg) }
-.bj-help summary:hover { color:var(--text-2) }
+/* the summary is a glass pill with its chevron tucked on the right, rotating when open */
+.bj-help { margin-top:12px }
+.bj-help summary { font-size:12px; color:var(--text-2); cursor:pointer; list-style:none;
+  display:inline-flex; align-items:center; gap:8px; padding:6px 10px 6px 14px; border-radius:999px;
+  background:linear-gradient(180deg, var(--g-face), var(--g-face-2)); border:1px solid var(--g-edge);
+  box-shadow:inset 0 1px 0 var(--g-spec), var(--g-shadow) }
+.bj-help summary::-webkit-details-marker, .bj-help summary::marker { display:none; content:"" }
+.bj-help summary::after { content:"›"; display:inline-grid; place-items:center; width:16px; height:16px; font-size:13px; line-height:1;
+  border-radius:50%; background:color-mix(in srgb, var(--text) 10%, transparent); transition:transform .15s }
+.bj-help[open] summary::after { transform:rotate(90deg) }
+.bj-help summary:hover { color:var(--text) }
 .bj-help-h { font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--faint); margin:10px 0 5px }
 .bj-help-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:5px 12px; font-size:11.5px; color:var(--text-2) }
 .bj-help-grid.wide { grid-template-columns:repeat(auto-fill, minmax(168px, 1fr)) }
@@ -588,17 +593,23 @@ button.bj-g:hover { background:var(--track) }
 /* a cell is a block of a real day: its kind on a badge, the actions dropped into it below */
 .rh-grid { align-items:stretch }
 .rh-wrap { overflow-x:auto; overscroll-behavior-x:contain }
-.rh-cell { border:1px solid color-mix(in srgb, var(--stroke) 40%, transparent); background:transparent; color:var(--text-2);
-  border-radius:12px; padding:5px 4px; font-size:10.5px; min-width:0; min-height:42px; display:flex; flex-direction:column; align-items:flex-start; gap:3px }
-.rh-cell.maker { background:color-mix(in srgb, var(--pop, var(--accent)) 13%, transparent); border-color:color-mix(in srgb, var(--pop, var(--accent)) 38%, transparent) }
-.rh-cell.is-today { box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent) }
-.rh-cell.sleep { border:none; background:transparent; color:var(--faint); font-size:9px; padding:4px 2px; min-height:22px; align-items:center; justify-content:center }
-.rh-cell.rh-drop-over, .rh-pool.rh-drop-over { background:color-mix(in srgb, var(--pop, var(--accent)) 26%, transparent);
+/* a cell reads as its kind by colour alone: a warm wash for maker, a cool one for manager, blue for sleep.
+   The small dot in the corner is still the tap target to cycle the kind. */
+:root { --rh-sleep:#4f88e5 }
+.rh-cell { border:1px solid color-mix(in srgb, var(--stroke) 36%, transparent); color:var(--text-2);
+  border-radius:12px; padding:5px 4px; font-size:10.5px; min-width:0; min-height:42px; display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+  background:color-mix(in srgb, var(--text) 5%, transparent) }
+.rh-cell.maker { background:color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent); border-color:color-mix(in srgb, var(--pop, var(--accent)) 44%, transparent) }
+.rh-cell.manager { background:color-mix(in srgb, var(--text) 8%, transparent) }
+.rh-cell.sleep { background:color-mix(in srgb, var(--rh-sleep) 28%, transparent); border-color:color-mix(in srgb, var(--rh-sleep) 48%, transparent);
+  min-height:30px; padding:0; cursor:pointer }
+.rh-cell.is-today { box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--text) 34%, transparent) }
+.rh-cell.rh-drop-over, .rh-pool.rh-drop-over { background:color-mix(in srgb, var(--pop, var(--accent)) 30%, transparent);
   border-color:var(--pop, var(--accent)); box-shadow:0 0 0 2px color-mix(in srgb, var(--pop, var(--accent)) 45%, transparent) }
-.rh-mode { border:0; border-radius:7px; padding:2px 7px; font-size:9.5px; font-weight:700; line-height:1.4; letter-spacing:.02em; flex-shrink:0 }
-.rh-mode.maker { background:var(--pop, var(--accent)); color:var(--on-pop, var(--on-accent)) }
-.rh-mode.manager { background:color-mix(in srgb, var(--text) 12%, transparent); color:var(--text-2) }
-.rh-mode:hover { filter:brightness(1.15) }
+.rh-mode { border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; width:10px; height:10px; min-width:10px; font-size:0; line-height:1; flex-shrink:0; align-self:flex-end }
+.rh-mode.maker { background:var(--pop, var(--accent)) }
+.rh-mode.manager { background:color-mix(in srgb, var(--text) 45%, transparent) }
+.rh-mode:hover { filter:brightness(1.2); transform:scale(1.15) }
 .rh-task { display:block; width:100%; font-size:10px; line-height:1.35; padding:3px 6px; border-radius:7px; cursor:grab;
   background:color-mix(in srgb, var(--card) 85%, transparent); border:1px solid color-mix(in srgb, var(--stroke) 30%, transparent);
   color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }

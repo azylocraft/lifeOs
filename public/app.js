@@ -1611,13 +1611,14 @@
       const rank = topsOf(t.due).findIndex(x => x.id === t.id) + 1;
       return `<span class="rh-task${rank ? ' is-top' : ''}" draggable="true" data-drag-id="${esc(t.id)}" title="${esc(t.title)}${rank ? ' · top ' + rank : ''}">${esc(t.title)}</span>`;
     };
+    /* each cell is a day's block, coloured by its kind. A small dot in the corner cycles the kind */
     const cell = (dow, bk) => {
-      const iso = dateOf(dow), m = weekShape(dow)[bk];
-      if (m === 'sleep') return `<button type="button" class="rh-cell sleep" data-rh="${dow}" data-half="${bk}" aria-label="${names[dow]} ${esc(blockLabel(bk))}: asleep. Tap to switch">zz</button>`;
+      const iso = dateOf(dow), m = weekShape(dow)[bk], label = (m === 'sleep' ? 'Sleep' : MODE_NAME[m]) + ' time';
+      if (m === 'sleep') return `<button type="button" class="rh-cell sleep" data-rh="${dow}" data-half="${bk}" aria-label="${names[dow]} ${esc(blockLabel(bk))}: asleep. Tap to switch"></button>`;
       const mine = open.filter(t => t.due === iso && t.block === bk);
       mine.forEach(t => placed.add(t.id));
       return `<div class="rh-cell ${m} ${iso === isoToday ? 'is-today' : ''}" data-rh-drop="${iso}|${bk}">
-        <button type="button" class="rh-mode ${m}" data-rh="${dow}" data-half="${bk}" aria-label="${names[dow]} ${esc(blockLabel(bk))}: ${MODE_NAME[m]} time. Tap to switch">${m === 'maker' ? 'Mk' : 'Mg'}</button>
+        <button type="button" class="rh-mode ${m}" data-rh="${dow}" data-half="${bk}" aria-label="${names[dow]} ${esc(blockLabel(bk))}: ${label}. Tap to switch"></button>
         ${mine.map(chip).join('')}</div>`;
     };
     $('rhGrid').innerHTML = '<span></span>' + order.map(d => `<span class="h ${d === todayDow ? 'now' : ''}">${names[d]}</span>`).join('')
