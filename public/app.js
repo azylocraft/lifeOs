@@ -2485,7 +2485,7 @@
       html += `<div class="ml-row ${iso === isoToday ? 'today' : ''} ${dow === 0 || dow === 6 ? 'wkend' : ''}" data-ml-drop-day="${iso}">
         <button type="button" class="ml-day" data-ml-open="${iso}" aria-label="Open the daily log for ${esc(dayLabel(iso))}"><span>${'SMTWTFS'[dow]}</span><b>${d}</b></button>
         ${mid}
-        ${mlTab === 'done' ? '' : `<div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>`}
+        <div class="ml-habits">${habits.map(h => `<button type="button" class="ml-dot ${done.has(h.id) ? 'on' : ''}" data-ml-habit="${esc(h.id)}" data-day="${iso}" aria-pressed="${done.has(h.id)}" aria-label="${esc(h.name)} on ${esc(dayMonth(iso))}"></button>`).join('')}</div>
       </div>`;
     }
     safeHTML($('mlRows'), html + '</div>');
