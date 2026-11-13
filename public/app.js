@@ -1903,7 +1903,7 @@
     if (logOpen && !items.some(x => x.id === logOpen)) logOpen = null;
     const planEntries = entries.filter(e => e.role === 'task' && !e.i.done);
     safeHTML($('lgList'), (planEntries.length ? planEntries.map(e => entryHTML(e, logDate, false)).join('')
-      : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing planned for this day.'}</div>`));
+      : `<button type="button" class="empty lg-empty-add" data-lg-jot="${esc(logDate)}">${loading && !items.length ? 'Getting your saved items…' : '+ Add something for this day'}</button>`));
     safeHTML($('lgDoneList'), (entries.length ? entries.map(e => entryHTML(e, logDate)).join('')
       : `<div class="empty">${loading && !items.length ? 'Getting your saved items...' : 'Nothing logged yet. Jot the first thing below.'}</div>`));
     document.querySelectorAll('#lgSubTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lgtab === lgTab)));
@@ -1954,6 +1954,7 @@
     }
   }
   ['lgList','lgDoneList','lgPast','lgShape','lgTomorrow'].forEach(id => { $(id).addEventListener('click', onLogClick); $(id).addEventListener('change', onLogChange); });
+  $('lgList').addEventListener('click', e => { const b = e.target.closest('[data-lg-jot]'); if (b) openJotSheet(b.dataset.lgJot); });
   $('lgShape').addEventListener('click', e => {
     const b = e.target.closest('[data-shape]');
     if (!b) return;
@@ -2393,12 +2394,14 @@
       const subKids = kidsOf(k.id).sort(byDoneThenAge);
       const subHTML = subKids.map(sk => `<div class="bj sub-sub ${sk.done ? 'done' : ''}">
         <button type="button" class="bj-g" data-ml-done="${esc(sk.id)}" aria-pressed="${!!sk.done}">${sk.done ? '✕' : '○'}</button>
-        <div class="bj-t"><span class="tx">${esc(sk.title)}</span></div></div>`).join('');
+        <div class="bj-t"><span class="tx">${esc(sk.title)}</span></div>
+        <button type="button" class="icon-btn" data-act="delete" data-id="${esc(sk.id)}" aria-label="Delete sub-step: ${esc(sk.title)}">✕</button></div>`).join('');
       return `<div class="ml-step-wrap"><div class="bj sub ${k.done ? 'done' : ''}">
         <button type="button" class="bj-g" data-ml-done="${esc(k.id)}" aria-pressed="${!!k.done}">${k.done ? '✕' : '○'}</button>
         <div class="bj-t"><span class="tx">${esc(k.title)}</span>${wkLabel ? `<span class="bj-m">${wkLabel}</span>` : ''}</div>
         <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Wk</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${'W' + w.num}</option>`).join('')}</select>
         ${k.done ? '' : `<button type="button" class="icon-btn ml-sub-add" data-ml-sub="${esc(k.id)}" aria-label="Add sub-step">＋</button>`}
+        <button type="button" class="icon-btn" data-act="delete" data-id="${esc(k.id)}" aria-label="Delete step: ${esc(k.title)}">✕</button>
       </div>${subHTML ? `<div class="ml-sub-kids">${subHTML}</div>` : ''}</div>`;
     }).join('');
     const countLabel = kids.length ? `${kd}/${kids.length} done` : '';
@@ -2862,19 +2865,34 @@
 })();
 
 (() => {
-  const pg = document.getElementById('jnPager');
-  if (!pg) return;
-  let st = null;
-  pg.addEventListener('scroll', () => {
-    if (st) cancelAnimationFrame(st);
-    st = requestAnimationFrame(() => {
-      const w = pg.clientWidth; if (!w) return;
-      const idx = Math.round(pg.scrollLeft / w);
-      const t = idx === 1 ? 'month' : 'day';
-      if (typeof jnTab !== 'undefined' && jnTab !== t) {
-        jnTab = t;
-        document.querySelectorAll('#jnTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === jnTab)));
-      }
-    });
-  });
+  const pg = document.getElementById('jnPager'), tabs = document.getElementById('jnTabs');
+  if (!pg || !tabs) return;
+  const names = ['day', 'month'];
+  const getSlide = idx => document.getElementById(idx === 1 ? 'jnMonth' : 'jnDay');
+  function sync(){
+    const view = document.getElementById('view-journal');
+    if (!view || !view.classList.contains('active')) return;
+    const w = pg.clientWidth; if (!w) return;
+    const idx = Math.max(0, Math.min(1, Math.round(pg.scrollLeft / w)));
+    const t = names[idx];
+    tabs.querySelectorAll('[data-jtab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.jtab === t)));
+    const active = getSlide(idx);
+    if (active) {
+      const h = active.scrollHeight || active.offsetHeight;
+      if (h > 10 && Math.abs(pg.clientHeight - h) > 2) pg.style.height = h + 'px';
+    }
+  }
+  let rq = null;
+  const schedule = () => { if (rq) cancelAnimationFrame(rq); rq = requestAnimationFrame(sync); };
+  pg.addEventListener('scroll', schedule);
+  window.addEventListener('resize', schedule);
+  try {
+    const ro = new ResizeObserver(() => schedule());
+    const d = document.getElementById('jnDay'), m = document.getElementById('jnMonth');
+    if (d) ro.observe(d); if (m) ro.observe(m);
+  } catch(e) {}
+  /* every click anywhere nudges a re-sync — cheap, and catches view activation + content changes */
+  document.addEventListener('click', e => { schedule(); setTimeout(schedule, 50); setTimeout(schedule, 300); }, true);
+  /* initial passes */
+  setTimeout(sync, 60); setTimeout(sync, 300); setTimeout(sync, 1200); setTimeout(sync, 2500);
 })();
