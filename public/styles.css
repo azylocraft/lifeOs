@@ -809,7 +809,7 @@ button.bj-g:hover { background:var(--track) }
 
 /* done view in monthly log — single scrollable line per day */
 .ml-done-inline { font-size:11.5px; line-height:1.4; overflow-x:auto; white-space:nowrap; color:var(--text-2);
-  padding:2px 0; min-width:0; scrollbar-width:none }
+  padding:2px 0; min-width:0; scrollbar-width:none; touch-action:pan-x }
 .ml-done-inline::-webkit-scrollbar { display:none }
 .ml-done-g { margin-right:3px; opacity:.7; font-weight:600 }
 .ml-done-g.g-task { color:var(--text); opacity:.85 }
