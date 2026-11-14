@@ -1061,15 +1061,16 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 #view-journal { touch-action:pan-y }
 #jnDay, #jnMonth { backface-visibility:hidden }
 
-/* ---- Pages view: Google Docs + Notion layout ---- */
+/* ---- Pages view: Notion markdown layout ---- */
 #view-pages { padding:0 }
 
-.pages-layout { display:grid; grid-template-columns:210px 1fr; gap:0 24px; align-items:start }
+/* Two columns: document LEFT, outline RIGHT */
+.pages-layout { display:grid; grid-template-columns:1fr 210px; gap:0 24px; align-items:start }
 
-/* TOC sidebar */
+/* ---- Outline sidebar (right) ---- */
 .pages-toc-wrap { position:sticky; top:16px; max-height:calc(100vh - 100px); overflow-y:auto;
   background:var(--g-face); border-radius:14px; border:1px solid var(--g-edge);
-  box-shadow:0 2px 8px rgba(0,0,0,.06); padding-bottom:12px; scrollbar-width:thin }
+  box-shadow:0 2px 8px rgba(0,0,0,.06); padding-bottom:12px; scrollbar-width:thin; order:2 }
 .pages-toc-head { display:flex; align-items:center; justify-content:space-between;
   padding:12px 14px 10px; border-bottom:1px solid var(--line-soft); margin-bottom:4px }
 .pages-toc-head span { font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
@@ -1086,37 +1087,45 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   text-decoration:none; border-radius:6px; margin:1px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   transition:background .12s,color .12s }
 .toc-h1:hover,.toc-h2:hover,.toc-h3:hover { background:color-mix(in srgb,var(--text) 7%,transparent); color:var(--text) }
-.toc-active { background:color-mix(in srgb,var(--accent) 12%,transparent) !important; color:var(--accent) !important }
+.toc-active { background:color-mix(in srgb,var(--accent) 14%,transparent) !important; color:var(--accent) !important }
 
-/* Main doc area */
-.pages-main { min-width:0 }
-.pages-doc-bar { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:16px }
+/* ---- Main document area ---- */
+.pages-main { min-width:0; order:1 }
+.pages-doc-bar { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:18px }
 .pages-toc-toggle { display:none !important }
 
-/* Document content */
+/* ---- Document: Notion/markdown style ---- */
 .pages-doc { display:flex; flex-direction:column; gap:0 }
-.pages-type-sec { margin-bottom:28px; scroll-margin-top:16px }
-.pages-type-header { display:flex; align-items:center; gap:10px; padding:14px 20px;
-  background:color-mix(in srgb,var(--accent) 18%,var(--g-face)); border-radius:14px 14px 0 0;
-  border:1px solid var(--g-edge); border-bottom:none }
-.pages-type-g { font-size:19px }
-.pages-type-name { font-size:19px; font-weight:700; color:var(--text) }
 
-.pages-cat-sec { border-left:1px solid var(--g-edge); border-right:1px solid var(--g-edge);
-  scroll-margin-top:16px }
-.pages-cat-sec:last-child { border-bottom:1px solid var(--g-edge); border-radius:0 0 14px 14px; padding-bottom:12px }
-.pages-cat-h { font-size:16px; font-weight:700; color:var(--text); margin:18px 20px 8px; padding-bottom:6px;
-  border-bottom:1px solid var(--line-soft) }
+/* TYPE = clean large heading + underline separator (like ## in markdown) */
+.pages-type-sec { margin-bottom:32px; scroll-margin-top:16px }
+.pages-type-header { display:flex; align-items:center; gap:10px;
+  padding:4px 0 12px; background:none; border:none; border-radius:0;
+  border-bottom:2px solid var(--line-soft); margin-bottom:18px }
+.pages-type-g { font-size:22px; opacity:.65 }
+.pages-type-name { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-.01em }
 
-.pages-sub-sec { scroll-margin-top:16px; padding:0 0 4px }
-.pages-subcat-h { font-size:13px; font-weight:600; color:var(--text-2); margin:12px 20px 4px 32px;
-  letter-spacing:.03em; text-transform:capitalize }
+/* CATEGORY = full-width Notion-style colored header bar */
+.pages-cat-sec { border:none; margin-bottom:14px; scroll-margin-top:16px }
+.pages-cat-sec:last-child { border:none; border-radius:0; padding-bottom:0 }
+.pages-cat-h { font-size:15px; font-weight:700; color:var(--text);
+  background:color-mix(in srgb,var(--accent) 20%,var(--g-face));
+  margin:0 0 6px; padding:9px 16px; border-radius:8px;
+  border-left:3px solid var(--accent) }
 
-.pages-list { list-style:none; margin:0; padding:0 12px; display:flex; flex-direction:column; gap:0 }
-.pages-entry { display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:default; transition:background .12s }
+/* SUBCATEGORY = bold underlined sub-heading (like bold in Notion) */
+.pages-sub-sec { scroll-margin-top:16px; padding:0 0 6px }
+.pages-subcat-h { font-size:13.5px; font-weight:700; color:var(--text);
+  margin:10px 4px 4px 20px; text-decoration:underline; text-underline-offset:3px;
+  text-decoration-color:color-mix(in srgb,var(--text) 30%,transparent) }
+
+/* Bullet entries */
+.pages-list { list-style:none; margin:0; padding:0 4px; display:flex; flex-direction:column; gap:0 }
+.pages-entry { display:flex; align-items:center; gap:8px; padding:5px 10px; border-radius:7px;
+  cursor:default; transition:background .12s }
 .pages-entry:hover { background:color-mix(in srgb,var(--text) 5%,transparent) }
 .pages-entry:hover .pages-edit-btn { opacity:1 }
-.pages-glyph { font-size:12px; color:var(--muted); flex-shrink:0; min-width:14px; text-align:center }
+.pages-glyph { font-size:11px; color:var(--muted); flex-shrink:0; min-width:13px; text-align:center }
 .pages-entry-text { flex:1; font-size:14px; color:var(--text); min-width:0 }
 .pages-amount { font-size:13px; font-weight:600; color:var(--accent); flex-shrink:0; margin-right:4px }
 .pages-date { font-size:11px; color:var(--muted); flex-shrink:0 }
@@ -1131,8 +1140,9 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 
 @media (max-width:700px) {
   .pages-layout { display:block }
-  .pages-toc-wrap { position:fixed; top:0; left:0; bottom:0; width:min(85vw,300px); z-index:300;
-    max-height:none; border-radius:0 16px 16px 0; transform:translateX(-110%); transition:transform .24s cubic-bezier(.3,.9,.4,1) }
+  .pages-toc-wrap { position:fixed; top:0; right:0; bottom:0; left:auto; width:min(80vw,280px); z-index:300;
+    max-height:none; border-radius:16px 0 0 16px; transform:translateX(110%);
+    transition:transform .24s cubic-bezier(.3,.9,.4,1) }
   .pages-toc-wrap.open { transform:translateX(0) }
   .pages-toc-close { display:block }
   .pages-toc-toggle { display:flex !important; align-items:center; gap:5px }
