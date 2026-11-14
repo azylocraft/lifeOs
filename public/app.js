@@ -739,65 +739,81 @@
   function renderAll(){ migrateCats(); renderHome(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); renderPages(); }
 
   /* ---- Pages view ---- */
-  let pagesTypeFilter = 'all';
+  let pagesObserver = null;
   const PAGE_TYPES = ['mood','idea','problem','mistake','observation','custom','note','event'];
   const PAGE_LABELS = {mood:'Mood',idea:'Ideas',problem:'Problems',mistake:'Mistakes',observation:'Observations',custom:'Custom',note:'Notes',event:'Events',expense:'Expenses'};
 
   function renderPages(){
-    const doc = $('pagesDoc');
+    const doc = $('pagesDoc'), tocNav = $('pagesTocNav');
     if (!doc) return;
     const bullets = ofKind('bullet').filter(b => PAGE_TYPES.includes(b.type));
     const expenses = ofKind('expense').filter(e => e.cat);
     const grouped = {};
     bullets.forEach(b => {
       const t=b.type, c=b.cat||'', s=b.subcat||'';
-      if(!grouped[t]) grouped[t]={};
-      if(!grouped[t][c]) grouped[t][c]={};
-      if(!grouped[t][c][s]) grouped[t][c][s]=[];
+      if(!grouped[t]) grouped[t]={}; if(!grouped[t][c]) grouped[t][c]={}; if(!grouped[t][c][s]) grouped[t][c][s]=[];
       grouped[t][c][s].push(b);
     });
     expenses.forEach(e => {
       const c=e.cat||'', s=e.subcat||'';
-      if(!grouped.expense) grouped.expense={};
-      if(!grouped.expense[c]) grouped.expense[c]={};
-      if(!grouped.expense[c][s]) grouped.expense[c][s]=[];
+      if(!grouped.expense) grouped.expense={}; if(!grouped.expense[c]) grouped.expense[c]={}; if(!grouped.expense[c][s]) grouped.expense[c][s]=[];
       grouped.expense[c][s].push(e);
     });
-    const sortCats = obj => Object.keys(obj).sort((a,b)=> a===''?-1:b===''?1:a.localeCompare(b));
-    const typesToShow = pagesTypeFilter==='all' ? [...PAGE_TYPES,'expense'] : [pagesTypeFilter];
-    let html = '';
+    /* named cats first (alpha), uncategorized last */
+    const sortCats = obj => Object.keys(obj).sort((a,b) => a===''?1:b===''?-1:a.localeCompare(b));
+    const slugify = s => (s||'').replace(/[^\wऀ-ॿ]+/g,'-').toLowerCase().replace(/^-|-$/g,'')||'g';
+    const typesToShow = [...PAGE_TYPES,'expense'].filter(t => grouped[t]);
+    if (!typesToShow.length) {
+      safeHTML(doc, `<div class="pages-empty"><p>No entries yet.</p><p class="pages-hint">Use + to jot entries. Start with <code>/category</code> to organise them — e.g. <code>/work this idea</code> or <code>/sad /depression feeling low</code>.</p></div>`);
+      if (tocNav) safeHTML(tocNav, '');
+      return;
+    }
+    let docHtml = '', tocHtml = '';
     typesToShow.forEach(type => {
-      if (!grouped[type]) return;
       const typeData = grouped[type];
-      const label = PAGE_LABELS[type]||type;
-      let typeHtml = '';
+      const label = PAGE_LABELS[type]||type, glyph = GLYPH[type]||'₹';
+      const typeId = 'pg-'+type;
+      docHtml += `<section class="pages-type-sec" id="${typeId}"><div class="pages-type-header"><span class="pages-type-g">${glyph}</span><span class="pages-type-name">${esc(label)}</span></div>`;
+      tocHtml += `<div class="toc-grp"><a class="toc-h1" data-anchor="${typeId}" href="#${typeId}">${glyph}&nbsp;${esc(label)}</a>`;
       sortCats(typeData).forEach(cat => {
         const catData = typeData[cat];
-        let catHtml = '';
+        const catId = 'pg-'+type+'-'+(cat?slugify(cat):'unc');
+        docHtml += `<div class="pages-cat-sec" id="${catId}">`;
+        if (cat) { docHtml += `<h2 class="pages-cat-h">${esc(cat)}</h2>`; tocHtml += `<a class="toc-h2" data-anchor="${catId}" href="#${catId}">${esc(cat)}</a>`; }
         sortCats(catData).forEach(subcat => {
+          const subcatId = 'pg-'+type+'-'+(cat?slugify(cat):'unc')+'-'+(subcat?slugify(subcat):'unc');
           const entries = catData[subcat].slice().sort((a,b)=>(b.at||b.created||0)-(a.at||a.created||0));
-          const rows = entries.map(entry=>{
-            const text = esc(entry.text||entry.name||'');
-            const amount = entry.kind==='expense'?`<span class="pages-amount">${money(entry.amount)}</span>`:'';
-            const date = entry.date?`<span class="pages-date">${prettyDate(entry.date)}</span>`:'';
-            return `<li class="pages-entry" data-id="${esc(entry.id)}"><span class="pages-glyph">${GLYPH[entry.type]||'₹'}</span><span class="pages-entry-text">${text}</span>${amount}${date}<button type="button" class="pages-edit-btn" data-act="edit" data-id="${esc(entry.id)}" aria-label="Edit">✎</button></li>`;
-          }).join('');
           if (subcat) {
-            catHtml += `<div class="pages-subcat"><h3 class="pages-subcat-h">${esc(subcat)}</h3><ul class="pages-list">${rows}</ul></div>`;
+            docHtml += `<div class="pages-sub-sec" id="${subcatId}"><h3 class="pages-subcat-h">${esc(subcat)}</h3>`;
+            tocHtml += `<a class="toc-h3" data-anchor="${subcatId}" href="#${subcatId}">${esc(subcat)}</a>`;
           } else {
-            catHtml += `<ul class="pages-list">${rows}</ul>`;
+            docHtml += `<div class="pages-sub-sec">`;
           }
+          docHtml += `<ul class="pages-list">`;
+          entries.forEach(entry => {
+            const text=esc(entry.text||entry.name||''), amount=entry.kind==='expense'?`<span class="pages-amount">${money(entry.amount)}</span>`:'', date=entry.date?`<span class="pages-date">${prettyDate(entry.date)}</span>`:'';
+            docHtml += `<li class="pages-entry" data-id="${esc(entry.id)}"><span class="pages-glyph">${GLYPH[entry.type]||'₹'}</span><span class="pages-entry-text">${text}</span>${amount}${date}<button type="button" class="pages-edit-btn" data-act="edit" data-id="${esc(entry.id)}" aria-label="Edit">✎</button></li>`;
+          });
+          docHtml += `</ul></div>`;
         });
-        if (cat) {
-          typeHtml += `<div class="pages-cat"><h2 class="pages-cat-h">${esc(cat)}</h2>${catHtml}</div>`;
-        } else {
-          typeHtml += `<div class="pages-cat pages-cat-general">${catHtml}</div>`;
-        }
+        docHtml += `</div>`;
       });
-      if (typeHtml) html += `<div class="pages-type"><h1 class="pages-type-h"><span class="pages-type-g">${GLYPH[type]||'₹'}</span>${esc(label)}</h1>${typeHtml}</div>`;
+      docHtml += `</section>`;
+      tocHtml += `</div>`;
     });
-    if (!html) html = `<div class="pages-empty"><p>No entries yet.</p><p class="pages-hint">Use the <strong>+</strong> button to jot entries. Start with <code>/category</code> to organise them, e.g. <code>/work this idea</code> or <code>/sad /depression feeling low</code>.</p></div>`;
-    safeHTML(doc, html);
+    safeHTML(doc, docHtml);
+    if (tocNav) safeHTML(tocNav, tocHtml);
+    /* IntersectionObserver: highlight TOC item as sections scroll into view */
+    if (pagesObserver) { pagesObserver.disconnect(); pagesObserver = null; }
+    if (typeof IntersectionObserver !== 'undefined' && tocNav) {
+      pagesObserver = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          const a = tocNav.querySelector(`[data-anchor="${entry.target.id}"]`);
+          if (a) a.classList.toggle('toc-active', entry.isIntersecting);
+        });
+      }, {threshold:0, rootMargin:'-5% 0px -75% 0px'});
+      doc.querySelectorAll('[id^="pg-"]').forEach(el => pagesObserver.observe(el));
+    }
   }
 
   function downloadPagesWord(){
@@ -2882,17 +2898,6 @@
   connect();
 
   /* ---- Pages view events ---- */
-  $('pagesTypeFilter') && $('pagesTypeFilter').addEventListener('click', e => {
-    const btn = e.target.closest('[data-ptype]');
-    if (!btn) return;
-    pagesTypeFilter = btn.dataset.ptype;
-    $('pagesTypeFilter').querySelectorAll('[data-ptype]').forEach(b => {
-      const on = b === btn;
-      b.classList.toggle('active', on);
-      b.setAttribute('aria-pressed', String(on));
-    });
-    renderPages();
-  });
   $('pagesDownload') && $('pagesDownload').addEventListener('click', downloadPagesWord);
   $('pagesDoc') && $('pagesDoc').addEventListener('click', e => {
     const btn = e.target.closest('[data-act="edit"][data-id]');
@@ -2900,6 +2905,16 @@
     const item = items.find(i => i.id === btn.dataset.id);
     if (item) openEdit(item);
   });
+  $('pagesTocNav') && $('pagesTocNav').addEventListener('click', e => {
+    const a = e.target.closest('a[data-anchor]');
+    if (!a) return;
+    e.preventDefault();
+    const target = $(a.dataset.anchor);
+    if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    if (window.innerWidth < 700) { const w = $('pagesTocWrap'); if (w) w.classList.remove('open'); }
+  });
+  $('pagesTocToggle') && $('pagesTocToggle').addEventListener('click', () => { const w=$('pagesTocWrap'); if(w) w.classList.toggle('open'); });
+  $('pagesTocClose') && $('pagesTocClose').addEventListener('click', () => { const w=$('pagesTocWrap'); if(w) w.classList.remove('open'); });
 })();
 
 (() => {

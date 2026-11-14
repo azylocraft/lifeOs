@@ -270,21 +270,22 @@
     </section>
 
     <section class="view" id="view-pages">
-      <div class="pages-toolbar">
-        <div class="pages-filter" id="pagesTypeFilter" role="group" aria-label="Filter by type">
-          <button type="button" class="pages-pill active" data-ptype="all" aria-pressed="true">All</button>
-          <button type="button" class="pages-pill" data-ptype="mood" aria-pressed="false">= Mood</button>
-          <button type="button" class="pages-pill" data-ptype="idea" aria-pressed="false">✦ Ideas</button>
-          <button type="button" class="pages-pill" data-ptype="problem" aria-pressed="false">△ Problems</button>
-          <button type="button" class="pages-pill" data-ptype="mistake" aria-pressed="false">✘ Mistakes</button>
-          <button type="button" class="pages-pill" data-ptype="observation" aria-pressed="false">◎ Observations</button>
-          <button type="button" class="pages-pill" data-ptype="custom" aria-pressed="false">◆ Custom</button>
-          <button type="button" class="pages-pill" data-ptype="note" aria-pressed="false">– Notes</button>
-          <button type="button" class="pages-pill" data-ptype="expense" aria-pressed="false">₹ Expenses</button>
+      <div class="pages-layout">
+        <aside class="pages-toc-wrap" id="pagesTocWrap">
+          <div class="pages-toc-head">
+            <span>Outline</span>
+            <button type="button" class="icon-btn pages-toc-close" id="pagesTocClose" aria-label="Close outline">✕</button>
+          </div>
+          <nav id="pagesTocNav" class="pages-toc-nav" aria-label="Document outline"></nav>
+        </aside>
+        <div class="pages-main">
+          <div class="pages-doc-bar">
+            <button type="button" class="pages-toc-toggle btn secondary small" id="pagesTocToggle">≡ Outline</button>
+            <button type="button" class="btn secondary small" id="pagesDownload">↓ Word</button>
+          </div>
+          <div id="pagesDoc" class="pages-doc"></div>
         </div>
-        <button type="button" class="btn secondary small" id="pagesDownload">↓ Word</button>
       </div>
-      <div id="pagesDoc" class="pages-doc"></div>
     </section>
 
     <dialog id="lgSheet" class="jot-sheet" aria-label="Jot an entry">
