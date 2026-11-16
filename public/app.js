@@ -867,7 +867,7 @@
       up.focus();
       try { const r = document.createRange(); r.selectNodeContents(up); r.collapse(false); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); } catch(err) {}
     } else t.blur();
-    if (b && b.classList.contains('np-temp')) b.remove();
+    if (b) b.remove();
   }
   /* after an edit, open a fresh line at the end of this group and put the cursor in it */
   function npOpenTrail(){
@@ -875,6 +875,8 @@
     npTrail = null;
     setTimeout(() => {
       const doc = $('pagesDoc'); if (!doc) return;
+      /* a render that was held back while typing can leave an old one behind */
+      doc.querySelectorAll('.np-temp').forEach(el => el.remove());
       const grp = [...doc.querySelectorAll('.np-group')].find(el => el.dataset.key === k.type + '|' + k.cat + '|' + k.sub);
       if (!grp) return;
       let add = grp.querySelector('.np-add');
