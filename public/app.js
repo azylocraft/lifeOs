@@ -858,6 +858,17 @@
     const ph = cat ? 'Type, or /name for a subcategory' : 'Type, or /name for a category';
     return `<div class="np-block np-line np-add" data-kind="add" data-key="${esc(type + '|' + cat + '|' + sub)}" data-type="${type}" data-cat="${esc(cat)}" data-sub="${esc(sub)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add data-placeholder="${esc(ph)}"></span></div>`;
   };
+  /* backspace on the empty new line closes it again, cursor back on the line above */
+  function npCloseEmpty(t){
+    npTrail = null; t._esc = true;
+    const b = t.closest('.np-block'), prev = b && b.previousElementSibling;
+    const up = prev && prev.querySelector('[data-np-edit]');
+    if (up) {
+      up.focus();
+      try { const r = document.createRange(); r.selectNodeContents(up); r.collapse(false); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); } catch(err) {}
+    } else t.blur();
+    if (b && b.classList.contains('np-temp')) b.remove();
+  }
   /* after an edit, open a fresh line at the end of this group and put the cursor in it */
   function npOpenTrail(){
     const k = npTrail; if (!k) return;
@@ -3143,6 +3154,14 @@
         t.blur();
       }
       else if (e.key === 'Escape') { t.textContent = t.dataset.npAdd != null ? '' : (t._was || ''); t._esc = true; t.blur(); }
+      else if (e.key === 'Backspace' && t.dataset.npAdd != null && !t.textContent.trim()) { e.preventDefault(); npCloseEmpty(t); }
+    });
+    /* phone keyboards often send this instead of a Backspace key */
+    npDoc.addEventListener('beforeinput', e => {
+      const t = e.target;
+      if (!t || !t.isContentEditable || t.dataset.npAdd == null) return;
+      if (e.inputType !== 'deleteContentBackward' || t.textContent.trim()) return;
+      e.preventDefault(); npCloseEmpty(t);
     });
     npDoc.addEventListener('focusout', e => {
       const t = e.target; if (!t.isContentEditable) return;
