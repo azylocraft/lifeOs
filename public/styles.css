@@ -1063,7 +1063,9 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 
 /* ---- Pages: Notion-style block document ---- */
 #view-pages { max-width:880px; padding:0 }
-.np-top { display:flex; justify-content:flex-end; margin-bottom:4px }
+.np-top { display:flex; justify-content:flex-end; gap:8px; margin-bottom:4px; flex-wrap:wrap }
+.np-ur:disabled { opacity:.4; cursor:default }
+.np-m-into { border-color:color-mix(in srgb, var(--accent) 45%, transparent) }
 .np-doc { padding:4px 0 90px 28px; font-size:15px; line-height:1.55 }
 .np-indent { padding-left:0; counter-reset:np }
 .np-block { position:relative; display:flex; align-items:flex-start; gap:6px; padding:3px 8px 3px 6px; border-radius:6px; margin:1px 0; scroll-margin-top:24px }
