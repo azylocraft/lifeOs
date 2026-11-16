@@ -759,6 +759,17 @@
   }
   const npSlug = s => (s || '').replace(/[^\w\u0900-\u097F]+/g, '-').toLowerCase().replace(/^-|-$/g, '') || 'g';
   const npStyle = o => (o && o.color ? ' np-c-' + o.color : '') + (o && o.bg ? ' np-bg-' + o.bg : '');
+  /* default colours: every type heading shares one colour; each category gets a colour (with background)
+     from its name; subheadings inside use the category's colour as text only. Menu choices override. */
+  const NP_TYPE_COLOR = 'blue', NP_CAT_HUES = ['green','orange','purple','pink','yellow','blue','red','brown'];
+  const catHue = name => { let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return NP_CAT_HUES[h % NP_CAT_HUES.length]; };
+  function headStyle(level, path){
+    const meta = pagesMeta(), own = meta[path] || {}, parts = path.split('/');
+    let def = level === 1 ? {color:NP_TYPE_COLOR} : level === 2 ? {color:catHue(parts[1]), bg:catHue(parts[1])}
+            : {color:(meta[parts[0] + '/' + parts[1]] || {}).color || catHue(parts[1])};
+    return {...def, ...own};
+  }
+  const bulletTypes = () => PAGE_TYPES.filter(t => t !== 'event');
   const groupItems = type => type === 'expense' ? ofKind('expense').filter(e => e.cat) : ofKind('bullet').filter(b => b.type === type);
   /* type -> cat -> sub -> [entries]; named groups first, uncategorized last */
   function pagesGrouped(){
@@ -779,12 +790,12 @@
       : fmt === 'todo' ? `<button type="button" class="np-check" data-np-check="${esc(e.id)}" aria-label="Done">${e.done ? '✓' : ''}</button>` : '';
     const amount = e.kind === 'expense' ? `<span class="np-amt">${money(e.amount)}</span>` : '';
     const date = e.date ? `<span class="np-date">${esc(dayMonth(e.date))}</span>` : '';
-    return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${type}"><button type="button" class="np-handle" data-np-menu aria-label="Options" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(e.text || e.name || '')}</span>${amount}${date}</div>`;
+    return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${type}" data-cat="${esc(e.cat || '')}" data-sub="${esc(e.subcat || '')}"><button type="button" class="np-handle" data-np-menu draggable="true" aria-label="Options, drag to move" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(e.text || e.name || '')}</span>${amount}${date}</div>`;
   }
   const npAdd = (type, cat, sub) => `<div class="np-block np-line np-add" data-kind="add" data-key="${type}|${esc(cat)}|${esc(sub)}" data-type="${type}" data-cat="${esc(cat)}" data-sub="${esc(sub)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add data-placeholder="${type === 'expense' ? 'e.g. 450 diesel' : 'Type and press Enter'}"></span></div>`;
   function npHeading(level, path, label, id, editable){
-    const tag = 'h' + level, meta = pagesMeta()[path] || {};
-    return `<div class="np-block np-h${level}${npStyle(meta)}" id="${id}" data-path="${esc(path)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${level}"><button type="button" class="np-handle" data-np-menu aria-label="Options" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(path) + '"' : ''}>${esc(label)}</${tag}></div>`;
+    const tag = 'h' + level, parts = path.split('/');
+    return `<div class="np-block np-h${level}${npStyle(headStyle(level, path))}" id="${id}" data-path="${esc(path)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${level}" data-type="${parts[0]}" data-cat="${esc(parts[1] || '')}" data-sub="${esc(parts[2] || '')}"><button type="button" class="np-handle" data-np-menu${editable ? ' draggable="true"' : ''} aria-label="Options${editable ? ', drag to move' : ''}" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(path) + '"' : ''}>${esc(label)}</${tag}></div>`;
   }
 
   function renderPages(){
@@ -839,7 +850,7 @@
     const m = $('npMenu'); if (!m) return;
     const kind = block.dataset.kind, id = block.dataset.id, path = block.dataset.path;
     const item = id ? items.find(i => i.id === id) : null;
-    const cur = item || pagesMeta()[path] || {};
+    const cur = item || (path ? headStyle(Number(block.dataset.level), path) : {});
     let html = '';
     if (kind === 'line') html += '<div class="np-m-h">Turn into</div><div class="np-m-row">' + Object.keys(NP_FMT).map(f => `<button type="button" class="np-m-chip${(item.fmt || 'bullet') === f ? ' on' : ''}" data-np-fmt="${f}">${NP_FMT[f]}</button>`).join('') + '</div>';
     html += '<div class="np-m-h">Text color</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-c-${c || 'default'}${(cur.color || '') === c ? ' on' : ''}" data-np-color="${c}" title="${c || 'Default'} text">A</button>`).join('') + '</div>';
@@ -850,7 +861,11 @@
       sortCats(g).filter(Boolean).forEach(c => { opts += `<option value="${esc(c)}"${now === c ? ' selected' : ''}>${esc(c)}</option>`; sortCats(g[c]).filter(Boolean).forEach(sc => { opts += `<option value="${esc(c + '/' + sc)}"${now === c + '/' + sc ? ' selected' : ''}>${esc(c + ' / ' + sc)}</option>`; }); });
       html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move aria-label="Move to category">${opts}</select></div><button type="button" class="np-m-act" data-np-act="dup">Duplicate</button><button type="button" class="np-m-act" data-np-act="edit">Open in editor</button><button type="button" class="np-m-act np-m-danger" data-np-act="del">Delete</button>`;
     } else if (kind === 'heading') {
-      html += '<div class="np-m-sep"></div><button type="button" class="np-m-act" data-np-act="rename">Rename</button><button type="button" class="np-m-act" data-np-act="ungroup">Ungroup — move lines up one level</button>';
+      const lvl = Number(block.dataset.level), parts = path.split('/'), g = pagesGrouped();
+      let opts = '';
+      if (lvl === 2) opts = bulletTypes().map(t => `<option value="${t}"${t === parts[0] ? ' selected' : ''}>${esc(PAGE_LABELS[t])}</option>`).join('');
+      else bulletTypes().forEach(t => { opts += `<option value="${t}">${esc(PAGE_LABELS[t])} — top level</option>` + sortCats(g[t] || {}).filter(Boolean).map(c => `<option value="${t}/${esc(c)}"${t === parts[0] && c === parts[1] ? ' selected' : ''}>${esc(PAGE_LABELS[t])} / ${esc(c)}</option>`).join(''); });
+      html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move-group aria-label="Move this ${lvl === 2 ? 'category' : 'subcategory'} to">${opts}</select></div><button type="button" class="np-m-act" data-np-act="rename">Rename</button><button type="button" class="np-m-act" data-np-act="ungroup">Ungroup — move lines up one level</button>`;
     }
     m.innerHTML = html; m._block = block; m.hidden = false;
     const r = block.getBoundingClientRect(), w = 272, h = Math.min(m.offsetHeight || 420, window.innerHeight - 16);
@@ -870,6 +885,42 @@
     const m = {...pagesMeta()}, newPath = parts.slice(0, -1).concat(next).join('/');
     if (m[path]) { m[newPath] = m[path]; delete m[path]; upsertDoc('pagesMeta', 'pages', {meta:m}); }
     patchMany(ids, parts.length === 2 ? {cat:next} : {subcat:next});
+  }
+  /* move a whole category (level 2) to another type, or a subcategory (level 3) under another type/category */
+  function moveGroup(path, target){
+    const parts = path.split('/'), type = parts[0], all = groupItems(type);
+    if (type === 'expense') { toast('Expense groups stay under Expenses.'); return; }
+    const [tType, tCat = ''] = target.split('/');
+    if (!bulletTypes().includes(tType)) return;
+    const m = {...pagesMeta()};
+    let ids, patch, newPath;
+    if (parts.length === 2) { ids = all.filter(e => (e.cat || '') === parts[1]).map(e => e.id); patch = {type:tType}; newPath = tType + '/' + parts[1]; }
+    else {
+      ids = all.filter(e => (e.cat || '') === parts[1] && (e.subcat || '') === parts[2]).map(e => e.id);
+      patch = tCat ? {type:tType, cat:tCat, subcat:parts[2]} : {type:tType, cat:parts[2], subcat:''};
+      newPath = tCat ? tType + '/' + tCat + '/' + parts[2] : tType + '/' + parts[2];
+    }
+    if (newPath === path) return;
+    Object.keys(m).forEach(k => { if (k === path || k.startsWith(path + '/')) { m[newPath + k.slice(path.length)] = m[k]; delete m[k]; } });
+    upsertDoc('pagesMeta', 'pages', {meta:m});
+    patchMany(ids, patch);
+    toast('Moved');
+  }
+  function moveLine(id, tType, tCat, tSub){
+    const it = items.find(i => i.id === id); if (!it) return;
+    if (it.kind === 'expense' ? tType !== 'expense' : (tType === 'expense' || !bulletTypes().includes(tType))) { toast('That can only move within its own section.'); return; }
+    if ((it.type || 'expense') === tType && (it.cat || '') === tCat && (it.subcat || '') === tSub) return;
+    patchItem(id, it.kind === 'expense' ? {cat:tCat, subcat:tSub} : {type:tType, cat:tCat, subcat:tSub});
+  }
+  /* drop target -> the group it belongs to */
+  const groupOfBlock = b => ({type:b.dataset.type, cat:b.dataset.cat || '', sub:b.dataset.sub || ''});
+  function npDrop(drag, block){
+    if (!drag || !block) return;
+    const g = groupOfBlock(block);
+    if (drag.id) { moveLine(drag.id, g.type, g.cat, g.sub); return; }
+    const lvl = Number(drag.level);
+    if (lvl === 2) moveGroup(drag.path, g.type);
+    else if (lvl === 3) moveGroup(drag.path, g.cat ? g.type + '/' + g.cat : g.type);
   }
   function npUngroup(path){
     const parts = path.split('/'), type = parts[0], all = groupItems(type);
@@ -3011,8 +3062,62 @@
       const [cat = '', subcat = ''] = sel.value.split('/');
       patchItem(b.dataset.id, {cat, subcat}); closeNpMenu();
     });
+    npMenu.addEventListener('change', e => {
+      const sel = e.target.closest('[data-np-move-group]'), b = npMenu._block; if (!sel || !b) return;
+      closeNpMenu(); moveGroup(b.dataset.path, sel.value);
+    });
     document.addEventListener('click', e => { if (!npMenu.hidden && !e.target.closest('#npMenu') && !e.target.closest('[data-np-menu]')) closeNpMenu(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNpMenu(); });
+  }
+  /* drag a line or heading by its handle and drop it on any block to move it into that group */
+  if (npDoc) {
+    let drag = null, ghost = null, touch = null;
+    const dragOf = h => { const b = h.closest('.np-block'); if (!b) return null; return b.dataset.kind === 'line' ? {id:b.dataset.id, el:b} : b.dataset.kind === 'heading' ? {path:b.dataset.path, level:b.dataset.level, el:b} : null; };
+    const clearOver = () => npDoc.querySelectorAll('.np-over').forEach(x => x.classList.remove('np-over'));
+    npDoc.addEventListener('dragstart', e => {
+      const h = e.target.closest('.np-handle[draggable]'); drag = h ? dragOf(h) : null;
+      if (!drag) { e.preventDefault(); return; }
+      drag.el.classList.add('np-dragging'); closeNpMenu();
+      e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', drag.id || drag.path);
+      try { e.dataTransfer.setDragImage(drag.el, 10, 10); } catch(err) {}
+    });
+    npDoc.addEventListener('dragover', e => { if (!drag) return; const b = e.target.closest('.np-block'); if (!b || b === drag.el) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; clearOver(); b.classList.add('np-over'); });
+    npDoc.addEventListener('dragleave', e => { const b = e.target.closest('.np-block'); if (b && !b.contains(e.relatedTarget)) b.classList.remove('np-over'); });
+    npDoc.addEventListener('drop', e => { e.preventDefault(); const b = e.target.closest('.np-block'); clearOver(); const d = drag; drag = null; if (b && d && b !== d.el) npDrop(d, b); });
+    npDoc.addEventListener('dragend', () => { clearOver(); if (drag) drag.el.classList.remove('np-dragging'); drag = null; });
+    /* touch: press and hold the handle, then move */
+    npDoc.addEventListener('touchstart', e => {
+      const h = e.target.closest('.np-handle[draggable]'); if (!h) return;
+      const t = e.touches[0]; touch = {h, x:t.clientX, y:t.clientY, timer:null, on:false, drag:null};
+      touch.timer = setTimeout(() => {
+        if (!touch) return; const d = dragOf(touch.h); if (!d) return;
+        touch.on = true; touch.drag = d; d.el.classList.add('np-dragging'); closeNpMenu();
+        ghost = d.el.cloneNode(true); ghost.className = 'np-block np-ghost'; ghost.style.width = d.el.offsetWidth + 'px';
+        ghost.style.left = (touch.x - 16) + 'px'; ghost.style.top = (touch.y - 14) + 'px'; document.body.appendChild(ghost);
+        try { navigator.vibrate && navigator.vibrate(12); } catch(err) {}
+      }, 280);
+    }, {passive:true});
+    npDoc.addEventListener('touchmove', e => {
+      if (!touch) return;
+      const t = e.touches[0];
+      if (!touch.on) { if (Math.abs(t.clientX - touch.x) > 8 || Math.abs(t.clientY - touch.y) > 8) { clearTimeout(touch.timer); touch = null; } return; }
+      e.preventDefault();
+      if (ghost) { ghost.style.left = (t.clientX - 16) + 'px'; ghost.style.top = (t.clientY - 14) + 'px'; }
+      const under = document.elementFromPoint(t.clientX, t.clientY), b = under && under.closest('#pagesDoc .np-block');
+      clearOver(); if (b && b !== touch.drag.el) b.classList.add('np-over');
+      if (t.clientY < 70) window.scrollBy(0, -8); else if (t.clientY > window.innerHeight - 90) window.scrollBy(0, 8);
+    }, {passive:false});
+    const endTouch = e => {
+      if (!touch) return; clearTimeout(touch.timer);
+      const tc = touch; touch = null;
+      if (ghost) { ghost.remove(); ghost = null; }
+      if (!tc.on) return;
+      tc.drag.el.classList.remove('np-dragging');
+      const t = e.changedTouches && e.changedTouches[0];
+      const under = t && document.elementFromPoint(t.clientX, t.clientY), b = under && under.closest('#pagesDoc .np-block');
+      clearOver(); if (b && b !== tc.drag.el) npDrop(tc.drag, b);
+    };
+    npDoc.addEventListener('touchend', endTouch); npDoc.addEventListener('touchcancel', endTouch);
   }
   const npRail = $('npRail');
   if (npRail) {
