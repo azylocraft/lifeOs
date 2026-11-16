@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const KEY = 'myLifeOS.v2';
-  const KINDS = new Set(['task','note','expense','trip','plan','project','settings','bullet','goal','rhythm','habits','month']);
+  const KINDS = new Set(['task','note','expense','trip','plan','project','settings','bullet','goal','rhythm','habits','month','pages']);
   const DEFAULT_CATS = ['Swiggy / outdoor food','Transport / fuel','Home / family','Friend / partner','Lifestyle','Health / gym','Vacation / travel','Entertainment','Subscriptions / utility bills','Other'];
   const VIEWS = {
     home:     ['Overview', 'A little more clarity, every day.'],
@@ -738,115 +738,163 @@
   }
   function renderAll(){ migrateCats(); renderHome(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); renderPages(); }
 
-  /* ---- Pages view ---- */
-  let pagesObserver = null;
+  /* ---- Pages: a Notion-style block document ---- */
+  let pagesObserver = null, npFocusKey = null;
   const PAGE_TYPES = ['mood','idea','problem','mistake','observation','custom','note','event'];
   const PAGE_LABELS = {mood:'Mood',idea:'Ideas',problem:'Problems',mistake:'Mistakes',observation:'Observations',custom:'Custom',note:'Notes',event:'Events',expense:'Expenses'};
+  const NP_COLORS = ['gray','brown','orange','yellow','green','blue','purple','pink','red'];
+  const NP_FMT = {text:'Text', bullet:'Bulleted', num:'Numbered', todo:'To-do', h1:'Heading 1', h2:'Heading 2', h3:'Heading 3'};
+  const pagesMeta = () => (items.find(i => i.id === 'pagesMeta') || {}).meta || {};
+  function setMeta(path, patch){
+    const m = {...pagesMeta()}, cur = {...(m[path] || {}), ...patch};
+    Object.keys(cur).forEach(k => { if (!cur[k]) delete cur[k]; });
+    if (Object.keys(cur).length) m[path] = cur; else delete m[path];
+    upsertDoc('pagesMeta', 'pages', {meta:m});
+  }
+  function patchMany(ids, patch){
+    const set = new Set(ids);
+    if (!set.size) return;
+    items = items.map(i => set.has(i.id) ? {...i, ...patch} : i);
+    commit(c => Promise.all([...set].map(id => c.doc(id).update(patch))));
+  }
+  const npSlug = s => (s || '').replace(/[^\w\u0900-\u097F]+/g, '-').toLowerCase().replace(/^-|-$/g, '') || 'g';
+  const npStyle = o => (o && o.color ? ' np-c-' + o.color : '') + (o && o.bg ? ' np-bg-' + o.bg : '');
+  const groupItems = type => type === 'expense' ? ofKind('expense').filter(e => e.cat) : ofKind('bullet').filter(b => b.type === type);
+  /* type -> cat -> sub -> [entries]; named groups first, uncategorized last */
+  function pagesGrouped(){
+    const g = {};
+    [...PAGE_TYPES, 'expense'].forEach(t => groupItems(t).forEach(e => {
+      const c = e.cat || '', sc = e.subcat || '';
+      ((g[t] = g[t] || {})[c] = g[t][c] || {})[sc] = (g[t][c][sc] || []).concat(e);
+    }));
+    return g;
+  }
+  const sortCats = obj => Object.keys(obj).sort((a, b) => a === '' ? 1 : b === '' ? -1 : a.localeCompare(b));
+  const byTime = (a, b) => (a.at || a.created || 0) - (b.at || b.created || 0);
+
+  function npLine(e, type){
+    const fmt = e.fmt || 'bullet';
+    const mark = fmt === 'bullet' ? '<span class="np-mark">•</span>'
+      : fmt === 'num' ? '<span class="np-mark np-num"></span>'
+      : fmt === 'todo' ? `<button type="button" class="np-check" data-np-check="${esc(e.id)}" aria-label="Done">${e.done ? '✓' : ''}</button>` : '';
+    const amount = e.kind === 'expense' ? `<span class="np-amt">${money(e.amount)}</span>` : '';
+    const date = e.date ? `<span class="np-date">${esc(dayMonth(e.date))}</span>` : '';
+    return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${type}"><button type="button" class="np-handle" data-np-menu aria-label="Options" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(e.text || e.name || '')}</span>${amount}${date}</div>`;
+  }
+  const npAdd = (type, cat, sub) => `<div class="np-block np-line np-add" data-kind="add" data-key="${type}|${esc(cat)}|${esc(sub)}" data-type="${type}" data-cat="${esc(cat)}" data-sub="${esc(sub)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add data-placeholder="${type === 'expense' ? 'e.g. 450 diesel' : 'Type and press Enter'}"></span></div>`;
+  function npHeading(level, path, label, id, editable){
+    const tag = 'h' + level, meta = pagesMeta()[path] || {};
+    return `<div class="np-block np-h${level}${npStyle(meta)}" id="${id}" data-path="${esc(path)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${level}"><button type="button" class="np-handle" data-np-menu aria-label="Options" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(path) + '"' : ''}>${esc(label)}</${tag}></div>`;
+  }
 
   function renderPages(){
-    const doc = $('pagesDoc'), tocNav = $('pagesTocNav');
+    const doc = $('pagesDoc');
     if (!doc) return;
-    const bullets = ofKind('bullet').filter(b => PAGE_TYPES.includes(b.type));
-    const expenses = ofKind('expense').filter(e => e.cat);
-    const grouped = {};
-    bullets.forEach(b => {
-      const t=b.type, c=b.cat||'', s=b.subcat||'';
-      if(!grouped[t]) grouped[t]={}; if(!grouped[t][c]) grouped[t][c]={}; if(!grouped[t][c][s]) grouped[t][c][s]=[];
-      grouped[t][c][s].push(b);
-    });
-    expenses.forEach(e => {
-      const c=e.cat||'', s=e.subcat||'';
-      if(!grouped.expense) grouped.expense={}; if(!grouped.expense[c]) grouped.expense[c]={}; if(!grouped.expense[c][s]) grouped.expense[c][s]=[];
-      grouped.expense[c][s].push(e);
-    });
-    /* named cats first (alpha), uncategorized last */
-    const sortCats = obj => Object.keys(obj).sort((a,b) => a===''?1:b===''?-1:a.localeCompare(b));
-    const slugify = s => (s||'').replace(/[^\wऀ-ॿ]+/g,'-').toLowerCase().replace(/^-|-$/g,'')||'g';
-    const typesToShow = [...PAGE_TYPES,'expense'].filter(t => grouped[t]);
-    if (!typesToShow.length) {
-      safeHTML(doc, `<div class="pages-empty"><p>No entries yet.</p><p class="pages-hint">Use + to jot entries. Start with <code>/category</code> to organise them — e.g. <code>/work this idea</code> or <code>/sad /depression feeling low</code>.</p></div>`);
-      if (tocNav) safeHTML(tocNav, '');
-      return;
-    }
-    let docHtml = '', tocHtml = '';
-    typesToShow.forEach(type => {
-      const typeData = grouped[type];
-      const label = PAGE_LABELS[type]||type, glyph = GLYPH[type]||'₹';
-      const typeId = 'pg-'+type;
-      docHtml += `<section class="pages-type-sec" id="${typeId}"><div class="pages-type-header"><span class="pages-type-g">${glyph}</span><span class="pages-type-name">${esc(label)}</span></div>`;
-      tocHtml += `<div class="toc-grp"><a class="toc-h1" data-anchor="${typeId}" href="#${typeId}">${glyph}&nbsp;${esc(label)}</a>`;
-      sortCats(typeData).forEach(cat => {
-        const catData = typeData[cat];
-        const catId = 'pg-'+type+'-'+(cat?slugify(cat):'unc');
-        docHtml += `<div class="pages-cat-sec" id="${catId}">`;
-        if (cat) { docHtml += `<h2 class="pages-cat-h">${esc(cat)}</h2>`; tocHtml += `<a class="toc-h2" data-anchor="${catId}" href="#${catId}">${esc(cat)}</a>`; }
-        sortCats(catData).forEach(subcat => {
-          const subcatId = 'pg-'+type+'-'+(cat?slugify(cat):'unc')+'-'+(subcat?slugify(subcat):'unc');
-          const entries = catData[subcat].slice().sort((a,b)=>(b.at||b.created||0)-(a.at||a.created||0));
-          if (subcat) {
-            docHtml += `<div class="pages-sub-sec" id="${subcatId}"><h3 class="pages-subcat-h">${esc(subcat)}</h3>`;
-            tocHtml += `<a class="toc-h3" data-anchor="${subcatId}" href="#${subcatId}">${esc(subcat)}</a>`;
-          } else {
-            docHtml += `<div class="pages-sub-sec">`;
-          }
-          docHtml += `<ul class="pages-list">`;
-          entries.forEach(entry => {
-            const text=esc(entry.text||entry.name||''), amount=entry.kind==='expense'?`<span class="pages-amount">${money(entry.amount)}</span>`:'', date=entry.date?`<span class="pages-date">${prettyDate(entry.date)}</span>`:'';
-            docHtml += `<li class="pages-entry" data-id="${esc(entry.id)}"><span class="pages-glyph">${GLYPH[entry.type]||'₹'}</span><span class="pages-entry-text">${text}</span>${amount}${date}<button type="button" class="pages-edit-btn" data-act="edit" data-id="${esc(entry.id)}" aria-label="Edit">✎</button></li>`;
-          });
-          docHtml += `</ul></div>`;
+    const ae = document.activeElement;
+    if (doc.contains(ae) && ae.isContentEditable) { doc._npPending = true; return; }
+    doc._npPending = false;
+    const g = pagesGrouped(), types = [...PAGE_TYPES, 'expense'].filter(t => g[t]);
+    const heads = [];
+    let html = '';
+    types.forEach(type => {
+      const tid = 'pg-' + type, label = (GLYPH[type] || '₹') + ' ' + (PAGE_LABELS[type] || type);
+      heads.push({id:tid, level:1, label});
+      html += npHeading(1, type, label, tid, false) + '<div class="np-indent">';
+      sortCats(g[type]).forEach(cat => {
+        const cpath = type + '/' + cat, cid = 'pg-' + type + '-' + npSlug(cat);
+        if (cat) { heads.push({id:cid, level:2, label:cat}); html += npHeading(2, cpath, cat, cid, true) + '<div class="np-indent">'; }
+        sortCats(g[type][cat]).forEach(sub => {
+          const spath = cpath + '/' + sub, sid = cid + '-' + npSlug(sub);
+          if (sub) { heads.push({id:sid, level:3, label:sub}); html += npHeading(3, spath, sub, sid, true) + '<div class="np-indent">'; }
+          html += g[type][cat][sub].slice().sort(byTime).map(e => npLine(e, type)).join('') + npAdd(type, cat, sub);
+          if (sub) html += '</div>';
         });
-        docHtml += `</div>`;
+        if (cat) html += '</div>';
       });
-      docHtml += `</section>`;
-      tocHtml += `</div>`;
+      html += '</div>';
     });
-    safeHTML(doc, docHtml);
-    if (tocNav) safeHTML(tocNav, tocHtml);
-    /* IntersectionObserver: highlight TOC item as sections scroll into view */
-    if (pagesObserver) { pagesObserver.disconnect(); pagesObserver = null; }
-    if (typeof IntersectionObserver !== 'undefined' && tocNav) {
-      pagesObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          const a = tocNav.querySelector(`[data-anchor="${entry.target.id}"]`);
-          if (a) a.classList.toggle('toc-active', entry.isIntersecting);
-        });
-      }, {threshold:0, rootMargin:'-5% 0px -75% 0px'});
-      doc.querySelectorAll('[id^="pg-"]').forEach(el => pagesObserver.observe(el));
+    if (!types.length) html = '<div class="np-empty"><p>This page is empty.</p><p class="np-hint">Jot a mood, idea, problem or note with <code>/category</code> in front — e.g. <code>/work this idea</code> or <code>/sad /depression feeling low</code> — and it appears here as a document.</p></div>';
+    doc.innerHTML = html;
+    /* outline rail */
+    const bars = $('npRailBars'), panel = $('npRailPanel');
+    if (bars) {
+      bars.innerHTML = heads.map(h => `<i class="l${h.level}" data-anchor="${h.id}"></i>`).join('');
+      panel.innerHTML = heads.map(h => `<a class="np-rl l${h.level}" data-anchor="${h.id}" href="#${h.id}">${esc(h.label)}</a>`).join('');
+      $('npRail').hidden = heads.length < 2;
     }
+    if (pagesObserver) { pagesObserver.disconnect(); pagesObserver = null; }
+    if (typeof IntersectionObserver !== 'undefined' && heads.length) {
+      pagesObserver = new IntersectionObserver(entries => {
+        const hit = entries.find(x => x.isIntersecting);
+        if (!hit) return;
+        document.querySelectorAll('#npRail [data-anchor]').forEach(el => el.classList.toggle('on', el.dataset.anchor === hit.target.id));
+      }, {threshold:0, rootMargin:'-8% 0px -72% 0px'});
+      heads.forEach(h => { const el = $(h.id); if (el) pagesObserver.observe(el); });
+    }
+    if (npFocusKey) { const el = doc.querySelector(`.np-add[data-key="${npFocusKey}"] .np-text`); npFocusKey = null; if (el) el.focus(); }
+  }
+
+  /* block menu */
+  function openNpMenu(block){
+    const m = $('npMenu'); if (!m) return;
+    const kind = block.dataset.kind, id = block.dataset.id, path = block.dataset.path;
+    const item = id ? items.find(i => i.id === id) : null;
+    const cur = item || pagesMeta()[path] || {};
+    let html = '';
+    if (kind === 'line') html += '<div class="np-m-h">Turn into</div><div class="np-m-row">' + Object.keys(NP_FMT).map(f => `<button type="button" class="np-m-chip${(item.fmt || 'bullet') === f ? ' on' : ''}" data-np-fmt="${f}">${NP_FMT[f]}</button>`).join('') + '</div>';
+    html += '<div class="np-m-h">Text color</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-c-${c || 'default'}${(cur.color || '') === c ? ' on' : ''}" data-np-color="${c}" title="${c || 'Default'} text">A</button>`).join('') + '</div>';
+    html += '<div class="np-m-h">Background</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-bg-${c || 'default'}${(cur.bg || '') === c ? ' on' : ''}" data-np-bg="${c}" title="${c || 'Default'} background"></button>`).join('') + '</div>';
+    if (kind === 'line') {
+      const type = block.dataset.type, g = pagesGrouped()[type] || {}, now = (item.cat || '') + (item.subcat ? '/' + item.subcat : '');
+      let opts = `<option value=""${!item.cat ? ' selected' : ''}>No category</option>`;
+      sortCats(g).filter(Boolean).forEach(c => { opts += `<option value="${esc(c)}"${now === c ? ' selected' : ''}>${esc(c)}</option>`; sortCats(g[c]).filter(Boolean).forEach(sc => { opts += `<option value="${esc(c + '/' + sc)}"${now === c + '/' + sc ? ' selected' : ''}>${esc(c + ' / ' + sc)}</option>`; }); });
+      html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move aria-label="Move to category">${opts}</select></div><button type="button" class="np-m-act" data-np-act="dup">Duplicate</button><button type="button" class="np-m-act" data-np-act="edit">Open in editor</button><button type="button" class="np-m-act np-m-danger" data-np-act="del">Delete</button>`;
+    } else if (kind === 'heading') {
+      html += '<div class="np-m-sep"></div><button type="button" class="np-m-act" data-np-act="rename">Rename</button><button type="button" class="np-m-act" data-np-act="ungroup">Ungroup — move lines up one level</button>';
+    }
+    m.innerHTML = html; m._block = block; m.hidden = false;
+    const r = block.getBoundingClientRect(), w = 272, h = Math.min(m.offsetHeight || 420, window.innerHeight - 16);
+    const left = Math.max(8, Math.min(r.left + 24, window.innerWidth - w - 8));
+    const top = r.bottom + h + 8 > window.innerHeight ? Math.max(8, window.innerHeight - h - 8) : r.bottom + 4;
+    m.style.left = left + 'px'; m.style.top = top + 'px';
+  }
+  const closeNpMenu = () => { const m = $('npMenu'); if (m && !m.hidden) { m.hidden = true; m._block = null; } };
+
+  function npRename(path, label){
+    const parts = path.split('/'), type = parts[0], old = parts[parts.length - 1];
+    const next = String(label).replace(/\//g, ' ').trim().slice(0, 60);
+    if (!next || next === old) { renderPages(); return; }
+    const all = groupItems(type);
+    const ids = parts.length === 2 ? all.filter(e => (e.cat || '') === old).map(e => e.id)
+                                   : all.filter(e => (e.cat || '') === parts[1] && (e.subcat || '') === old).map(e => e.id);
+    const m = {...pagesMeta()}, newPath = parts.slice(0, -1).concat(next).join('/');
+    if (m[path]) { m[newPath] = m[path]; delete m[path]; upsertDoc('pagesMeta', 'pages', {meta:m}); }
+    patchMany(ids, parts.length === 2 ? {cat:next} : {subcat:next});
+  }
+  function npUngroup(path){
+    const parts = path.split('/'), type = parts[0], all = groupItems(type);
+    if (parts.length === 2) patchMany(all.filter(e => (e.cat || '') === parts[1]).map(e => e.id), {cat:'', subcat:''});
+    else patchMany(all.filter(e => (e.cat || '') === parts[1] && (e.subcat || '') === parts[2]).map(e => e.id), {subcat:''});
   }
 
   function downloadPagesWord(){
-    const bullets = ofKind('bullet').filter(b => PAGE_TYPES.includes(b.type));
-    const expenses = ofKind('expense').filter(e => e.cat);
-    const grouped = {};
-    bullets.forEach(b => { const t=b.type,c=b.cat||'',s=b.subcat||''; if(!grouped[t]) grouped[t]={}; if(!grouped[t][c]) grouped[t][c]={}; if(!grouped[t][c][s]) grouped[t][c][s]=[]; grouped[t][c][s].push(b); });
-    expenses.forEach(e => { const c=e.cat||'',s=e.subcat||''; if(!grouped.expense) grouped.expense={}; if(!grouped.expense[c]) grouped.expense[c]={}; if(!grouped.expense[c][s]) grouped.expense[c][s]=[]; grouped.expense[c][s].push(e); });
-    const sortCats = obj => Object.keys(obj).sort((a,b)=>a===''?-1:b===''?1:a.localeCompare(b));
+    const g = pagesGrouped();
     let body = '';
-    [...PAGE_TYPES,'expense'].filter(t=>grouped[t]).forEach(type => {
-      const label = PAGE_LABELS[type]||type;
-      body += `<h1>${label}</h1>`;
-      sortCats(grouped[type]).forEach(cat => {
-        if (cat) body += `<h2>${cat}</h2>`;
-        sortCats(grouped[type][cat]).forEach(subcat => {
-          if (subcat) body += `<h3>${subcat}</h3>`;
-          const entries = grouped[type][cat][subcat].slice().sort((a,b)=>(b.at||b.created||0)-(a.at||a.created||0));
-          body += '<ul>';
-          entries.forEach(e => {
-            const amount = e.kind==='expense'?` — ${money(e.amount)}`:'';
-            const date = e.date?` (${prettyDate(e.date)})`:'';
-            body += `<li>${e.text||e.name||''}${amount}${date}</li>`;
-          });
-          body += '</ul>';
+    [...PAGE_TYPES, 'expense'].filter(t => g[t]).forEach(type => {
+      body += `<h1>${esc(PAGE_LABELS[type] || type)}</h1>`;
+      sortCats(g[type]).forEach(cat => {
+        if (cat) body += `<h2>${esc(cat)}</h2>`;
+        sortCats(g[type][cat]).forEach(sub => {
+          if (sub) body += `<h3>${esc(sub)}</h3>`;
+          body += '<ul>' + g[type][cat][sub].slice().sort(byTime).map(e => `<li>${esc(e.text || e.name || '')}${e.kind === 'expense' ? ' — ' + money(e.amount) : ''}${e.date ? ' (' + prettyDate(e.date) + ')' : ''}</li>`).join('') + '</ul>';
         });
       });
     });
     if (!body) { toast('Nothing to export yet.'); return; }
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pages</title><style>body{font-family:Calibri,Arial,sans-serif;margin:2cm;line-height:1.6;color:#111}h1{font-size:20pt;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:4pt;margin-top:24pt}h2{font-size:15pt;color:#2d3561;margin-top:14pt}h3{font-size:12pt;color:#555;margin-top:10pt}ul{margin:0 0 8pt;padding-left:18pt}li{margin-bottom:4pt}</style></head><body><h1>My Pages</h1>${body}</body></html>`;
-    const blob = new Blob(['﻿'+html],{type:'application/msword'});
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pages</title><style>body{font-family:Calibri,Arial,sans-serif;margin:2cm;line-height:1.6;color:#111}h1{font-size:20pt;border-bottom:2px solid #1a1a2e;padding-bottom:4pt;margin-top:24pt}h2{font-size:15pt;margin-top:14pt}h3{font-size:12pt;color:#555;margin-top:10pt}ul{margin:0 0 8pt;padding-left:18pt}li{margin-bottom:4pt}</style></head><body><h1>My Pages</h1>${body}</body></html>`;
+    const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href=url; a.download='my-pages.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = 'my-pages.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
   /* ---------- navigation ---------- */
@@ -855,6 +903,8 @@
     /* close the jot sheet when navigating so it never persists across pages */
     const _sh = $('lgSheet'); if (_sh && _sh.open) { try { _sh.close(); } catch(e){} _sh.removeAttribute('open'); const _fab = $('lgFab'); if (_fab) _fab.setAttribute('aria-expanded','false'); }
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    document.body.classList.toggle('on-pages', name === 'pages');
+    const _m = $('npMenu'); if (_m) _m.hidden = true;
     document.querySelectorAll('.nav button').forEach(b => {
       const on = b.dataset.view === name;
       b.classList.toggle('active', on);
@@ -1487,7 +1537,7 @@
   const isoTomorrow = addDays(isoToday, 1);
   const shortDay = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
   const dayMonth = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-  const isTyping = a => !!a && (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || (a.tagName === 'INPUT' && a.type !== 'checkbox'));
+  const isTyping = a => !!a && (a.isContentEditable || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || (a.tagName === 'INPUT' && a.type !== 'checkbox'));
   /* redraw a list, but never underneath someone who is typing in it */
   function safeHTML(el, html){
     if (el.contains(document.activeElement) && isTyping(document.activeElement)) {
@@ -2899,22 +2949,81 @@
 
   /* ---- Pages view events ---- */
   $('pagesDownload') && $('pagesDownload').addEventListener('click', downloadPagesWord);
-  $('pagesDoc') && $('pagesDoc').addEventListener('click', e => {
-    const btn = e.target.closest('[data-act="edit"][data-id]');
-    if (!btn) return;
-    const item = items.find(i => i.id === btn.dataset.id);
-    if (item) openEdit(item);
-  });
-  $('pagesTocNav') && $('pagesTocNav').addEventListener('click', e => {
-    const a = e.target.closest('a[data-anchor]');
-    if (!a) return;
-    e.preventDefault();
-    const target = $(a.dataset.anchor);
-    if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
-    if (window.innerWidth < 700) { const w = $('pagesTocWrap'); if (w) w.classList.remove('open'); }
-  });
-  $('pagesTocToggle') && $('pagesTocToggle').addEventListener('click', () => { const w=$('pagesTocWrap'); if(w) w.classList.toggle('open'); });
-  $('pagesTocClose') && $('pagesTocClose').addEventListener('click', () => { const w=$('pagesTocWrap'); if(w) w.classList.remove('open'); });
+  const npDoc = $('pagesDoc');
+  if (npDoc) {
+    npDoc.addEventListener('click', e => {
+      const h = e.target.closest('[data-np-menu]');
+      if (h) { const b = h.closest('.np-block'); if ($('npMenu')._block === b) closeNpMenu(); else openNpMenu(b); e.stopPropagation(); return; }
+      const ck = e.target.closest('[data-np-check]');
+      if (ck) { const it = items.find(i => i.id === ck.dataset.npCheck); if (it) patchItem(it.id, {done:!it.done}); }
+    });
+    npDoc.addEventListener('focusin', e => { const t = e.target; if (t.isContentEditable) t._was = t.textContent; });
+    npDoc.addEventListener('keydown', e => {
+      const t = e.target; if (!t.isContentEditable) return;
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); t.blur(); }
+      else if (e.key === 'Escape') { t.textContent = t.dataset.npAdd != null ? '' : (t._was || ''); t._esc = true; t.blur(); }
+    });
+    npDoc.addEventListener('focusout', e => {
+      const t = e.target; if (!t.isContentEditable) return;
+      const esc_ = t._esc; t._esc = false;
+      const text = t.textContent.replace(/\s+/g, ' ').trim();
+      if (t.dataset.npAdd != null) {
+        const b = t.closest('.np-add');
+        if (!esc_ && text && b) {
+          const type = b.dataset.type, cat = b.dataset.cat, sub = b.dataset.sub;
+          npFocusKey = b.dataset.key;
+          if (type === 'expense') { if (!addQuickExpense(text, {cat, subcat:sub})) { toast('Try: 450 diesel'); npFocusKey = null; t.textContent = text; return; } }
+          else addItem('bullet', {date:isoToday, type, text:text.slice(0, 500), at:Date.now(), cat:cat || undefined, subcat:sub || undefined});
+        }
+        t.textContent = '';
+      } else if (t.dataset.npEdit) {
+        const it = items.find(i => i.id === t.dataset.npEdit);
+        if (!esc_ && it && text && text !== (it.text || it.name || '')) patchItem(it.id, it.kind === 'expense' ? {name:text.slice(0, 120)} : {text:text.slice(0, 500)});
+        else t.textContent = it ? (it.text || it.name || '') : text;
+      } else if (t.dataset.npRename) {
+        if (!esc_) npRename(t.dataset.npRename, text); else renderPages();
+      }
+      setTimeout(() => { if (npDoc._npPending && !(npDoc.contains(document.activeElement) && document.activeElement.isContentEditable)) renderPages(); }, 0);
+    });
+  }
+  /* the menu and rail are fixed-position: they must live on <body>, since .app's backdrop-filter would otherwise contain them */
+  ['npMenu', 'npRail'].forEach(id => { const el = $(id); if (el) document.body.appendChild(el); });
+  const npMenu = $('npMenu');
+  if (npMenu) {
+    npMenu.addEventListener('click', e => {
+      const b = npMenu._block; if (!b) return;
+      const id = b.dataset.id, path = b.dataset.path, it = id ? items.find(i => i.id === id) : null;
+      const fmt = e.target.closest('[data-np-fmt]'), col = e.target.closest('[data-np-color]'), bg = e.target.closest('[data-np-bg]'), act = e.target.closest('[data-np-act]');
+      if (fmt && it) { patchItem(id, {fmt:fmt.dataset.npFmt}); closeNpMenu(); return; }
+      if (col) { if (it) patchItem(id, {color:col.dataset.npColor}); else setMeta(path, {color:col.dataset.npColor}); closeNpMenu(); return; }
+      if (bg) { if (it) patchItem(id, {bg:bg.dataset.npBg}); else setMeta(path, {bg:bg.dataset.npBg}); closeNpMenu(); return; }
+      if (!act) return;
+      const a = act.dataset.npAct;
+      closeNpMenu();
+      if (a === 'dup' && it) { const {id:_i, created:_c, ...rest} = it; addItem(it.kind, {...rest, at:Date.now()}); }
+      else if (a === 'edit' && it) openEdit(it);
+      else if (a === 'del' && it) removeItems([id], 'Deleted');
+      else if (a === 'rename') { const h = b.querySelector('[data-np-rename]'); if (h) { h.focus(); try { document.execCommand('selectAll', false, null); } catch(err) {} } }
+      else if (a === 'ungroup') npUngroup(path);
+    });
+    npMenu.addEventListener('change', e => {
+      const sel = e.target.closest('[data-np-move]'), b = npMenu._block; if (!sel || !b) return;
+      const [cat = '', subcat = ''] = sel.value.split('/');
+      patchItem(b.dataset.id, {cat, subcat}); closeNpMenu();
+    });
+    document.addEventListener('click', e => { if (!npMenu.hidden && !e.target.closest('#npMenu') && !e.target.closest('[data-np-menu]')) closeNpMenu(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNpMenu(); });
+  }
+  const npRail = $('npRail');
+  if (npRail) {
+    npRail.addEventListener('click', e => {
+      const a = e.target.closest('a[data-anchor]');
+      if (a) { e.preventDefault(); const t = $(a.dataset.anchor); if (t) t.scrollIntoView({behavior:'smooth', block:'start'}); npRail.classList.remove('open'); return; }
+      if (e.target.closest('.np-rail-bars')) npRail.classList.toggle('open');
+    });
+    document.addEventListener('click', e => { if (!e.target.closest('#npRail')) npRail.classList.remove('open'); });
+  }
+
 })();
 
 (() => {

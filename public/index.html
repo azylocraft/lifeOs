@@ -270,22 +270,10 @@
     </section>
 
     <section class="view" id="view-pages">
-      <div class="pages-layout">
-        <div class="pages-main">
-          <div class="pages-doc-bar">
-            <button type="button" class="pages-toc-toggle btn secondary small" id="pagesTocToggle">≡ Outline</button>
-            <button type="button" class="btn secondary small" id="pagesDownload">↓ Word</button>
-          </div>
-          <div id="pagesDoc" class="pages-doc"></div>
-        </div>
-        <aside class="pages-toc-wrap" id="pagesTocWrap">
-          <div class="pages-toc-head">
-            <span>Outline</span>
-            <button type="button" class="icon-btn pages-toc-close" id="pagesTocClose" aria-label="Close outline">✕</button>
-          </div>
-          <nav id="pagesTocNav" class="pages-toc-nav" aria-label="Document outline"></nav>
-        </aside>
-      </div>
+      <div class="np-top"><button type="button" class="btn secondary small" id="pagesDownload">↓ Word</button></div>
+      <article id="pagesDoc" class="np-doc" aria-label="Pages document"></article>
+      <div id="npMenu" class="np-menu" hidden></div>
+      <nav id="npRail" class="np-rail" aria-label="Page outline" hidden><div class="np-rail-bars" id="npRailBars"></div><div class="np-rail-panel" id="npRailPanel"></div></nav>
     </section>
 
     <dialog id="lgSheet" class="jot-sheet" aria-label="Jot an entry">

@@ -1061,90 +1061,94 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 #view-journal { touch-action:pan-y }
 #jnDay, #jnMonth { backface-visibility:hidden }
 
-/* ---- Pages view: Notion markdown layout ---- */
-#view-pages { padding:0 }
+/* ---- Pages: Notion-style block document ---- */
+#view-pages { max-width:880px; padding:0 }
+.np-top { display:flex; justify-content:flex-end; margin-bottom:4px }
+.np-doc { padding:4px 0 90px 28px; font-size:15px; line-height:1.55 }
+.np-indent { padding-left:24px; counter-reset:np }
+.np-block { position:relative; display:flex; align-items:flex-start; gap:6px; padding:3px 8px 3px 6px; border-radius:6px; margin:1px 0; scroll-margin-top:24px }
+.np-block:hover { background:color-mix(in srgb, var(--text) 4%, transparent) }
+.np-handle { position:absolute; left:-24px; top:50%; transform:translateY(-50%); opacity:0; border:0; background:none; color:var(--muted);
+  font-size:13px; letter-spacing:-3px; cursor:pointer; padding:3px 5px 3px 3px; border-radius:5px; line-height:1; transition:opacity .12s }
+.np-block:hover > .np-handle, .np-handle:focus-visible { opacity:1 }
+.np-handle:hover { background:color-mix(in srgb, var(--text) 8%, transparent); color:var(--text) }
+.np-text { flex:1; min-width:0; outline:none; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; border-radius:4px; padding:0 4px }
+.np-text:focus { background:color-mix(in srgb, var(--text) 7%, transparent) }
+.np-h1 { margin-top:26px } .np-h2 { margin-top:14px } .np-h3 { margin-top:8px }
+.np-h1 .np-text { font-size:26px; font-weight:800; line-height:1.2; letter-spacing:-.01em }
+.np-h2 .np-text { font-size:19px; font-weight:700; line-height:1.25 }
+.np-h3 .np-text { font-size:15.5px; font-weight:600; line-height:1.3 }
+.np-h1 + .np-indent { margin-top:4px }
+.np-mark { flex:0 0 18px; text-align:center; color:var(--text-2); padding-top:1px }
+.fmt-num { counter-increment:np } .np-num::before { content:counter(np) "."; font-variant-numeric:tabular-nums; font-size:13.5px }
+.fmt-h1 .np-text { font-size:23px; font-weight:800 } .fmt-h2 .np-text { font-size:18px; font-weight:700 } .fmt-h3 .np-text { font-size:15.5px; font-weight:600 }
+.np-check { flex:0 0 16px; width:16px; height:16px; margin:5px 2px 0 1px; border:1.5px solid var(--text-2); border-radius:4px; background:none;
+  color:var(--on-accent); font-size:11px; line-height:1; cursor:pointer; padding:0 }
+.is-done .np-check { background:var(--accent); border-color:var(--accent) }
+.is-done .np-text { text-decoration:line-through; opacity:.55 }
+.np-date { font-size:11px; color:var(--muted); padding-top:5px; flex-shrink:0; font-variant-numeric:tabular-nums }
+.np-amt { font-size:13px; font-weight:600; color:var(--text); padding-top:3px; flex-shrink:0 }
+.np-add .np-mark { opacity:.35 }
+.np-add .np-text:empty::before { content:attr(data-placeholder); color:var(--muted); opacity:.6 }
+.np-add .np-text:focus { background:none }
+.np-empty { padding:50px 16px; color:var(--text-2); max-width:520px }
+.np-empty p { margin:0 0 10px } .np-hint { font-size:13px; color:var(--muted) }
+.np-hint code { background:color-mix(in srgb, var(--text) 8%, transparent); padding:1px 5px; border-radius:4px; font-family:monospace; font-size:12px }
 
-/* Two columns: document LEFT, outline RIGHT */
-.pages-layout { display:grid; grid-template-columns:1fr 210px; gap:0 24px; align-items:start }
+/* Notion colour palette — text colour and block background */
+.np-c-default { --npc:var(--text) }   .np-bg-default { --npb:transparent }
+.np-c-gray { --npc:#9b9b9b }   .np-bg-gray { --npb:rgba(155,155,155,.22) }
+.np-c-brown { --npc:#b5825a }  .np-bg-brown { --npb:rgba(181,130,90,.24) }
+.np-c-orange { --npc:#e0923a } .np-bg-orange { --npb:rgba(224,146,58,.24) }
+.np-c-yellow { --npc:#d1b23c } .np-bg-yellow { --npb:rgba(209,178,60,.24) }
+.np-c-green { --npc:#5aab7a }  .np-bg-green { --npb:rgba(90,171,122,.24) }
+.np-c-blue { --npc:#4f8fd6 }   .np-bg-blue { --npb:rgba(79,143,214,.24) }
+.np-c-purple { --npc:#9a7bd1 } .np-bg-purple { --npb:rgba(154,123,209,.24) }
+.np-c-pink { --npc:#d66fa5 }   .np-bg-pink { --npb:rgba(214,111,165,.24) }
+.np-c-red { --npc:#e0625a }    .np-bg-red { --npb:rgba(224,98,90,.24) }
+.np-block[class*="np-c-"] .np-text, .np-block[class*="np-c-"] .np-mark { color:var(--npc) }
+.np-block[class*="np-bg-"], .np-block[class*="np-bg-"]:hover { background:var(--npb) }
+.np-sw[class*="np-c-"] { color:var(--npc) } .np-sw[class*="np-bg-"] { background:var(--npb) }
 
-/* ---- Outline sidebar (right) ---- */
-.pages-toc-wrap { position:sticky; top:16px; max-height:calc(100vh - 100px); overflow-y:auto;
-  background:var(--g-face); border-radius:14px; border:1px solid var(--g-edge);
-  box-shadow:0 2px 8px rgba(0,0,0,.06); padding-bottom:12px; scrollbar-width:thin; order:2 }
-.pages-toc-head { display:flex; align-items:center; justify-content:space-between;
-  padding:12px 14px 10px; border-bottom:1px solid var(--line-soft); margin-bottom:4px }
-.pages-toc-head span { font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
-.pages-toc-close { display:none }
-.pages-toc-nav { padding:4px 0 }
-.toc-grp { margin-bottom:2px }
-.toc-h1 { display:block; padding:5px 12px; font-size:13px; font-weight:600; color:var(--text);
-  text-decoration:none; border-radius:7px; margin:1px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  transition:background .12s,color .12s }
-.toc-h2 { display:block; padding:4px 12px 4px 22px; font-size:12.5px; color:var(--text-2);
-  text-decoration:none; border-radius:7px; margin:1px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  transition:background .12s,color .12s }
-.toc-h3 { display:block; padding:3px 12px 3px 32px; font-size:11.5px; color:var(--muted);
-  text-decoration:none; border-radius:6px; margin:1px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  transition:background .12s,color .12s }
-.toc-h1:hover,.toc-h2:hover,.toc-h3:hover { background:color-mix(in srgb,var(--text) 7%,transparent); color:var(--text) }
-.toc-active { background:color-mix(in srgb,var(--accent) 14%,transparent) !important; color:var(--accent) !important }
+/* block menu */
+.np-menu { position:fixed; z-index:120; width:272px; max-height:min(72vh, 540px); overflow:auto; background:var(--card); color:var(--text);
+  border:1px solid var(--line-soft); border-radius:14px; box-shadow:var(--shadow); padding:6px }
+.np-menu[hidden], body:not(.on-pages) .np-menu { display:none }
+.np-m-h { font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); padding:8px 8px 4px }
+.np-m-row { display:flex; flex-wrap:wrap; gap:4px; padding:0 6px 2px }
+.np-m-chip { font-size:12px; padding:4px 8px; border-radius:7px; border:1px solid var(--line-soft); background:none; color:var(--text-2); cursor:pointer }
+.np-m-chip.on, .np-m-chip:hover { background:color-mix(in srgb, var(--text) 8%, transparent); color:var(--text) }
+.np-m-sw { display:flex; gap:5px; padding:0 8px 4px; flex-wrap:wrap }
+.np-sw { width:24px; height:24px; border-radius:6px; border:1px solid var(--line-soft); background:none; font-weight:700; font-size:13px; cursor:pointer; display:grid; place-items:center; padding:0 }
+.np-sw.on { outline:2px solid var(--accent); outline-offset:1px }
+.np-m-sep { height:1px; background:var(--line-soft); margin:6px 4px }
+.np-m-act { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:7px 10px; border:0; background:none; color:var(--text); font-size:13.5px; border-radius:8px; cursor:pointer; font-family:inherit }
+.np-m-act:hover { background:color-mix(in srgb, var(--text) 7%, transparent) }
+.np-m-danger { color:#e0625a }
+.np-m-move { cursor:default } .np-m-move:hover { background:none } .np-m-move select { flex:1; font-size:12.5px; padding:4px 6px; min-width:0 }
 
-/* ---- Main document area ---- */
-.pages-main { min-width:0; order:1 }
-.pages-doc-bar { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:18px }
-.pages-toc-toggle { display:none !important }
-
-/* ---- Document: Notion/markdown style ---- */
-.pages-doc { display:flex; flex-direction:column; gap:0 }
-
-/* TYPE = clean large heading + underline separator (like ## in markdown) */
-.pages-type-sec { margin-bottom:32px; scroll-margin-top:16px }
-.pages-type-header { display:flex; align-items:center; gap:10px;
-  padding:4px 0 12px; background:none; border:none; border-radius:0;
-  border-bottom:2px solid var(--line-soft); margin-bottom:18px }
-.pages-type-g { font-size:22px; opacity:.65 }
-.pages-type-name { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-.01em }
-
-/* CATEGORY = full-width Notion-style colored header bar */
-.pages-cat-sec { border:none; margin-bottom:14px; scroll-margin-top:16px }
-.pages-cat-sec:last-child { border:none; border-radius:0; padding-bottom:0 }
-.pages-cat-h { font-size:15px; font-weight:700; color:var(--text);
-  background:color-mix(in srgb,var(--accent) 20%,var(--g-face));
-  margin:0 0 6px; padding:9px 16px; border-radius:8px;
-  border-left:3px solid var(--accent) }
-
-/* SUBCATEGORY = bold underlined sub-heading (like bold in Notion) */
-.pages-sub-sec { scroll-margin-top:16px; padding:0 0 6px }
-.pages-subcat-h { font-size:13.5px; font-weight:700; color:var(--text);
-  margin:10px 4px 4px 20px; text-decoration:underline; text-underline-offset:3px;
-  text-decoration-color:color-mix(in srgb,var(--text) 30%,transparent) }
-
-/* Bullet entries */
-.pages-list { list-style:none; margin:0; padding:0 4px; display:flex; flex-direction:column; gap:0 }
-.pages-entry { display:flex; align-items:center; gap:8px; padding:5px 10px; border-radius:7px;
-  cursor:default; transition:background .12s }
-.pages-entry:hover { background:color-mix(in srgb,var(--text) 5%,transparent) }
-.pages-entry:hover .pages-edit-btn { opacity:1 }
-.pages-glyph { font-size:11px; color:var(--muted); flex-shrink:0; min-width:13px; text-align:center }
-.pages-entry-text { flex:1; font-size:14px; color:var(--text); min-width:0 }
-.pages-amount { font-size:13px; font-weight:600; color:var(--accent); flex-shrink:0; margin-right:4px }
-.pages-date { font-size:11px; color:var(--muted); flex-shrink:0 }
-.pages-edit-btn { opacity:0; border:none; background:none; padding:2px 6px; cursor:pointer; color:var(--text-2);
-  font-size:12px; border-radius:5px; flex-shrink:0; transition:opacity .15s,background .12s }
-.pages-edit-btn:hover { background:color-mix(in srgb,var(--text) 10%,transparent) }
-
-.pages-empty { text-align:center; padding:60px 20px; color:var(--text-2) }
-.pages-empty p { margin:0 0 10px }
-.pages-hint { font-size:13px; color:var(--muted) }
-.pages-hint code { background:color-mix(in srgb,var(--text) 8%,transparent); padding:1px 5px; border-radius:4px; font-family:monospace; font-size:12px }
+/* outline rail: thin bars on the right; hover (or tap) opens the full outline */
+.np-rail { position:fixed; right:14px; top:50%; transform:translateY(-50%); z-index:60 }
+.np-rail[hidden], body:not(.on-pages) .np-rail { display:none }
+.np-rail-bars { display:flex; flex-direction:column; align-items:flex-end; gap:7px; padding:12px 6px; cursor:pointer; transition:opacity .15s }
+.np-rail-bars i { display:block; height:2.5px; border-radius:2px; background:color-mix(in srgb, var(--text) 26%, transparent); transition:background .15s }
+.np-rail-bars i.l1 { width:22px } .np-rail-bars i.l2 { width:14px } .np-rail-bars i.l3 { width:8px }
+.np-rail-bars i.on { background:var(--text) }
+.np-rail-panel { position:absolute; right:0; top:50%; transform:translateY(-50%) translateX(8px); width:250px; max-height:70vh; overflow:auto;
+  background:var(--card); border:1px solid var(--line-soft); border-radius:14px; box-shadow:var(--shadow); padding:8px 6px;
+  opacity:0; pointer-events:none; transition:opacity .15s, transform .15s }
+.np-rail:hover .np-rail-panel, .np-rail.open .np-rail-panel { opacity:1; pointer-events:auto; transform:translateY(-50%) }
+.np-rail:hover .np-rail-bars, .np-rail.open .np-rail-bars { opacity:0 }
+.np-rl { display:block; padding:4px 10px; font-size:12.5px; color:var(--text-2); text-decoration:none; border-radius:7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.np-rl.l1 { font-weight:600; color:var(--text) } .np-rl.l2 { padding-left:22px } .np-rl.l3 { padding-left:34px; font-size:12px; color:var(--muted) }
+.np-rl:hover { background:color-mix(in srgb, var(--text) 7%, transparent); color:var(--text) }
+.np-rl.on { color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent) }
 
 @media (max-width:700px) {
-  .pages-layout { display:block }
-  .pages-toc-wrap { position:fixed; top:0; right:0; bottom:0; left:auto; width:min(80vw,280px); z-index:300;
-    max-height:none; border-radius:16px 0 0 16px; transform:translateX(110%);
-    transition:transform .24s cubic-bezier(.3,.9,.4,1) }
-  .pages-toc-wrap.open { transform:translateX(0) }
-  .pages-toc-close { display:block }
-  .pages-toc-toggle { display:flex !important; align-items:center; gap:5px }
-  .pages-doc-bar { justify-content:space-between; margin-bottom:14px }
+  .np-doc { padding-left:24px; font-size:14.5px }
+  .np-indent { padding-left:16px }
+  .np-handle { opacity:.45 }
+  .np-rail { right:6px }
+  .np-rail-panel { width:min(78vw, 260px) }
+  .np-h1 .np-text { font-size:22px } .np-h2 .np-text { font-size:17px }
 }
