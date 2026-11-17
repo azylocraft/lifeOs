@@ -738,7 +738,7 @@
   function renderAll(){ migrateCats(); renderHome(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); renderPages(); }
 
   /* ---- Pages: a Notion-style block document ---- */
-  let pagesObserver = null, npTrail = null, npTrailUnder = null;
+  let pagesObserver = null, npTrail = null, npTrailUnder = null, npForce = false;
   const PAGE_TYPES = ['task','mood','idea','problem','mistake','observation','custom','note','event'];
   const PAGE_LABELS = {task:'Actions',mood:'Mood',idea:'Ideas',problem:'Problems',mistake:'Mistakes',observation:'Observations',custom:'Custom',note:'Notes',event:'Events',expense:'Expenses'};
   /* actions and expenses keep to their own section — they are kinds of their own, not bullets */
@@ -911,11 +911,11 @@
     if (b) b.remove();
   }
   /* after an edit, open a fresh line at the end of this group and put the cursor in it */
-  function npOpenTrail(){
+  function npOpenTrail(now){
     const k = npTrail; if (!k) return;
     const under = npTrailUnder;
     npTrail = null; npTrailUnder = null;
-    setTimeout(() => {
+    const run = () => {
       const doc = $('pagesDoc'); if (!doc) return;
       /* a render held back while typing can leave an old one behind */
       doc.querySelectorAll('.np-temp').forEach(el => el.remove());
@@ -940,7 +940,8 @@
       }
       const el = add && add.querySelector('.np-text');
       if (el) { el.focus(); try { el.scrollIntoView({block:'nearest'}); } catch(err) {} }
-    }, 0);
+    };
+    if (now) run(); else setTimeout(run, 0);
   }
   function npHeading(depth, key, label, id, editable){
     const lvl = Math.min(depth + 1, 5), tag = 'h' + Math.min(lvl, 6);
@@ -951,7 +952,7 @@
     const doc = $('pagesDoc');
     if (!doc) return;
     const ae = document.activeElement;
-    if (doc.contains(ae) && ae.isContentEditable) { doc._npPending = true; return; }
+    if (!npForce && doc.contains(ae) && ae.isContentEditable) { doc._npPending = true; return; }
     doc._npPending = false;
     const heads = [], out = [];
     /* a group prints its own lines, then the groups inside it; a section prints its
@@ -3323,9 +3324,14 @@
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const b = t.closest('.np-block');
-        /* carry on into a fresh line in the same group */
+        /* carry on into a fresh line in the same group. Saving and moving the caret here,
+           rather than blurring and coming back on a later turn, keeps a phone keyboard up:
+           blurring to nothing is what makes it slide away and back. */
         if (b && b.dataset.key) npTrail = b.dataset.key;
-        t.blur();
+        t._done = true;
+        npForce = true;
+        try { npCommit(t, false); } finally { npForce = false; }
+        npOpenTrail(true);
       }
       else if (e.key === 'Escape') { t.textContent = t.dataset.npAdd != null ? '' : (t._was || ''); t._esc = true; t.blur(); }
       else if (e.key === 'Backspace' && t.dataset.npAdd != null && !t.textContent.trim()) { e.preventDefault(); npCloseEmpty(t); }
@@ -3337,9 +3343,7 @@
       if (e.inputType !== 'deleteContentBackward' || t.textContent.trim()) return;
       e.preventDefault(); npCloseEmpty(t);
     });
-    npDoc.addEventListener('focusout', e => {
-      const t = e.target; if (!t.isContentEditable) return;
-      const esc_ = t._esc; t._esc = false;
+    function npCommit(t, esc_){
       const text = t.textContent.replace(/\s+/g, ' ').trim();
       if (t.dataset.npAdd != null) {
         const b = t.closest('.np-add');
@@ -3367,6 +3371,13 @@
         if (esc_) { npTrail = null; renderPages(); }
         else { npEdit(() => npRename(t.dataset.npRename, text)); if (npTrail) npOpenTrail(); }
       }
+    }
+    npDoc.addEventListener('focusout', e => {
+      const t = e.target; if (!t.isContentEditable) return;
+      const esc_ = t._esc; t._esc = false;
+      /* Enter has already dealt with this one */
+      if (t._done) { t._done = false; return; }
+      npCommit(t, esc_);
       setTimeout(() => { if (npDoc._npPending && !(npDoc.contains(document.activeElement) && document.activeElement.isContentEditable)) renderPages(); }, 0);
     });
   }
