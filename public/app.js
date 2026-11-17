@@ -739,7 +739,7 @@
   function renderAll(){ migrateCats(); renderHome(); renderExpenses(); renderTrips(); renderPlanner(); renderJournal(); renderReminders(); renderPages(); }
 
   /* ---- Pages: a Notion-style block document ---- */
-  let pagesObserver = null, npTrail = null;
+  let pagesObserver = null, npTrail = null, npTrailUnder = null;
   const PAGE_TYPES = ['task','mood','idea','problem','mistake','observation','custom','note','event'];
   const PAGE_LABELS = {task:'Actions',mood:'Mood',idea:'Ideas',problem:'Problems',mistake:'Mistakes',observation:'Observations',custom:'Custom',note:'Notes',event:'Events',expense:'Expenses'};
   /* actions and expenses keep to their own section — they are kinds of their own, not bullets */
@@ -915,18 +915,30 @@
   /* after an edit, open a fresh line at the end of this group and put the cursor in it */
   function npOpenTrail(){
     const k = npTrail; if (!k) return;
-    npTrail = null;
+    const under = npTrailUnder;
+    npTrail = null; npTrailUnder = null;
     setTimeout(() => {
       const doc = $('pagesDoc'); if (!doc) return;
       /* a render held back while typing can leave an old one behind */
       doc.querySelectorAll('.np-temp').forEach(el => el.remove());
-      const grp = [...doc.querySelectorAll('.np-group')].find(el => el.dataset.key === k);
-      if (!grp) return;
-      let add = grp.querySelector('.np-add');
+      const parts = k.split('/');
+      let add = null;
+      /* a section keeps its loose lines at the very end, which is a long way from the
+         heading that was just pressed, so put the new line directly beneath it */
+      const anchor = under && $(under);
+      if (anchor) {
+        anchor.insertAdjacentHTML('afterend', npAdd(parts[0], parts.slice(1)));
+        add = anchor.nextElementSibling;
+        if (add) add.classList.add('np-temp');
+      }
       if (!add) {
-        const parts = k.split('/');
-        grp.insertAdjacentHTML('beforeend', npAdd(parts[0], parts.slice(1)));
-        add = grp.querySelector('.np-add'); if (add) add.classList.add('np-temp');
+        const grp = [...doc.querySelectorAll('.np-group')].find(el => el.dataset.key === k);
+        if (!grp) return;
+        add = grp.querySelector('.np-add');
+        if (!add) {
+          grp.insertAdjacentHTML('beforeend', npAdd(parts[0], parts.slice(1)));
+          add = grp.querySelector('.np-add'); if (add) add.classList.add('np-temp');
+        }
       }
       const el = add && add.querySelector('.np-text');
       if (el) { el.focus(); try { el.scrollIntoView({block:'nearest'}); } catch(err) {} }
@@ -934,7 +946,7 @@
   }
   function npHeading(depth, key, label, id, editable){
     const lvl = Math.min(depth + 1, 5), tag = 'h' + Math.min(lvl, 6);
-    return `<div class="np-block np-h${lvl}" id="${id}" data-path="${esc(key)}" data-key="${esc(key)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${lvl}" data-type="${esc(key.split('/')[0])}"><button type="button" class="np-handle" data-np-menu${editable ? ' draggable="true"' : ''} aria-label="Options${editable ? ', drag to move' : ''}" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(key) + '"' : ''}>${esc(label)}</${tag}></div>`;
+    return `<div class="np-block np-h${lvl}" id="${id}" data-path="${esc(key)}" data-key="${esc(key)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${lvl}" data-type="${esc(key.split('/')[0])}"><button type="button" class="np-handle" data-np-menu${editable ? ' draggable="true"' : ''} aria-label="Options${editable ? ', drag to move' : ''}" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(key) + '"' : ' tabindex="0" data-np-section="' + esc(key) + '" title="Press Enter to start a category here"'}>${esc(label)}</${tag}></div>`;
   }
 
   function renderPages(){
@@ -1021,13 +1033,15 @@
     if (kind === 'line') {
       const type = block.dataset.type;
       html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move aria-label="Move to group">${moveOptions([type], key, null)}</select></div><button type="button" class="np-m-act" data-np-act="dup">Duplicate</button><button type="button" class="np-m-act" data-np-act="edit">Open in editor</button><button type="button" class="np-m-act np-m-danger" data-np-act="del">Delete</button>`;
+    } else if (kind === 'type') {
+      html += `<button type="button" class="np-m-act" data-np-act="addgroup">＋ Add a category</button>`;
     } else if (kind === 'heading') {
       const parts = key.split('/'), parent = parts.slice(0, -1).join('/');
       html += '<div class="np-m-h">Turn into</div><div class="np-m-row">'
         + (parts.length > 2 ? '<button type="button" class="np-m-chip np-m-into" data-np-into="cat">→ Category</button>' : '')
         + '<button type="button" class="np-m-chip np-m-into" data-np-into="line">→ Jot line</button></div>';
       const types = parts[0] === 'expense' ? ['expense'] : bulletTypes();
-      html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move-group aria-label="Move this group to">${moveOptions(types, parent, key)}</select></div><button type="button" class="np-m-act" data-np-act="rename">Rename</button><button type="button" class="np-m-act" data-np-act="ungroup">Ungroup — move everything up one level</button>`;
+      html += `<button type="button" class="np-m-act" data-np-act="addgroup">＋ Add a sub-group</button><div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move-group aria-label="Move this group to">${moveOptions(types, parent, key)}</select></div><button type="button" class="np-m-act" data-np-act="rename">Rename</button><button type="button" class="np-m-act" data-np-act="ungroup">Ungroup — move everything up one level</button>`;
     }
     m.innerHTML = html; m._block = block; m.hidden = false;
     const r = block.getBoundingClientRect(), w = 272, h = Math.min(m.offsetHeight || 420, window.innerHeight - 16);
@@ -3286,7 +3300,15 @@
     });
     npDoc.addEventListener('focusin', e => { const t = e.target; if (t.isContentEditable) t._was = t.textContent; });
     npDoc.addEventListener('keydown', e => {
-      const t = e.target; if (!t.isContentEditable) return;
+      const t = e.target;
+      if (t.dataset && t.dataset.npSection && e.key === 'Enter') {
+        e.preventDefault();
+        npTrail = t.dataset.npSection;
+        npTrailUnder = t.closest('.np-block').id;
+        npOpenTrail();
+        return;
+      }
+      if (!t.isContentEditable) return;
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const b = t.closest('.np-block');
@@ -3362,6 +3384,7 @@
       else if (a === 'del' && it) npEdit(() => removeItems([id], 'Deleted'));
       else if (a === 'rename') { const h = b.querySelector('[data-np-rename]'); if (h) { h.focus(); try { document.execCommand('selectAll', false, null); } catch(err) {} } }
       else if (a === 'ungroup') npEdit(() => npUngroup(path));
+      else if (a === 'addgroup') { npTrail = path; npTrailUnder = b.id; npOpenTrail(); }
       else if (a === 'plaincolor' && it) npEdit(() => patchItem(id, {color:'', bg:''}));
     });
     npMenu.addEventListener('change', e => {
