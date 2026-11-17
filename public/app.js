@@ -1166,7 +1166,20 @@
   /* ---------- events ---------- */
   document.addEventListener('click', e => {
     const nav = e.target.closest('[data-view],[data-go]');
-    if (nav) { go(nav.dataset.view || nav.dataset.go); if (nav.dataset.focus) { const f = $(nav.dataset.focus); if (f) f.focus(); } return; }
+    if (nav) {
+      go(nav.dataset.view || nav.dataset.go);
+      if (nav.dataset.focus) { const f = $(nav.dataset.focus); if (f) f.focus(); }
+      /* go() puts the new page at the top, so carry on to the part that was asked for.
+         The page is still filling in at that moment and what sits above the target keeps
+         growing, so settle on it again once it has. */
+      if (nav.dataset.scroll) {
+        const id = nav.dataset.scroll;
+        const land = behavior => { const s = $(id); if (s) s.scrollIntoView({behavior, block:'start'}); };
+        setTimeout(() => land('smooth'), 60);
+        setTimeout(() => land('auto'), 420);
+      }
+      return;
+    }
     const el = e.target.closest('[data-act]');
     if (!el) return;
     const id = el.dataset.id, item = items.find(i => i.id === id);

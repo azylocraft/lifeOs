@@ -62,7 +62,7 @@
         <div class="card-head"><div><h2>Shape of the day</h2><div class="sub" id="homeShapeSub"></div></div><select id="homeStartPick" class="day-start-pick" aria-label="Day starts at"></select></div>
         <div class="list" id="homeShape"></div>
       </div>
-      <div class="card"><div class="card-head"><div><h2>Recent expenses</h2><div class="sub">Latest entries</div></div><button type="button" class="btn secondary small" data-go="expenses">View all</button></div><div id="homeExpenses" class="list"></div></div>
+      <div class="card"><div class="card-head"><div><h2>Recent expenses</h2><div class="sub">Latest entries</div></div><button type="button" class="btn secondary small" data-go="expenses" data-scroll="expenseHistory">View all</button></div><div id="homeExpenses" class="list"></div></div>
     </section>
 
     <section class="view" id="view-expenses">
@@ -136,7 +136,7 @@
         <div class="divider"></div>
         <div class="table-wrap scroll scroll-soft" id="savingsWrap"><table><thead id="savingsHead"></thead><tbody id="savingsTotal"></tbody><tbody id="savingsRows"></tbody></table></div>
       </div>
-      <div class="card" style="margin-top:18px"><div class="card-head"><div><h2>Expense history</h2><div class="sub">Newest entries first</div></div><button type="button" class="btn secondary small" id="exportExpenses" hidden>Export CSV</button></div><div class="table-wrap scroll scroll-soft" id="expenseTable"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="amount">Amount</th><th></th></tr></thead><tbody id="expenseRows"></tbody></table></div><div id="expenseEmpty" class="empty" hidden>No expenses yet. Add your first one above.</div></div>
+      <div class="card" id="expenseHistory" style="margin-top:18px"><div class="card-head"><div><h2>Expense history</h2><div class="sub">Newest entries first</div></div><button type="button" class="btn secondary small" id="exportExpenses" hidden>Export CSV</button></div><div class="table-wrap scroll scroll-soft" id="expenseTable"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="amount">Amount</th><th></th></tr></thead><tbody id="expenseRows"></tbody></table></div><div id="expenseEmpty" class="empty" hidden>No expenses yet. Add your first one above.</div></div>
     </section>
 
     <section class="view" id="view-travel">
