@@ -1242,3 +1242,13 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   .bud-compact-chart .cols.compact .col-plot { height:52px }
   .bud-compact-stats { gap:10px 14px }
 }
+
+/* ring and figures sized so all four stand on one line beside it */
+.bud-compact .ring { width:58px; height:58px }
+.bud-compact .ring b { font-size:14px; letter-spacing:-.3px }
+.bud-compact .ring small { font-size:8px }
+.bud-compact-row { gap:12px }
+.bud-compact-stats { flex-wrap:nowrap; gap:10px; justify-content:space-between; min-width:0 }
+.bud-compact-stats > div { min-width:0 }
+.bud-compact-stats .l { font-size:9.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.bud-compact-stats b { font-size:13px; white-space:nowrap }

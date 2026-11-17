@@ -698,7 +698,7 @@
     $('budgetRingText').textContent = totalBudget ? usedPct + '%' : '–';
     $('homeSpent').textContent = money(monthSum);
     $('homeBudget').textContent = totalBudget ? money(totalBudget) : 'Not set';
-    $('homeLeftLabel').textContent = nowFree < 0 ? 'Overspent' : 'Left to spend';
+    $('homeLeftLabel').textContent = nowFree < 0 ? 'Over' : 'Left';
     $('homeLeft').textContent = !totalBudget ? '–' : nowFree >= 0 ? money(nowFree) : money(-nowFree);
     $('homeLeft').className = nowFree < 0 ? 'red' : '';
     $('homeAside').textContent = nowAside ? money(nowAside) : '–';
