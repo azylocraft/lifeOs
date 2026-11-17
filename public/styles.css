@@ -633,7 +633,7 @@ button.bj-g:hover { background:var(--track) }
 .rh-pool .rh-task { width:auto; max-width:200px }
 
 /* monthly log */
-.ml-row { display:grid; grid-template-columns:46px minmax(0,1fr) auto; gap:6px; align-items:center; border-bottom:1px solid var(--line-soft); padding:1px 4px }
+.ml-row { display:grid; grid-template-columns:46px minmax(0,1fr) auto; gap:6px; align-items:center; border-bottom:1px solid var(--line-soft); padding:2px 4px }
 .ml-row.ml-head { border-bottom:0; padding-bottom:4px }
 .ml-row.today { background:var(--tile); border-radius:10px; border-bottom-color:transparent }
 .ml-day { all:unset; cursor:pointer; display:flex; gap:7px; align-items:baseline; font-size:13px; font-variant-numeric:tabular-nums; padding:7px 4px; border-radius:8px }
@@ -816,10 +816,10 @@ button.bj-g:hover { background:var(--track) }
 /* drag ghost */
 .ml-drag-ghost { background:var(--card); border:1.5px solid var(--accent); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:500; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.18) }
 
-/* done view in monthly log — single scrollable line per day */
-.ml-done-inline { font-size:11.5px; line-height:1.4; overflow-x:auto; white-space:nowrap; color:var(--text-2);
-  padding:2px 0; min-width:0; scrollbar-width:none; touch-action:pan-x }
-.ml-done-inline::-webkit-scrollbar { display:none }
+/* done view in monthly log — a day's entries wrap onto as many lines as they
+   need, small, rather than running off the side behind a hidden scrollbar */
+.ml-done-inline { font-size:10px; line-height:1.45; color:var(--text-2);
+  padding:3px 0; min-width:0; white-space:normal; overflow-wrap:anywhere }
 .ml-done-g { margin-right:3px; opacity:.7; font-weight:600 }
 .ml-done-g.g-task { color:var(--text); opacity:.85 }
 .ml-done-g.g-event { color:var(--muted); opacity:.9 }

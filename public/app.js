@@ -3587,7 +3587,7 @@
   const month = document.getElementById('jnMonth');
   const tabs = document.getElementById('jnTabs');
   if (!view || !day || !month || !tabs) return;
-  const IGNORE = '.rh-wrap, .day-pager-track, .shape-card, .bj, .shape-row, .rh-task, [draggable="true"], input, textarea, select, dialog, .seg, .ml-done-inline';
+  const IGNORE = '.rh-wrap, .day-pager-track, .shape-card, .bj, .shape-row, .rh-task, [draggable="true"], input, textarea, select, dialog, .seg';
   const stash = { current:null, other:null, startX:0, startY:0, w:0, swiping:false, prevState:null, lastX:0, lastT:0, vx:0, raf:0, dx:0 };
   function begin(dx) {
     const now = tabs.querySelector('[data-jtab][aria-pressed="true"]')?.dataset.jtab || 'day';
