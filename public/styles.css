@@ -1217,3 +1217,8 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .np-rail-bars i.l5 { background:var(--np-l4) }
 .np-rail-bars i { opacity:.55 }
 .np-rail-bars i.on { opacity:1 }
+
+/* the spending chart sits inside the budget card, below a dividing rule */
+.bud-compact-chart { margin-top:16px; padding-top:14px; border-top:1px solid var(--line-soft) }
+.bud-compact-note { font-size:10.5px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--muted); margin-left:8px }
+.bud-compact-chart .cols { margin-top:10px }
