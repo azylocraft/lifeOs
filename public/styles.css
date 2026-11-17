@@ -1177,32 +1177,30 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 }
 
 /* ---- Pages headings: a chord off the accent ----
-   A section title is plain ink. The category is the accent itself, and each
-   level below it steps a further 48 degrees around the colour wheel, so a
-   subcategory and a sub-subcategory are relatives of the accent rather than
-   paler copies of it. Pick a different accent and the whole chord turns with
-   it. Every tone is then mixed towards the palette's own text colour, which
+   A section title is plain ink. The category is the accent itself. The
+   subcategory steps 48 degrees around the colour wheel, so it is a relative
+   of the accent rather than a repeat of it, and everything below the
+   subcategory keeps that same hue in a softer tone. Pick a different accent
+   and the pair turns with it. Every tone is then mixed towards the
+   palette's own text colour, which
    is what keeps it readable on white paper and on a dark page alike, instead
    of switching on the system setting the way the old fixed pairs did.
    Browsers without relative colour syntax fall back to the accent's own hue
    at the same lightnesses, so the levels still separate. */
 :root {
   --np-acc:var(--pop, var(--accent));
-  --np-c1:var(--np-acc); --np-c2:var(--np-acc); --np-c3:var(--np-acc); --np-c4:var(--np-acc);
+  --np-c1:var(--np-acc); --np-c2:var(--np-acc); --np-c3:var(--np-c2); --np-c4:var(--np-c2);
   --np-l0:var(--text);
   --np-l1:color-mix(in oklch, var(--np-c1) 84%, var(--text));
   --np-l1-bg:color-mix(in srgb, var(--np-c1) 11%, transparent);
   --np-l2:color-mix(in oklch, var(--np-c2) 74%, var(--text));
   --np-l2-bg:color-mix(in srgb, var(--np-c2) 9%, transparent);
-  --np-l3:color-mix(in oklch, var(--np-c3) 62%, var(--text-2));
+  --np-l3:color-mix(in oklch, var(--np-c3) 55%, var(--text-2));
   --np-l3-bg:color-mix(in srgb, var(--np-c3) 6%, transparent);
-  --np-l4:color-mix(in oklch, var(--np-c4) 50%, var(--text-2));
+  --np-l4:color-mix(in oklch, var(--np-c4) 36%, var(--muted));
   --np-l4-bg:color-mix(in srgb, var(--np-c4) 5%, transparent) }
 @supports (color: oklch(from red l c h)) {
-  :root {
-    --np-c2:oklch(from var(--np-acc) l calc(c * .94) calc(h + 48));
-    --np-c3:oklch(from var(--np-acc) l calc(c * .88) calc(h + 96));
-    --np-c4:oklch(from var(--np-acc) l calc(c * .82) calc(h + 144)) }
+  :root { --np-c2:oklch(from var(--np-acc) l calc(c * .94) calc(h + 48)) }
 }
 
 .np-h1 .np-text { color:var(--np-l0) }
