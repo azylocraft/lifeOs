@@ -1233,15 +1233,12 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .bud-compact-stats { gap:14px 18px }
 .bud-compact-stats .l { font-size:10.5px }
 .bud-compact-stats b { font-size:15px }
-/* the note and the button share one line under the figures instead of stacking beside them */
-.bud-compact-extra { flex-direction:row; align-items:center; justify-content:space-between;
-  gap:10px; width:100%; margin-left:0; margin-top:10px }
-.bud-compact-extra .sub { margin:0; text-align:left; max-width:none; font-size:10.5px; line-height:1.35 }
 .bud-compact-chart { margin-top:12px; padding-top:10px }
-.bud-compact-chart .cols.compact .col-plot { height:86px }
+.bud-compact-chart .cols.compact .col-plot { height:62px }
+.bud-compact-chart .cols.compact .col-val { font-size:9.5px }
+.bud-compact-chart .cols.compact .col-note { font-size:9.5px }
+.bud-compact-chart .cols { margin-top:6px }
 @media (max-width:700px) {
-  .bud-compact-chart .cols.compact .col-plot { height:70px }
+  .bud-compact-chart .cols.compact .col-plot { height:52px }
   .bud-compact-stats { gap:10px 14px }
 }
-/* with no button beside it, the note row disappears when there is no note */
-.bud-compact-extra:has(.sub:empty) { display:none }

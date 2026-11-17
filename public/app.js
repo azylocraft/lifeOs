@@ -701,7 +701,8 @@
     $('homeLeftLabel').textContent = nowFree < 0 ? 'Overspent' : 'Left to spend';
     $('homeLeft').textContent = !totalBudget ? '–' : nowFree >= 0 ? money(nowFree) : money(-nowFree);
     $('homeLeft').className = nowFree < 0 ? 'red' : '';
-    $('homeAside').textContent = nowAside ? money(nowAside) + ' more goes to plans and instalments this month, on top of this budget' : '';
+    $('homeAside').textContent = nowAside ? money(nowAside) : '–';
+    $('homeAsideBox').hidden = !nowAside;
     const names = cats.map(c => c.name), sig = names.join('\n');
     /* the expense form starts on nothing, so a category is a choice and never a leftover */
     [$('expenseCategory'), $('planCategory')].forEach(sel => {
