@@ -1252,3 +1252,7 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .bud-compact-stats > div { min-width:0 }
 .bud-compact-stats .l { font-size:9.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
 .bud-compact-stats b { font-size:13px; white-space:nowrap }
+
+/* Overview stacks plain cards now that the two-column grid is gone, so space them here */
+#view-home.view.active { display:flex; flex-direction:column; gap:14px }
+#view-home > .card { margin:0 }
