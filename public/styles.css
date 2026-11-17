@@ -419,7 +419,8 @@
     .app { display:block; margin:0; border-radius:0; border:0; box-shadow:none; padding:16px 14px 112px; min-height:100vh; background:transparent; -webkit-backdrop-filter:none; backdrop-filter:none }
     aside { position:fixed; inset:auto 0 0 0; z-index:6; min-height:0; margin:0; background:none; border-radius:0; padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); pointer-events:none; display:block }
     .brand { display:none }
-    .nav { pointer-events:auto; grid-template-columns:repeat(6,minmax(0,1fr)); gap:2px; padding:5px; border-radius:999px; background:#1f1f21; box-shadow:0 12px 34px rgba(0,0,0,.3) }
+    /* one even column per tab, however many there are */
+    .nav { pointer-events:auto; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); grid-template-columns:none; gap:2px; padding:5px; border-radius:999px; background:#1f1f21; box-shadow:0 12px 34px rgba(0,0,0,.3) }
     .nav button { flex-direction:column; align-items:center; justify-content:center; gap:1px; width:auto; padding:7px 2px 6px; border-radius:999px; font-size:10.5px; line-height:1.2; color:rgba(255,255,255,.8) }
     .nav button:hover { background:rgba(255,255,255,.1) }
     .nav button.active { background:var(--pop, var(--nav-on-bg,#fff)); color:var(--on-pop, var(--nav-on-ink,#1b1b1d)) }
