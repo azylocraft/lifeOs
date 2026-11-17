@@ -889,7 +889,7 @@
 
   function npLine(e, type, path){
     const fmt = e.fmt || 'bullet';
-    const mark = fmt === 'bullet' ? '<span class="np-mark">•</span>'
+    const mark = fmt === 'bullet' ? '<span class="np-mark">▪</span>'
       : fmt === 'num' ? '<span class="np-mark np-num"></span>'
       : fmt === 'todo' ? `<button type="button" class="np-check" data-np-check="${esc(e.id)}" aria-label="Done">${e.done ? '✓' : ''}</button>` : '';
     const amount = e.kind === 'expense' ? `<span class="np-amt">${money(e.amount)}</span>` : '';
@@ -1122,7 +1122,7 @@
       body += '</ul>';
     });
     if (!body) { toast('Nothing to export yet.'); return; }
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pages</title><style>body{font-family:Calibri,Arial,sans-serif;margin:2cm;line-height:1.6;color:#111}h1{font-size:20pt;border-bottom:2px solid #1a1a2e;padding-bottom:4pt;margin-top:24pt}h2{font-size:15pt;margin-top:14pt}h3{font-size:13pt;margin-top:11pt}h4,h5,h6{font-size:11.5pt;color:#555;margin-top:9pt}ul{margin:0 0 8pt;padding-left:18pt}li{margin-bottom:4pt}</style></head><body><h1>My Pages</h1>${body}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pages</title><style>body{font-family:Calibri,Arial,sans-serif;margin:2cm;line-height:1.6;color:#111}h1{font-size:20pt;border-bottom:2px solid #1a1a2e;padding-bottom:4pt;margin-top:24pt}h2{font-size:15pt;margin-top:14pt}h3{font-size:13pt;margin-top:11pt}h4,h5,h6{font-size:11.5pt;color:#555;margin-top:9pt}ul{margin:0 0 8pt;padding-left:18pt;list-style-type:square}li{margin-bottom:4pt}</style></head><body><h1>My Pages</h1>${body}</body></html>`;
     const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'my-pages.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
