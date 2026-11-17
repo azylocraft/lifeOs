@@ -1278,3 +1278,44 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .bj-day:first-child { border-top:1px solid var(--g-edge); padding-top:12px }
 .bj-day .bj-date { margin-left:0 }
 .past-wk-label { padding-left:6px }
+
+/* ---- the monthly spread ----
+   Weeks run down the page, days run across it, and a cell carries only a
+   shorthand of its day: the date, up to four glyphs for what happened, and a
+   count of anything that did not fit. The day you pick is written out in full
+   underneath, which is what lets a whole month sit on one screen. */
+.ml-sheet { display:grid; grid-template-columns:18px repeat(7, minmax(0,1fr)); gap:3px; align-items:stretch }
+.ml-dow { font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); text-align:center; padding-bottom:2px }
+.ml-wk { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  font-size:9px; letter-spacing:0; text-transform:none; color:var(--muted);
+  background:none; border-radius:6px; padding:0; margin:0; cursor:default }
+.ml-wk.drop-over { background:color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) }
+.ml-wk-count { font-size:8px; font-weight:700; color:var(--pop, var(--accent)) }
+.ml-wk-count:empty { display:none }
+.ml-cell { all:unset; box-sizing:border-box; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px;
+  min-height:46px; padding:4px 2px 3px; border-radius:9px; border:1px solid transparent;
+  background:color-mix(in srgb, var(--text) 4%, transparent) }
+.ml-cell.blank { background:none; border-color:transparent; cursor:default; pointer-events:none }
+.ml-cell b { font-size:12px; line-height:1; font-variant-numeric:tabular-nums }
+.ml-cell.wkend b { color:var(--muted) }
+.ml-cell.today b { color:var(--pop, var(--accent)); font-weight:800 }
+.ml-cell.today { background:color-mix(in srgb, var(--text) 9%, transparent) }
+.ml-cell.sel { border-color:var(--pop, var(--accent)); background:color-mix(in srgb, var(--pop, var(--accent)) 13%, transparent) }
+.ml-cell.drop-over { background:color-mix(in srgb, var(--pop, var(--accent)) 20%, transparent) }
+.ml-cell:focus-visible { outline:2px solid var(--pop, var(--accent)); outline-offset:1px }
+.ml-marks { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:0 2px; line-height:1.1 }
+.ml-marks i { font-size:9px; font-style:normal; margin:0 }
+.ml-more { font-size:8px; color:var(--muted) }
+.ml-hb { font-size:7.5px; font-style:normal; line-height:1.5; color:var(--muted); border:1px solid var(--line-soft); border-radius:999px; padding:0 4px; margin-top:auto }
+
+/* the picked day, written out */
+.ml-sel { margin-top:12px; border-top:1px solid var(--line-soft); padding-top:10px }
+.ml-sel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:7px }
+.ml-sel-head b { font-size:13px }
+.ml-sel-list { list-style:none; margin:0; padding:0; display:grid; gap:4px }
+.ml-sel-list li { font-size:12.5px; line-height:1.4; color:var(--text-2); display:flex; gap:6px; align-items:baseline }
+.ml-sel-empty { font-size:12px; color:var(--muted); padding:3px 0 6px }
+.ml-sel-habits { display:flex; flex-wrap:wrap; gap:5px; margin-top:12px; padding-top:10px; border-top:1px solid var(--line-soft) }
+.ml-hbtn { font-size:10.5px; padding:3px 10px; border-radius:999px; border:1px solid var(--line-soft); background:none; color:var(--text-2); cursor:pointer }
+.ml-hbtn.on { background:var(--pop, var(--accent)); border-color:transparent; color:var(--on-pop, var(--on-accent)); font-weight:600 }
+@media (min-width:861px) { .ml-sheet { grid-template-columns:24px repeat(7, minmax(0,1fr)); gap:5px } .ml-cell { min-height:66px } .ml-cell b { font-size:14px } .ml-marks i { font-size:11px } }
