@@ -873,6 +873,7 @@
   }
   /* one way of ordering throughout: by name, ignoring case, and reading digits as numbers
      so step2 lands before step10 */
+  const npMonthYear = iso => { const d = new Date(iso + 'T12:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('en-IN', {month:'short', year:'2-digit'}); };
   const npCmp = (a, b) => String(a).localeCompare(String(b), undefined, {sensitivity:'base', numeric:true});
   const sortNames = o => Object.keys(o).sort(npCmp);
   /* sections run alphabetically too, by the name written on them */
@@ -891,8 +892,9 @@
       : fmt === 'num' ? '<span class="np-mark np-num"></span>'
       : fmt === 'todo' ? `<button type="button" class="np-check" data-np-check="${esc(e.id)}" aria-label="Done">${e.done ? '✓' : ''}</button>` : '';
     const amount = e.kind === 'expense' ? `<span class="np-amt">${money(e.amount)}</span>` : '';
+    /* the day a line was jotted matters less here than roughly when, so month and year */
     const when = e.date || e.due;
-    const date = when ? `<span class="np-date">${esc(dayMonth(when))}</span>` : '';
+    const date = when ? `<span class="np-date">${esc(npMonthYear(when))}</span>` : '';
     return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${esc(type)}" data-key="${esc(keyOf(type, path))}"><button type="button" class="np-handle" data-np-menu draggable="true" aria-label="Options, drag to move" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(lineText(e))}</span>${amount}${date}</div>`;
   }
   const npAdd = (type, path) => `<div class="np-block np-line np-add" data-kind="add" data-key="${esc(keyOf(type, path))}" data-type="${esc(type)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add></span></div>`;

@@ -1105,7 +1105,8 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   color:var(--on-accent); font-size:11px; line-height:1; cursor:pointer; padding:0 }
 .is-done .np-check { background:var(--accent); border-color:var(--accent) }
 .is-done .np-text { text-decoration:line-through; opacity:.55 }
-.np-date { font-size:11px; color:var(--muted); padding-top:5px; flex-shrink:0; font-variant-numeric:tabular-nums }
+.np-date { font-size:9.5px; letter-spacing:.01em; color:var(--muted); opacity:.65; padding-top:6px; flex-shrink:0; font-variant-numeric:tabular-nums }
+.np-entry:hover .np-date, .np-line:hover .np-date { opacity:1 }
 .np-amt { font-size:13px; font-weight:600; color:var(--text); padding-top:3px; flex-shrink:0 }
 .np-add .np-mark { opacity:.35 }
 .np-add .np-text:focus { background:none }
