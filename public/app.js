@@ -991,12 +991,15 @@
     const m = $('npMenu'); if (!m) return;
     const kind = block.dataset.kind, id = block.dataset.id, key = block.dataset.key;
     const item = id ? items.find(i => i.id === id) : null;
-    const cur = item || (kind === 'heading' ? headStyle(Number(block.dataset.level) - 1, key) : {});
+    /* section headings can carry a hand-picked colour too, so read them the same way */
+    const cur = item || (key ? headStyle(Number(block.dataset.level || 1) - 1, key) : {});
     let html = '';
     if (kind === 'line') html += '<div class="np-m-h">Turn into</div><div class="np-m-row">' + Object.keys(NP_FMT).map(f => `<button type="button" class="np-m-chip${(item.fmt || 'bullet') === f ? ' on' : ''}" data-np-fmt="${f}">${NP_FMT[f]}</button>`).join('')
       + `<button type="button" class="np-m-chip np-m-into" data-np-into="cat">→ Category</button>${pathOf(item).length ? '<button type="button" class="np-m-chip np-m-into" data-np-into="sub">→ Sub-group here</button>' : ''}</div>`;
     html += '<div class="np-m-h">Text color</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-c-${c || 'default'}${(cur.color || '') === c ? ' on' : ''}" data-np-color="${c}" title="${c || 'Default'} text">A</button>`).join('') + '</div>';
     html += '<div class="np-m-h">Background</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-bg-${c || 'default'}${(cur.bg || '') === c ? ' on' : ''}" data-np-bg="${c}" title="${c || 'Default'} background"></button>`).join('') + '</div>';
+    /* a colour picked by hand overrides the one its level would give it, so offer a way back */
+    if (cur.color || cur.bg) html += '<button type="button" class="np-m-act" data-np-act="plaincolor">Use the usual colour for this level</button>';
     if (kind === 'line') {
       const type = block.dataset.type;
       html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move aria-label="Move to group">${moveOptions([type], key, null)}</select></div><button type="button" class="np-m-act" data-np-act="dup">Duplicate</button><button type="button" class="np-m-act" data-np-act="edit">Open in editor</button><button type="button" class="np-m-act np-m-danger" data-np-act="del">Delete</button>`;
@@ -3315,6 +3318,7 @@
       else if (a === 'del' && it) npEdit(() => removeItems([id], 'Deleted'));
       else if (a === 'rename') { const h = b.querySelector('[data-np-rename]'); if (h) { h.focus(); try { document.execCommand('selectAll', false, null); } catch(err) {} } }
       else if (a === 'ungroup') npEdit(() => npUngroup(path));
+      else if (a === 'plaincolor') npEdit(() => it ? patchItem(id, {color:'', bg:''}) : setMeta(path, {color:'', bg:''}));
     });
     npMenu.addEventListener('change', e => {
       const sel = e.target.closest('[data-np-move]'), b = npMenu._block; if (!sel || !b) return;
