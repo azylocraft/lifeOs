@@ -189,7 +189,7 @@
   .item-body { overflow-wrap:anywhere; white-space:pre-wrap; color:var(--text-2) }
   .item-meta { color:var(--muted); font-size:11.5px; margin-top:3px; overflow-wrap:anywhere }
   .item-side { font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap }
-  .icon-btn { width:32px; height:32px; display:inline-grid; place-items:center; padding:0; border:0; background:var(--track); color:var(--text-2); border-radius:50%; font-size:11px; line-height:1; flex-shrink:0 }
+  .icon-btn { width:28px; height:28px; display:inline-grid; place-items:center; padding:0; border:0; background:var(--track); color:var(--text-2); border-radius:50%; font-size:10.5px; line-height:1; flex-shrink:0 }
   .icon-btn:hover { color:var(--on-accent); background:var(--accent) }
   .check { accent-color:var(--accent); width:18px; height:18px; margin:2px 0 0; flex-shrink:0; padding:0 }
   .completed .item-title { color:var(--faint); text-decoration:line-through }
@@ -441,7 +441,7 @@
     .form-grid { grid-template-columns:1fr }
     .form-grid .full { grid-column:auto }
     input,textarea,select { font-size:16px }
-    .icon-btn { width:36px; height:36px }
+    .icon-btn { width:30px; height:30px }
     th,td { padding-left:5px; padding-right:5px }
     /* on a phone the table runs with the page instead of being a box inside it */
     .table-wrap.scroll { --th-h:32px; max-height:none !important; overflow-y:visible }
@@ -959,7 +959,7 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   --ag-sheen:linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.05) 38%, rgba(255,255,255,0) 60%, rgba(0,0,0,.04) 100%);
   --ag-drop:0 1px 2px rgba(0,0,0,.35), 0 6px 14px color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent) }
 .btn:not(.secondary), .seg button[aria-pressed="true"], .type-pill[aria-pressed="true"], .nav button.active, .rh-mode.maker, .mode-btn.maker, .pop-dot[aria-pressed="true"],
-.bj-top.on, .brand-icon, .cal-day.sel, .icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] {
+.bj-top.on, .brand-icon, .cal-day.sel, .jot-fab, .icon-btn:hover, .round-btn:hover, .round-btn[aria-expanded="true"] {
   color:var(--ag-ink); border:1px solid var(--ag-rim); text-shadow:none;
   background:var(--ag-sheen), linear-gradient(color-mix(in srgb, var(--pop, var(--accent)) var(--ag-mix), var(--ag-base)), color-mix(in srgb, var(--pop, var(--accent)) var(--ag-mix), var(--ag-base)));
   box-shadow:inset 0 1px 0 var(--ag-top), inset 0 -1px 0 var(--ag-bot), inset 1px 0 0 var(--ag-side), inset -1px 0 0 var(--ag-side), var(--ag-drop);
@@ -1006,6 +1006,8 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
    Desktop lays it near the corner; a phone slides it up from the bottom. */
 .jot-fab { position:fixed; right:70px; bottom:28px; z-index:45; width:56px; height:56px; border-radius:50%; display:grid; place-items:center; font-size:22px; line-height:1; border:0; padding:0; cursor:pointer }
 .jot-fab[aria-expanded="true"] { opacity:0; pointer-events:none }
+.jot-fab:hover { filter:saturate(1.15) brightness(1.06) }
+.jot-fab:active { filter:saturate(1.1) brightness(.97) }
 /* #lgSheet is the full-screen backdrop — never inline in the page */
 #lgSheet { position:fixed; inset:0; margin:0; padding:0; border:0; width:100%; max-width:none; height:100%; max-height:none;
   display:none; align-items:center; justify-content:center;
