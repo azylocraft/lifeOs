@@ -1243,3 +1243,5 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   .bud-compact-chart .cols.compact .col-plot { height:70px }
   .bud-compact-stats { gap:10px 14px }
 }
+/* with no button beside it, the note row disappears when there is no note */
+.bud-compact-extra:has(.sub:empty) { display:none }
