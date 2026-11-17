@@ -780,7 +780,6 @@
     paintUndo(); toast('Redone');
   }
   const pagesDoc = () => items.find(i => i.id === 'pagesMeta') || {};
-  const pagesMeta = () => pagesDoc().meta || {};
   /* groups kept on their own, so one can exist before anything is in it */
   const pagesGroups = () => pagesDoc().groups || [];
   const setGroups = list => upsertDoc('pagesMeta', 'pages', {groups:[...new Set(list)].filter(Boolean)});
@@ -788,20 +787,9 @@
   const dropGroup = path => setGroups(pagesGroups().filter(p => p !== path && p.indexOf(path + '/') !== 0));
   /* carry declarations and colours across when a group is renamed or moved */
   function remapPaths(from, to){
-    const m = {...pagesMeta()}, before = pagesGroups();
-    let touched = false;
-    Object.keys(m).forEach(k => { if (k === from || k.indexOf(from + '/') === 0) { m[to + k.slice(from.length)] = m[k]; delete m[k]; touched = true; } });
+    const before = pagesGroups();
     const gs = before.map(p => (p === from || p.indexOf(from + '/') === 0) ? to + p.slice(from.length) : p);
-    const fields = {};
-    if (touched) fields.meta = m;
-    if (gs.join('|') !== before.join('|')) fields.groups = [...new Set(gs)];
-    if (Object.keys(fields).length) upsertDoc('pagesMeta', 'pages', fields);
-  }
-  function setMeta(path, patch){
-    const m = {...pagesMeta()}, cur = {...(m[path] || {}), ...patch};
-    Object.keys(cur).forEach(k => { if (!cur[k]) delete cur[k]; });
-    if (Object.keys(cur).length) m[path] = cur; else delete m[path];
-    upsertDoc('pagesMeta', 'pages', {meta:m});
+    if (gs.join('|') !== before.join('|')) setGroups(gs);
   }
   function patchMany(ids, patch){
     const set = new Set(ids);
@@ -811,9 +799,6 @@
   }
   const npSlug = s => (s || '').replace(/[^\w\u0900-\u097F]+/g, '-').toLowerCase().replace(/^-|-$/g, '') || 'g';
   const npStyle = o => (o && o.color ? ' np-c-' + o.color : '') + (o && o.bg ? ' np-bg-' + o.bg : '');
-  /* colour comes from how deep a heading sits, not from its name: the stylesheet gives each
-     level its own tone, and this only carries what was picked by hand in the block menu */
-  const headStyle = (depth, key) => pagesMeta()[key] || {};
   const bulletTypes = () => npTypes().filter(t => t !== 'event' && !npClosed(t));
 
   /* ---- groups as a path of any depth: ['business','sales','why'] ---- */
@@ -949,7 +934,7 @@
   }
   function npHeading(depth, key, label, id, editable){
     const lvl = Math.min(depth + 1, 5), tag = 'h' + Math.min(lvl, 6);
-    return `<div class="np-block np-h${lvl}${npStyle(headStyle(depth, key))}" id="${id}" data-path="${esc(key)}" data-key="${esc(key)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${lvl}" data-type="${esc(key.split('/')[0])}"><button type="button" class="np-handle" data-np-menu${editable ? ' draggable="true"' : ''} aria-label="Options${editable ? ', drag to move' : ''}" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(key) + '"' : ''}>${esc(label)}</${tag}></div>`;
+    return `<div class="np-block np-h${lvl}" id="${id}" data-path="${esc(key)}" data-key="${esc(key)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${lvl}" data-type="${esc(key.split('/')[0])}"><button type="button" class="np-handle" data-np-menu${editable ? ' draggable="true"' : ''} aria-label="Options${editable ? ', drag to move' : ''}" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(key) + '"' : ''}>${esc(label)}</${tag}></div>`;
   }
 
   function renderPages(){
@@ -1024,15 +1009,15 @@
     const m = $('npMenu'); if (!m) return;
     const kind = block.dataset.kind, id = block.dataset.id, key = block.dataset.key;
     const item = id ? items.find(i => i.id === id) : null;
-    /* section headings can carry a hand-picked colour too, so read them the same way */
-    const cur = item || (key ? headStyle(Number(block.dataset.level || 1) - 1, key) : {});
+    const cur = item || {};
     let html = '';
     if (kind === 'line') html += '<div class="np-m-h">Turn into</div><div class="np-m-row">' + Object.keys(NP_FMT).map(f => `<button type="button" class="np-m-chip${(item.fmt || 'bullet') === f ? ' on' : ''}" data-np-fmt="${f}">${NP_FMT[f]}</button>`).join('')
       + `<button type="button" class="np-m-chip np-m-into" data-np-into="cat">→ Category</button>${pathOf(item).length ? '<button type="button" class="np-m-chip np-m-into" data-np-into="sub">→ Sub-group here</button>' : ''}</div>`;
-    html += '<div class="np-m-h">Text color</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-c-${c || 'default'}${(cur.color || '') === c ? ' on' : ''}" data-np-color="${c}" title="${c || 'Default'} text">A</button>`).join('') + '</div>';
-    html += '<div class="np-m-h">Background</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-bg-${c || 'default'}${(cur.bg || '') === c ? ' on' : ''}" data-np-bg="${c}" title="${c || 'Default'} background"></button>`).join('') + '</div>';
-    /* a colour picked by hand overrides the one its level would give it, so offer a way back */
-    if (cur.color || cur.bg) html += '<button type="button" class="np-m-act" data-np-act="plaincolor">Use the usual colour for this level</button>';
+    if (kind === 'line') {
+      html += '<div class="np-m-h">Text color</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-c-${c || 'default'}${(cur.color || '') === c ? ' on' : ''}" data-np-color="${c}" title="${c || 'Default'} text">A</button>`).join('') + '</div>';
+      html += '<div class="np-m-h">Background</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-bg-${c || 'default'}${(cur.bg || '') === c ? ' on' : ''}" data-np-bg="${c}" title="${c || 'Default'} background"></button>`).join('') + '</div>';
+      if (cur.color || cur.bg) html += '<button type="button" class="np-m-act" data-np-act="plaincolor">Back to the plain colour</button>';
+    }
     if (kind === 'line') {
       const type = block.dataset.type;
       html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move aria-label="Move to group">${moveOptions([type], key, null)}</select></div><button type="button" class="np-m-act" data-np-act="dup">Duplicate</button><button type="button" class="np-m-act" data-np-act="edit">Open in editor</button><button type="button" class="np-m-act np-m-danger" data-np-act="del">Delete</button>`;
@@ -3367,8 +3352,8 @@
         return;
       }
       if (fmt && it) { npEdit(() => patchItem(id, {fmt:fmt.dataset.npFmt})); closeNpMenu(); return; }
-      if (col) { npEdit(() => it ? patchItem(id, {color:col.dataset.npColor}) : setMeta(path, {color:col.dataset.npColor})); closeNpMenu(); return; }
-      if (bg) { npEdit(() => it ? patchItem(id, {bg:bg.dataset.npBg}) : setMeta(path, {bg:bg.dataset.npBg})); closeNpMenu(); return; }
+      if (col && it) { npEdit(() => patchItem(id, {color:col.dataset.npColor})); closeNpMenu(); return; }
+      if (bg && it) { npEdit(() => patchItem(id, {bg:bg.dataset.npBg})); closeNpMenu(); return; }
       if (!act) return;
       const a = act.dataset.npAct;
       closeNpMenu();
@@ -3377,7 +3362,7 @@
       else if (a === 'del' && it) npEdit(() => removeItems([id], 'Deleted'));
       else if (a === 'rename') { const h = b.querySelector('[data-np-rename]'); if (h) { h.focus(); try { document.execCommand('selectAll', false, null); } catch(err) {} } }
       else if (a === 'ungroup') npEdit(() => npUngroup(path));
-      else if (a === 'plaincolor') npEdit(() => it ? patchItem(id, {color:'', bg:''}) : setMeta(path, {color:'', bg:''}));
+      else if (a === 'plaincolor' && it) npEdit(() => patchItem(id, {color:'', bg:''}));
     });
     npMenu.addEventListener('change', e => {
       const sel = e.target.closest('[data-np-move]'), b = npMenu._block; if (!sel || !b) return;
