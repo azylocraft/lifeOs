@@ -2902,7 +2902,6 @@
   }
   function projectRowHTML(g, key){
     const kids = kidsOf(g.id).sort(byDoneThenAge), kd = kids.filter(k => k.done).length, open = mlOpen === g.id;
-    const weeks = monthWeeks(key);
     const stepsHTML = kids.map(k => {
       const subKids = kidsOf(k.id).sort(byDoneThenAge);
       const subHTML = subKids.map(sk => `<div class="bj sub-sub ${sk.done ? 'done' : ''}">
@@ -2912,7 +2911,6 @@
       return `<div class="ml-step-wrap"><div class="bj sub ${k.done ? 'done' : ''}">
         <button type="button" class="bj-g" data-ml-done="${esc(k.id)}" aria-pressed="${!!k.done}">${k.done ? '✕' : '○'}</button>
         <div class="bj-t"><span class="tx">${esc(k.title)}</span></div>
-        <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Wk</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${'W' + w.num}</option>`).join('')}</select>
         ${k.done ? '' : `<button type="button" class="icon-btn ml-sub-add" data-ml-sub="${esc(k.id)}" aria-label="Add sub-step">＋</button>`}
         <button type="button" class="icon-btn" data-act="delete" data-id="${esc(k.id)}" aria-label="Delete step: ${esc(k.title)}">✕</button>
       </div>${subHTML ? `<div class="ml-sub-kids">${subHTML}</div>` : ''}</div>`;
@@ -3067,12 +3065,6 @@
     input.value = '';
     addItem('goal', {horizon:'month', period:mlMonth, title:title.slice(0,120), done:false, parent:f.dataset.mlParent, area:''});
     input.focus();
-  });
-  document.querySelector('.ml-plan').addEventListener('change', e => {
-    const sel = e.target.closest('[data-ml-week]');
-    if (!sel) return;
-    const id = sel.dataset.mlWeek, wk = sel.value || '';
-    patchItem(id, {targetWeek: wk});
   });
   (function initDragDrop(){
     let dragId = null, dragEl = null, ghostEl = null;
@@ -3595,7 +3587,7 @@
   const month = document.getElementById('jnMonth');
   const tabs = document.getElementById('jnTabs');
   if (!view || !day || !month || !tabs) return;
-  const IGNORE = '.rh-wrap, .day-pager-track, .shape-card, .bj, .shape-row, .rh-task, [draggable="true"], input, textarea, select, dialog, .seg, .ml-wk-sel, .ml-done-inline';
+  const IGNORE = '.rh-wrap, .day-pager-track, .shape-card, .bj, .shape-row, .rh-task, [draggable="true"], input, textarea, select, dialog, .seg, .ml-done-inline';
   const stash = { current:null, other:null, startX:0, startY:0, w:0, swiping:false, prevState:null, lastX:0, lastT:0, vx:0, raf:0, dx:0 };
   function begin(dx) {
     const now = tabs.querySelector('[data-jtab][aria-pressed="true"]')?.dataset.jtab || 'day';
