@@ -814,7 +814,7 @@
   /* colour comes from how deep a heading sits, not from its name: the stylesheet gives each
      level its own tone, and this only carries what was picked by hand in the block menu */
   const headStyle = (depth, key) => pagesMeta()[key] || {};
-  const bulletTypes = () => PAGE_TYPES.filter(t => t !== 'event' && !npClosed(t));
+  const bulletTypes = () => npTypes().filter(t => t !== 'event' && !npClosed(t));
 
   /* ---- groups as a path of any depth: ['business','sales','why'] ---- */
   const NP_MAX_DEPTH = 8;
@@ -888,7 +888,12 @@
     });
     return {path, lines};
   }
-  const sortNames = o => Object.keys(o).sort((a, b) => a.localeCompare(b));
+  /* one way of ordering throughout: by name, ignoring case, and reading digits as numbers
+     so step2 lands before step10 */
+  const npCmp = (a, b) => String(a).localeCompare(String(b), undefined, {sensitivity:'base', numeric:true});
+  const sortNames = o => Object.keys(o).sort(npCmp);
+  /* sections run alphabetically too, by the name written on them */
+  const npTypes = () => [...PAGE_TYPES, 'expense'].sort((a, b) => npCmp(PAGE_LABELS[a] || a, PAGE_LABELS[b] || b));
   const byTime = (a, b) => (a.at || a.created || 0) - (b.at || b.created || 0);
   function patchEach(list){
     if (!list.length) return;
@@ -972,7 +977,7 @@
       if (isRoot) emit();
     }
     let any = false;
-    [...PAGE_TYPES, 'expense'].forEach(type => {
+    npTypes().forEach(type => {
       const root = treeFor(type);
       if (!root.items.length && !Object.keys(root.kids).length) return;
       any = true;
@@ -1124,7 +1129,7 @@
         walk(type, node.kids[name], kp);
       });
     };
-    [...PAGE_TYPES, 'expense'].forEach(type => {
+    npTypes().forEach(type => {
       const root = treeFor(type);
       if (!root.items.length && !Object.keys(root.kids).length) return;
       body += `<h1>${esc(PAGE_LABELS[type] || type)}</h1><ul>`;
@@ -2521,7 +2526,7 @@
     let borrowed = false;
     if (st && !kids.length && PAGE_LABELS[logType]) {
       const seen = new Set(), here = new Set(node ? Object.keys(node.kids) : []);
-      [...PAGE_TYPES, 'expense'].forEach(t => (function dig(n){
+      npTypes().forEach(t => (function dig(n){
         Object.keys(n.kids).forEach(name => { if (!here.has(name)) seen.add(name); dig(n.kids[name]); });
       })(treeFor(t)));
       kids = [...seen].sort((a, b) => a.localeCompare(b)).filter(n => !q || n.toLowerCase().indexOf(q) >= 0);
