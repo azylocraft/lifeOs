@@ -2479,7 +2479,10 @@
       rest = rest.slice(m[0].length);
     }
     const m2 = rest.match(/^\/([^\s\/>]*)$/);
-    return m2 ? {path, partial:m2[1], head:value.length - rest.length} : null;
+    if (m2) return {path, partial:m2[1], head:value.length - rest.length};
+    /* nothing but groups typed so far — go straight on to offering what is inside the last one,
+       so picking one does not mean typing / again */
+    return rest.trim() ? null : {path, partial:'', head:value.length};
   }
   function paintSuggest(){
     const box = $('lgSuggest'), input = $('lgText');
@@ -2492,15 +2495,18 @@
     /* nothing filed under this kind yet — offer the names used elsewhere, so the same
        words can be reused rather than half-remembered */
     let borrowed = false;
-    if (st && !kids.length && !st.path.length && PAGE_LABELS[logType]) {
-      const seen = new Set();
-      [...PAGE_TYPES, 'expense'].forEach(t => { if (t !== logType) Object.keys(treeFor(t).kids).forEach(n => seen.add(n)); });
+    if (st && !kids.length && PAGE_LABELS[logType]) {
+      const seen = new Set(), here = new Set(node ? Object.keys(node.kids) : []);
+      [...PAGE_TYPES, 'expense'].forEach(t => (function dig(n){
+        Object.keys(n.kids).forEach(name => { if (!here.has(name)) seen.add(name); dig(n.kids[name]); });
+      })(treeFor(t)));
       kids = [...seen].sort((a, b) => a.localeCompare(b)).filter(n => !q || n.toLowerCase().indexOf(q) >= 0);
       borrowed = kids.length > 0;
     }
     if (!st || !kids.length) { box.hidden = true; box.innerHTML = ''; return; }
     sugList = kids.slice(0, 40).map(n => ({name:n, head:st.head}));
-    box.innerHTML = `<div class="jot-s-h">${st.path.length ? 'Inside ' + esc(st.path.join(' / ')) : borrowed ? 'Used elsewhere — starts one in ' + esc(PAGE_LABELS[logType]) : esc(PAGE_LABELS[logType]) + ' groups'}</div>`
+    const where = st.path.length ? 'inside ' + esc(st.path.join(' / ')) : 'in ' + esc(PAGE_LABELS[logType]);
+    box.innerHTML = `<div class="jot-s-h">${borrowed ? 'Used elsewhere — starts one ' + where : st.path.length ? 'Inside ' + esc(st.path.join(' / ')) : esc(PAGE_LABELS[logType]) + ' groups'}</div>`
       + sugList.map((x, i) => `<button type="button" class="jot-s-item" data-sug="${i}">${esc(x.name)}</button>`).join('');
     box.hidden = false;
   }
@@ -2513,7 +2519,8 @@
   function applySuggest(i){
     const x = sugList[i], input = $('lgText');
     if (!x || !input) return;
-    input.value = input.value.slice(0, x.head) + '/' + x.name + ' ';
+    const base = input.value.slice(0, x.head);
+    input.value = base + (base && !/\s$/.test(base) ? ' ' : '') + '/' + x.name + ' ';
     input.focus();
     paintSuggest();
   }
