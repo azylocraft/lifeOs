@@ -9,7 +9,7 @@
     planner:  ['Planner', 'Day, week, month, year and life on one board, with your maker and manager time.'],
     journal:  ['Journal', 'Jot everything in one place. Decide what matters afterwards.'],
     travel:   ['Travel planner', 'Keep destinations, dates, budgets, and trip notes together.'],
-    pages:    ['Pages', 'Everything you jot, as one document. Put /group in front to file it — /business /sales /why goes three deep — and -another starts a second line.']
+    pages:    ['Pages', 'Everything you jot, as one document. A /group files it, a -line writes one: /business /sales /why the sales -gf -fh makes three groups deep and two lines.']
   };
 
   const $ = id => document.getElementById(id);
@@ -862,17 +862,31 @@
   }
   /* "/business /sales /why no sales yet >not enough demand" ->
      path ['business','sales','why'] and two lines */
+  /* every mark counts only at the start or after a space, and must be followed straight away
+     by a word — so well-being keeps its hyphen and a spaced - stays punctuation */
+  const NP_MARKS = /(?:^|\s)([\/\->])(?=\S)/g;
+  /* "/business /sales /why the sales -gf -fh"
+       -> groups business, sales, why the sales   lines gf, fh
+     A / names a group and a - starts a line; each runs until the next mark, so a group
+     name may be several words long. Text before any mark is a line of its own. */
   function parseJot(raw, type, base){
-    let rest = String(raw).trim();
-    const path = [...(base || [])];
+    const src = String(raw).trim();
+    const path = [...(base || [])], lines = [];
+    if (!src) return {path, lines};
+    const marks = [];
+    NP_MARKS.lastIndex = 0;
     let m;
-    while (path.length < NP_MAX_DEPTH && (m = rest.match(/^\/([^\s\/>]+)(\s+|$)/))) {
-      path.push(resolveName(type, path, m[1].slice(0, 60)));
-      rest = rest.slice(m[0].length);
-    }
-    /* a dash or angle straight before a word starts another line: "dd -shd -sdhd".
-       One with a space after it is ordinary punctuation, and so is a hyphen inside a word. */
-    return {path, lines:rest.split(/(?:^|\s)[->]+(?=\S)/).map(x => x.trim()).filter(Boolean)};
+    while ((m = NP_MARKS.exec(src))) marks.push({i:m.index + m[0].length - 1, ch:m[1]});
+    if (!marks.length) return {path, lines:[src]};
+    const head = src.slice(0, marks[0].i).trim();
+    if (head) lines.push(head);
+    marks.forEach((mk, k) => {
+      const body = src.slice(mk.i + 1, k + 1 < marks.length ? marks[k + 1].i : src.length).trim();
+      if (!body) return;
+      if (mk.ch !== '/') lines.push(body);
+      else if (path.length < NP_MAX_DEPTH) path.push(resolveName(type, path, body.slice(0, 60)));
+    });
+    return {path, lines};
   }
   const sortNames = o => Object.keys(o).sort((a, b) => a.localeCompare(b));
   const byTime = (a, b) => (a.at || a.created || 0) - (b.at || b.created || 0);
@@ -894,7 +908,7 @@
     return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${esc(type)}" data-key="${esc(keyOf(type, path))}"><button type="button" class="np-handle" data-np-menu draggable="true" aria-label="Options, drag to move" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(lineText(e))}</span>${amount}${date}</div>`;
   }
   const npAdd = (type, path) => {
-    const ph = path.length ? 'Type, / for a sub-group, -again for another line' : 'Type, or /name for a category';
+    const ph = path.length ? 'Type, /name for a sub-group, -line for another' : 'Type, or /name for a category';
     return `<div class="np-block np-line np-add" data-kind="add" data-key="${esc(keyOf(type, path))}" data-type="${esc(type)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add data-placeholder="${esc(ph)}"></span></div>`;
   };
   /* backspace on the empty new line closes it again, cursor back on the line above */
@@ -968,7 +982,7 @@
       walk(type, root, [], true);
     });
     doc.innerHTML = any ? out.join('')
-      : '<div class="np-empty"><p>This page is empty.</p><p class="np-hint">Jot something with a group in front — <code>/work this idea</code>, or <code>/business /sales /why no sales yet</code> for deeper ones. Add <code>-another</code> to start a second line.</p></div>';
+      : '<div class="np-empty"><p>This page is empty.</p><p class="np-hint">A <code>/group</code> files what you jot and a <code>-line</code> writes one, each running to the next mark: <code>/business /sales /why the sales -gf -fh</code> puts two lines three groups deep.</p></div>';
     const bars = $('npRailBars'), panel = $('npRailPanel');
     if (bars) {
       bars.innerHTML = heads.map(h => `<i class="l${h.level}" data-anchor="${h.id}"></i>`).join('');
@@ -2473,16 +2487,26 @@
   /* typing / in the jot sheet offers the groups that already exist at that depth */
   let sugList = [], sugIdx = -1;
   function jotSuggestAt(value, type){
-    let rest = String(value), path = [], m;
-    while (path.length < NP_MAX_DEPTH && (m = rest.match(/^\/([^\s\/>]+)(\s+)/))) {
-      path.push(resolveName(type, path, m[1]));
-      rest = rest.slice(m[0].length);
+    const src = String(value), marks = [];
+    /* a lone trailing / counts here, so typing it opens the list */
+    const re = /(?:^|\s)([\/\->])/g;
+    let m;
+    while ((m = re.exec(src))) marks.push({i:m.index + m[0].length - 1, ch:m[1]});
+    /* once a line has been started there is nothing left to suggest */
+    if (!marks.length || marks.some(x => x.ch !== '/')) return null;
+    const path = [];
+    for (let k = 0; k < marks.length - 1; k++) {
+      const body = src.slice(marks[k].i + 1, marks[k + 1].i).trim();
+      if (body) path.push(resolveName(type, path, body));
     }
-    const m2 = rest.match(/^\/([^\s\/>]*)$/);
-    if (m2) return {path, partial:m2[1], head:value.length - rest.length};
-    /* nothing but groups typed so far — go straight on to offering what is inside the last one,
-       so picking one does not mean typing / again */
-    return rest.trim() ? null : {path, partial:'', head:value.length};
+    const last = marks[marks.length - 1], tail = src.slice(last.i + 1);
+    /* a space after the name means it is finished, so offer what sits inside it */
+    if (/\s$/.test(tail)) {
+      const body = tail.trim();
+      if (body) path.push(resolveName(type, path, body));
+      return {path, partial:'', head:src.length};
+    }
+    return {path, partial:tail.trim(), head:last.i};
   }
   function paintSuggest(){
     const box = $('lgSuggest'), input = $('lgText');
