@@ -1194,3 +1194,25 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .np-block.np-h3 { padding:6px 12px; border-radius:8px; margin:10px 0 4px }
 /* bars stop at the subheading; deeper ones carry colour alone */
 .np-block.np-h4, .np-block.np-h5 { padding:5px 2px; margin:9px 0 2px }
+
+/* ---- outline rail: same colours as the page, and a rule between sections ---- */
+.np-rl.l1 { color:var(--np-l0) }
+.np-rl.l2 { color:var(--np-l1) }
+.np-rl.l3 { color:var(--np-l2) }
+.np-rl.l4 { color:var(--np-l3) }
+.np-rl.l5 { color:var(--np-l4) }
+.np-rl.l1 { border-top:1px solid var(--line-soft); margin-top:7px; padding-top:9px }
+.np-rail-panel .np-rl.l1:first-child { border-top:0; margin-top:0; padding-top:4px }
+/* a fainter rule between the categories inside a section, but not under its heading */
+.np-rl.l2 { border-top:1px solid color-mix(in srgb, var(--text) 9%, transparent) }
+.np-rl.l1 + .np-rl.l2 { border-top:0 }
+.np-rail-panel .np-rl:hover { background:color-mix(in srgb, var(--text) 9%, transparent) }
+.np-rail-panel .np-rl.on { color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent) }
+
+.np-rail-bars i.l1 { background:var(--np-l0) }
+.np-rail-bars i.l2 { background:var(--np-l1) }
+.np-rail-bars i.l3 { background:var(--np-l2) }
+.np-rail-bars i.l4 { background:var(--np-l3) }
+.np-rail-bars i.l5 { background:var(--np-l4) }
+.np-rail-bars i { opacity:.55 }
+.np-rail-bars i.on { opacity:1 }
