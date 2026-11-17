@@ -3599,6 +3599,12 @@
   const stash = { current:null, other:null, startX:0, startY:0, w:0, swiping:false, prevState:null, lastX:0, lastT:0, vx:0, raf:0, dx:0 };
   function begin(dx) {
     const now = tabs.querySelector('[data-jtab][aria-pressed="true"]')?.dataset.jtab || 'day';
+    /* the two logs lie side by side in the order the tabs show them, so a drag
+       only has somewhere to go if it points at the other one: leftwards from
+       the daily log, rightwards from the monthly one. Dragging the other way
+       used to fetch the same page from the wrong side, which read as the
+       gesture running backwards. */
+    if (now === 'day' ? dx > 0 : dx < 0) return false;
     stash.current = now === 'day' ? day : month;
     stash.other   = now === 'day' ? month : day;
     stash.w = view.clientWidth;
@@ -3617,6 +3623,7 @@
     stash.other.style.willChange = 'transform';
     stash.current.style.willChange = 'transform';
     stash.swiping = true;
+    return true;
   }
   function paint() {
     stash.raf = 0;
@@ -3632,9 +3639,9 @@
   function end(dx) {
     if (stash.raf) { cancelAnimationFrame(stash.raf); stash.raf = 0; paint(); }
     const flick = Math.abs(stash.vx) > 0.45 && Math.sign(stash.vx) === Math.sign(dx);
-    const commit = Math.abs(dx) > stash.w * 0.25 || (flick && Math.abs(dx) > 24);
+    const commit = Math.abs(dx) > stash.w * 0.38 || (flick && Math.abs(dx) > 40);
     const left = commit ? (stash.w - Math.abs(dx)) : Math.abs(dx);
-    const ms = Math.max(120, Math.min(260, Math.round(left / Math.max(0.9, Math.abs(stash.vx) || 0.9))));
+    const ms = Math.max(240, Math.min(460, Math.round(left / Math.max(0.5, Math.abs(stash.vx) || 0.5))));
     stash.current.style.transition = 'transform ' + ms + 'ms cubic-bezier(.22,.61,.36,1)';
     stash.other.style.transition   = 'transform ' + ms + 'ms cubic-bezier(.22,.61,.36,1)';
     stash.settleMs = ms;
@@ -3678,7 +3685,7 @@
     const dx = t.clientX - stash.startX, dy = t.clientY - stash.startY;
     if (!stash.swiping) {
       if (Math.abs(dx) < 10 || Math.abs(dy) > Math.abs(dx) * 0.9) return;
-      begin(dx);
+      if (!begin(dx)) { stash.startX = 0; return; }
     }
     const dt = Math.max(1, e.timeStamp - stash.lastT);
     stash.vx = 0.6 * stash.vx + 0.4 * ((t.clientX - stash.lastX) / dt);
@@ -3710,7 +3717,7 @@
     const dx = e.clientX - stash.startX, dy = e.clientY - stash.startY;
     if (!stash.swiping) {
       if (Math.abs(dx) < 10 || Math.abs(dy) > Math.abs(dx) * 0.9) return;
-      begin(dx);
+      if (!begin(dx)) { mouseDragging = false; stash.startX = 0; return; }
     }
     const dt = Math.max(1, e.timeStamp - stash.lastT);
     stash.vx = 0.6 * stash.vx + 0.4 * ((e.clientX - stash.lastX) / dt);
