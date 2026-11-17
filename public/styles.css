@@ -1194,13 +1194,13 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   --np-c1:var(--np-acc); --np-c2:var(--np-acc); --np-c3:var(--np-c2); --np-c4:var(--np-c2);
   --np-l0:var(--text);
   --np-l1:color-mix(in oklch, var(--np-c1) 84%, var(--text));
-  --np-l1-bg:color-mix(in srgb, var(--np-c1) 11%, transparent);
+  --np-l1-bg:color-mix(in srgb, color-mix(in oklch, var(--np-c1) 26%, var(--text)) 7%, transparent);
   --np-l2:color-mix(in oklch, var(--np-c2) 74%, var(--text));
-  --np-l2-bg:color-mix(in srgb, var(--np-c2) 9%, transparent);
+  --np-l2-bg:color-mix(in srgb, color-mix(in oklch, var(--np-c2) 26%, var(--text)) 5%, transparent);
   --np-l3:color-mix(in oklch, var(--np-c3) 55%, var(--text-2));
-  --np-l3-bg:color-mix(in srgb, var(--np-c3) 6%, transparent);
+  --np-l3-bg:color-mix(in srgb, color-mix(in oklch, var(--np-c3) 26%, var(--text)) 4%, transparent);
   --np-l4:color-mix(in oklch, var(--np-c4) 36%, var(--muted));
-  --np-l4-bg:color-mix(in srgb, var(--np-c4) 5%, transparent) }
+  --np-l4-bg:color-mix(in srgb, color-mix(in oklch, var(--np-c4) 26%, var(--text)) 3%, transparent) }
 @supports (color: oklch(from red l c h)) {
   :root { --np-c2:oklch(from var(--np-acc) l calc(c * .94) calc(h + 214)) }
 }
