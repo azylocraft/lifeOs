@@ -6,9 +6,7 @@
   const VIEWS = {
     home:     ['Overview', 'A little more clarity, every day.'],
     expenses: ['Expense tracker', 'Record spending and see where your money goes. Amounts are in Indian rupees (₹).'],
-    planner:  ['Planner', 'Day, week, month, year and life on one board, with your maker and manager time.'],
     journal:  ['Journal', 'Jot everything in one place. Decide what matters afterwards.'],
-    travel:   ['Travel planner', 'Keep destinations, dates, budgets, and trip notes together.'],
     pages:    ['Pages', 'Everything you jot, as one document. A /group files it, a -line writes one: /business /sales /why the sales -gf -fh makes three groups deep and two lines.']
   };
 
