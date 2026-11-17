@@ -818,8 +818,8 @@ button.bj-g:hover { background:var(--track) }
 
 /* done view in monthly log — a day's entries wrap onto as many lines as they
    need, small, rather than running off the side behind a hidden scrollbar */
-.ml-done-inline { font-size:10px; line-height:1.45; color:var(--text-2);
-  padding:3px 0; min-width:0; white-space:normal; overflow-wrap:anywhere }
+.ml-done-inline { font-size:9px; line-height:1.4; color:var(--text-2);
+  padding:2px 0; min-width:0; white-space:normal; overflow-wrap:anywhere }
 .ml-done-g { margin-right:3px; opacity:.7; font-weight:600 }
 .ml-done-g.g-task { color:var(--text); opacity:.85 }
 .ml-done-g.g-event { color:var(--muted); opacity:.9 }
@@ -829,7 +829,12 @@ button.bj-g:hover { background:var(--track) }
 .ml-legend i { font-style:normal; font-weight:600; margin-right:3px }
 .ml-legend .g-task { color:var(--text) }
 .ml-legend .g-goal { color:var(--pop, var(--accent)) }
-.ml-done-sep { color:var(--muted); margin:0 3px }
+.ml-done-sep { color:var(--faint); margin:0 1px 0 0 }
+/* the entry now carries the colour its glyph used to */
+.ml-done-t.g-task { color:var(--text) }
+.ml-done-t.g-event, .ml-done-t.g-observation, .ml-done-t.g-mood { color:var(--muted) }
+.ml-done-t.g-goal, .ml-done-t.g-idea { color:var(--pop, var(--accent)) }
+.ml-done-t.g-problem, .ml-done-t.g-mistake { color:var(--red) }
 /* icon row under Plan / Done: lay mood, ideas, problems and the rest over the days */
 .ml-filters { display:flex; flex-wrap:wrap; gap:4px; margin:0 20px 8px }
 .ml-filter { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line-soft); background:var(--tile);

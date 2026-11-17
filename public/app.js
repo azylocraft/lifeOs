@@ -2988,7 +2988,7 @@
       const dayItems = byDay[iso] || [];
       /* planned items sit inline with the date, not on a line below */
       const planInline = mlTab === 'done' ? '' : (planned[iso] || []).map(t => `<span class="ml-day-task">◇ ${esc(t)}</span>`).join('');
-      const didStr = dayItems.map(di => `<span class="ml-done-g g-${di.type}">${di.glyph}</span>${esc(di.text)}`).join(' <span class="ml-done-sep">·</span> ');
+      const didStr = dayItems.map(di => `<span class="ml-done-t g-${di.type}">${esc(di.text)}</span>`).join('<span class="ml-done-sep">,</span> ');
       const mid = mlTab === 'done'
         ? `<div class="ml-done-inline">${didStr}</div>`
         : `<div class="ml-mid">${planInline}</div>`;
