@@ -1065,6 +1065,18 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 #view-pages { max-width:880px; padding:0 }
 .np-top { display:flex; justify-content:flex-end; gap:8px; margin-bottom:4px; flex-wrap:wrap }
 .np-ur:disabled { opacity:.4; cursor:default }
+.np-h4 .np-text { font-size:14px; font-weight:600 }
+.np-h5 .np-text { font-size:13px; font-weight:600 }
+.np-h4, .np-h5 { margin-top:6px }
+
+/* the /group list under the jot box */
+.jot-suggest { grid-column:1 / -1; max-height:180px; overflow:auto; padding:4px; border-radius:12px;
+  border:1px solid var(--line-soft); background:color-mix(in srgb, var(--text) 5%, var(--card)) }
+.jot-suggest[hidden] { display:none }
+.jot-s-h { font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); padding:6px 8px 4px }
+.jot-s-item { display:block; width:100%; text-align:left; padding:7px 10px; border:0; background:none; color:var(--text);
+  font-size:13.5px; font-family:inherit; border-radius:8px; cursor:pointer }
+.jot-s-item:hover, .jot-s-item.on { background:color-mix(in srgb, var(--text) 10%, transparent) }
 .np-m-into { border-color:color-mix(in srgb, var(--accent) 45%, transparent) }
 .np-doc { padding:4px 0 90px 28px; font-size:15px; line-height:1.55 }
 .np-indent { padding-left:0; counter-reset:np }

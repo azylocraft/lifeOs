@@ -809,54 +809,87 @@
   }
   const npSlug = s => (s || '').replace(/[^\w\u0900-\u097F]+/g, '-').toLowerCase().replace(/^-|-$/g, '') || 'g';
   const npStyle = o => (o && o.color ? ' np-c-' + o.color : '') + (o && o.bg ? ' np-bg-' + o.bg : '');
-  /* default colours: every type heading shares one colour; each category gets a colour (with background)
-     from its name; subheadings inside use the category's colour as text only. Menu choices override. */
+  /* default colours: every section heading shares one; the top group of a section gets its own
+     shade with a bar behind it, and anything deeper wears that shade as text only. */
   const NP_TYPE_COLOR = 'blue', NP_CAT_HUES = ['green','orange','purple','pink','yellow','blue','red','brown'];
   const catHue = name => { let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return NP_CAT_HUES[h % NP_CAT_HUES.length]; };
-  function headStyle(level, path){
-    const meta = pagesMeta(), own = meta[path] || {}, parts = path.split('/');
-    let def = level === 1 ? {color:NP_TYPE_COLOR} : level === 2 ? {color:catHue(parts[1]), bg:catHue(parts[1])}
-            : {color:(meta[parts[0] + '/' + parts[1]] || {}).color || catHue(parts[1])};
+  function headStyle(depth, key){
+    const meta = pagesMeta(), own = meta[key] || {}, parts = key.split('/'), top = parts[1];
+    const def = depth === 0 ? {color:NP_TYPE_COLOR}
+              : depth === 1 ? {color:catHue(top), bg:catHue(top)}
+              : {color:(meta[parts[0] + '/' + top] || {}).color || catHue(top)};
     return {...def, ...own};
   }
   const bulletTypes = () => PAGE_TYPES.filter(t => t !== 'event');
-  const groupItems = type => type === 'expense' ? ofKind('expense').filter(e => e.cat) : ofKind('bullet').filter(b => b.type === type);
-  /* type -> cat -> sub -> [entries]; named groups first, uncategorized last */
-  function pagesGrouped(){
-    const g = {};
-    [...PAGE_TYPES, 'expense'].forEach(t => groupItems(t).forEach(e => {
-      const c = e.cat || '', sc = e.subcat || '';
-      ((g[t] = g[t] || {})[c] = g[t][c] || {})[sc] = (g[t][c][sc] || []).concat(e);
-    }));
-    pagesGroups().forEach(p => {
-      const parts = p.split('/'), t = parts[0], c = parts[1] || '', sc = parts[2];
-      if (!t || !PAGE_LABELS[t]) return;
-      const C = ((g[t] = g[t] || {})[c] = g[t][c] || {});
-      C[sc || ''] = C[sc || ''] || [];
-    });
-    Object.keys(g).forEach(t => {
-      /* one "+" at the end of each section, to start a category */
-      (g[t][''] = g[t][''] || {})[''] = g[t][''][''] || [];
-      /* an empty group still needs somewhere to type */
-      Object.keys(g[t]).forEach(c => { if (!Object.keys(g[t][c]).length) g[t][c][''] = []; });
-    });
-    return g;
-  }
-  const sortCats = obj => Object.keys(obj).sort((a, b) => a === '' ? 1 : b === '' ? -1 : a.localeCompare(b));
-  const byTime = (a, b) => (a.at || a.created || 0) - (b.at || b.created || 0);
 
-  function npLine(e, type){
+  /* ---- groups as a path of any depth: ['business','sales','why'] ---- */
+  const NP_MAX_DEPTH = 8;
+  const pathOf = e => Array.isArray(e.path) ? e.path.filter(Boolean) : [e.cat, e.subcat].filter(Boolean);
+  const keyOf = (type, path) => [type, ...path].join('/');
+  /* cat/subcat are kept in step with the first two steps of the path, so anything
+     written before paths existed still reads correctly */
+  const pathFields = path => ({path, cat:path[0] || '', subcat:path[1] || ''});
+  const groupItems = type => type === 'expense' ? ofKind('expense').filter(e => pathOf(e).length) : ofKind('bullet').filter(b => b.type === type);
+  const newNode = () => ({items:[], kids:{}});
+  function nodeAt(root, path, make){
+    let n = root;
+    for (const name of path) {
+      if (!n.kids[name]) { if (!make) return null; n.kids[name] = newNode(); }
+      n = n.kids[name];
+    }
+    return n;
+  }
+  function treeFor(type){
+    const root = newNode();
+    groupItems(type).forEach(e => nodeAt(root, pathOf(e).slice(0, NP_MAX_DEPTH), true).items.push(e));
+    pagesGroups().forEach(p => { const parts = p.split('/'); if (parts[0] === type) nodeAt(root, parts.slice(1), true); });
+    return root;
+  }
+  /* every group path in a section, parents before children */
+  function groupPaths(type){
+    const out = [];
+    (function walk(node, path){ sortNames(node.kids).forEach(n => { const p = [...path, n]; out.push(p); walk(node.kids[n], p); }); })(treeFor(type), []);
+    return out;
+  }
+  /* a name typed with /slash reuses a group that is already there, whatever case it was typed in */
+  function resolveName(type, parent, name){
+    const node = nodeAt(treeFor(type), parent, false);
+    const hit = node && Object.keys(node.kids).find(k => k.toLowerCase() === name.toLowerCase());
+    return hit || name;
+  }
+  /* "/business /sales /why no sales yet >not enough demand" ->
+     path ['business','sales','why'] and two lines */
+  function parseJot(raw, type, base){
+    let rest = String(raw).trim();
+    const path = [...(base || [])];
+    let m;
+    while (path.length < NP_MAX_DEPTH && (m = rest.match(/^\/([^\s\/>]+)(\s+|$)/))) {
+      path.push(resolveName(type, path, m[1].slice(0, 60)));
+      rest = rest.slice(m[0].length);
+    }
+    return {path, lines:rest.split('>').map(x => x.trim()).filter(Boolean)};
+  }
+  const sortNames = o => Object.keys(o).sort((a, b) => a.localeCompare(b));
+  const byTime = (a, b) => (a.at || a.created || 0) - (b.at || b.created || 0);
+  function patchEach(list){
+    if (!list.length) return;
+    const m = new Map(list.map(x => [x.id, x.patch]));
+    items = items.map(i => m.has(i.id) ? {...i, ...m.get(i.id)} : i);
+    commit(c => Promise.all(list.map(x => c.doc(x.id).update(x.patch))));
+  }
+
+  function npLine(e, type, path){
     const fmt = e.fmt || 'bullet';
     const mark = fmt === 'bullet' ? '<span class="np-mark">•</span>'
       : fmt === 'num' ? '<span class="np-mark np-num"></span>'
       : fmt === 'todo' ? `<button type="button" class="np-check" data-np-check="${esc(e.id)}" aria-label="Done">${e.done ? '✓' : ''}</button>` : '';
     const amount = e.kind === 'expense' ? `<span class="np-amt">${money(e.amount)}</span>` : '';
     const date = e.date ? `<span class="np-date">${esc(dayMonth(e.date))}</span>` : '';
-    return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${type}" data-cat="${esc(e.cat || '')}" data-sub="${esc(e.subcat || '')}" data-key="${esc(type + '|' + (e.cat || '') + '|' + (e.subcat || ''))}"><button type="button" class="np-handle" data-np-menu draggable="true" aria-label="Options, drag to move" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(e.text || e.name || '')}</span>${amount}${date}</div>`;
+    return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${esc(type)}" data-key="${esc(keyOf(type, path))}"><button type="button" class="np-handle" data-np-menu draggable="true" aria-label="Options, drag to move" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(e.text || e.name || '')}</span>${amount}${date}</div>`;
   }
-  const npAdd = (type, cat, sub) => {
-    const ph = cat ? 'Type, or /name for a subcategory' : 'Type, or /name for a category';
-    return `<div class="np-block np-line np-add" data-kind="add" data-key="${esc(type + '|' + cat + '|' + sub)}" data-type="${type}" data-cat="${esc(cat)}" data-sub="${esc(sub)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add data-placeholder="${esc(ph)}"></span></div>`;
+  const npAdd = (type, path) => {
+    const ph = path.length ? 'Type, / for a sub-group, > for another line' : 'Type, or /name for a category';
+    return `<div class="np-block np-line np-add" data-kind="add" data-key="${esc(keyOf(type, path))}" data-type="${esc(type)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add data-placeholder="${esc(ph)}"></span></div>`;
   };
   /* backspace on the empty new line closes it again, cursor back on the line above */
   function npCloseEmpty(t){
@@ -875,19 +908,23 @@
     npTrail = null;
     setTimeout(() => {
       const doc = $('pagesDoc'); if (!doc) return;
-      /* a render that was held back while typing can leave an old one behind */
+      /* a render held back while typing can leave an old one behind */
       doc.querySelectorAll('.np-temp').forEach(el => el.remove());
-      const grp = [...doc.querySelectorAll('.np-group')].find(el => el.dataset.key === k.type + '|' + k.cat + '|' + k.sub);
+      const grp = [...doc.querySelectorAll('.np-group')].find(el => el.dataset.key === k);
       if (!grp) return;
       let add = grp.querySelector('.np-add');
-      if (!add) { grp.insertAdjacentHTML('beforeend', npAdd(k.type, k.cat, k.sub)); add = grp.querySelector('.np-add'); if (add) add.classList.add('np-temp'); }
+      if (!add) {
+        const parts = k.split('/');
+        grp.insertAdjacentHTML('beforeend', npAdd(parts[0], parts.slice(1)));
+        add = grp.querySelector('.np-add'); if (add) add.classList.add('np-temp');
+      }
       const el = add && add.querySelector('.np-text');
       if (el) { el.focus(); try { el.scrollIntoView({block:'nearest'}); } catch(err) {} }
     }, 0);
   }
-  function npHeading(level, path, label, id, editable){
-    const tag = 'h' + level, parts = path.split('/');
-    return `<div class="np-block np-h${level}${npStyle(headStyle(level, path))}" id="${id}" data-path="${esc(path)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${level}" data-type="${parts[0]}" data-cat="${esc(parts[1] || '')}" data-sub="${esc(parts[2] || '')}"><button type="button" class="np-handle" data-np-menu${editable ? ' draggable="true"' : ''} aria-label="Options${editable ? ', drag to move' : ''}" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(path) + '"' : ''}>${esc(label)}</${tag}></div>`;
+  function npHeading(depth, key, label, id, editable){
+    const lvl = Math.min(depth + 1, 5), tag = 'h' + Math.min(lvl, 6);
+    return `<div class="np-block np-h${lvl}${npStyle(headStyle(depth, key))}" id="${id}" data-path="${esc(key)}" data-key="${esc(key)}" data-kind="${editable ? 'heading' : 'type'}" data-level="${lvl}" data-type="${esc(key.split('/')[0])}"><button type="button" class="np-handle" data-np-menu${editable ? ' draggable="true"' : ''} aria-label="Options${editable ? ', drag to move' : ''}" tabindex="-1">⋮⋮</button><${tag} class="np-text"${editable ? ' contenteditable="true" spellcheck="false" data-np-rename="' + esc(key) + '"' : ''}>${esc(label)}</${tag}></div>`;
   }
 
   function renderPages(){
@@ -896,33 +933,36 @@
     const ae = document.activeElement;
     if (doc.contains(ae) && ae.isContentEditable) { doc._npPending = true; return; }
     doc._npPending = false;
-    const g = pagesGrouped(), types = [...PAGE_TYPES, 'expense'].filter(t => g[t]);
-    const heads = [];
-    let html = '';
-    types.forEach(type => {
+    const heads = [], out = [];
+    /* a group prints its own lines, then the groups inside it; a section prints its
+       groups first and keeps its loose lines, and the one "+", at the end */
+    function walk(type, node, path, isRoot){
+      const key = keyOf(type, path), bucket = node.items.slice().sort(byTime), kids = sortNames(node.kids);
+      const emit = () => out.push(`<div class="np-group" data-key="${esc(key)}">`
+        + bucket.map(e => npLine(e, type, path)).join('')
+        + (isRoot || (!bucket.length && !kids.length) ? npAdd(type, path) : '')
+        + '</div>');
+      if (!isRoot) emit();
+      kids.forEach(name => {
+        const kp = [...path, name], id = 'pg-' + npSlug(type) + '-' + kp.map(npSlug).join('-');
+        heads.push({id, level:Math.min(kp.length + 1, 5), label:name});
+        out.push(npHeading(kp.length, keyOf(type, kp), name, id, true));
+        walk(type, node.kids[name], kp, false);
+      });
+      if (isRoot) emit();
+    }
+    let any = false;
+    [...PAGE_TYPES, 'expense'].forEach(type => {
+      const root = treeFor(type);
+      if (!root.items.length && !Object.keys(root.kids).length) return;
+      any = true;
       const tid = 'pg-' + type, label = (GLYPH[type] || '₹') + ' ' + (PAGE_LABELS[type] || type);
       heads.push({id:tid, level:1, label});
-      html += npHeading(1, type, label, tid, false) + '<div class="np-indent">';
-      sortCats(g[type]).forEach(cat => {
-        const cpath = type + '/' + cat, cid = 'pg-' + type + '-' + npSlug(cat);
-        if (cat) { heads.push({id:cid, level:2, label:cat}); html += npHeading(2, cpath, cat, cid, true) + '<div class="np-indent">'; }
-        sortCats(g[type][cat]).forEach(sub => {
-          const spath = cpath + '/' + sub, sid = cid + '-' + npSlug(sub);
-          if (sub) { heads.push({id:sid, level:3, label:sub}); html += npHeading(3, spath, sub, sid, true) + '<div class="np-indent">'; }
-          const bucket = g[type][cat][sub].slice().sort(byTime);
-          html += `<div class="np-group" data-key="${esc(type + '|' + cat + '|' + sub)}">`
-            + bucket.map(e => npLine(e, type)).join('')
-            + ((!cat && !sub) || !bucket.length ? npAdd(type, cat, sub) : '')
-            + '</div>';
-          if (sub) html += '</div>';
-        });
-        if (cat) html += '</div>';
-      });
-      html += '</div>';
+      out.push(npHeading(0, type, label, tid, false));
+      walk(type, root, [], true);
     });
-    if (!types.length) html = '<div class="np-empty"><p>This page is empty.</p><p class="np-hint">Jot a mood, idea, problem or note with <code>/category</code> in front — e.g. <code>/work this idea</code> or <code>/sad /depression feeling low</code> — and it appears here as a document.</p></div>';
-    doc.innerHTML = html;
-    /* outline rail */
+    doc.innerHTML = any ? out.join('')
+      : '<div class="np-empty"><p>This page is empty.</p><p class="np-hint">Jot something with a group in front — <code>/work this idea</code>, or <code>/business /sales /why no sales yet</code> for deeper ones. Use <code>&gt;</code> to start another line.</p></div>';
     const bars = $('npRailBars'), panel = $('npRailPanel');
     if (bars) {
       bars.innerHTML = heads.map(h => `<i class="l${h.level}" data-anchor="${h.id}"></i>`).join('');
@@ -942,30 +982,39 @@
   }
 
   /* block menu */
+  function moveOptions(types, selected, skipKey){
+    let opts = '';
+    types.forEach(t => {
+      const label = esc(PAGE_LABELS[t] || t);
+      opts += `<option value="${esc(t)}"${selected === t ? ' selected' : ''}>${label} — top level</option>`;
+      groupPaths(t).forEach(p => {
+        const key = keyOf(t, p);
+        if (skipKey && (key === skipKey || key.indexOf(skipKey + '/') === 0)) return;
+        opts += `<option value="${esc(key)}"${selected === key ? ' selected' : ''}>${label} / ${esc(p.join(' / '))}</option>`;
+      });
+    });
+    return opts;
+  }
   function openNpMenu(block){
     const m = $('npMenu'); if (!m) return;
-    const kind = block.dataset.kind, id = block.dataset.id, path = block.dataset.path;
+    const kind = block.dataset.kind, id = block.dataset.id, key = block.dataset.key;
     const item = id ? items.find(i => i.id === id) : null;
-    const cur = item || (path ? headStyle(Number(block.dataset.level), path) : {});
+    const cur = item || (kind === 'heading' ? headStyle(Number(block.dataset.level) - 1, key) : {});
     let html = '';
     if (kind === 'line') html += '<div class="np-m-h">Turn into</div><div class="np-m-row">' + Object.keys(NP_FMT).map(f => `<button type="button" class="np-m-chip${(item.fmt || 'bullet') === f ? ' on' : ''}" data-np-fmt="${f}">${NP_FMT[f]}</button>`).join('')
-      + `<button type="button" class="np-m-chip np-m-into" data-np-into="cat">→ Category</button>${block.dataset.cat ? '<button type="button" class="np-m-chip np-m-into" data-np-into="sub">→ Subcategory</button>' : ''}</div>`;
+      + `<button type="button" class="np-m-chip np-m-into" data-np-into="cat">→ Category</button>${pathOf(item).length ? '<button type="button" class="np-m-chip np-m-into" data-np-into="sub">→ Sub-group here</button>' : ''}</div>`;
     html += '<div class="np-m-h">Text color</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-c-${c || 'default'}${(cur.color || '') === c ? ' on' : ''}" data-np-color="${c}" title="${c || 'Default'} text">A</button>`).join('') + '</div>';
     html += '<div class="np-m-h">Background</div><div class="np-m-sw">' + ['', ...NP_COLORS].map(c => `<button type="button" class="np-sw np-bg-${c || 'default'}${(cur.bg || '') === c ? ' on' : ''}" data-np-bg="${c}" title="${c || 'Default'} background"></button>`).join('') + '</div>';
     if (kind === 'line') {
-      const type = block.dataset.type, g = pagesGrouped()[type] || {}, now = (item.cat || '') + (item.subcat ? '/' + item.subcat : '');
-      let opts = `<option value=""${!item.cat ? ' selected' : ''}>No category</option>`;
-      sortCats(g).filter(Boolean).forEach(c => { opts += `<option value="${esc(c)}"${now === c ? ' selected' : ''}>${esc(c)}</option>`; sortCats(g[c]).filter(Boolean).forEach(sc => { opts += `<option value="${esc(c + '/' + sc)}"${now === c + '/' + sc ? ' selected' : ''}>${esc(c + ' / ' + sc)}</option>`; }); });
-      html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move aria-label="Move to category">${opts}</select></div><button type="button" class="np-m-act" data-np-act="dup">Duplicate</button><button type="button" class="np-m-act" data-np-act="edit">Open in editor</button><button type="button" class="np-m-act np-m-danger" data-np-act="del">Delete</button>`;
+      const type = block.dataset.type;
+      html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move aria-label="Move to group">${moveOptions([type], key, null)}</select></div><button type="button" class="np-m-act" data-np-act="dup">Duplicate</button><button type="button" class="np-m-act" data-np-act="edit">Open in editor</button><button type="button" class="np-m-act np-m-danger" data-np-act="del">Delete</button>`;
     } else if (kind === 'heading') {
-      const lvl = Number(block.dataset.level), parts = path.split('/'), g = pagesGrouped();
+      const parts = key.split('/'), parent = parts.slice(0, -1).join('/');
       html += '<div class="np-m-h">Turn into</div><div class="np-m-row">'
-        + (lvl === 3 ? '<button type="button" class="np-m-chip np-m-into" data-np-into="cat">→ Category</button>' : '')
+        + (parts.length > 2 ? '<button type="button" class="np-m-chip np-m-into" data-np-into="cat">→ Category</button>' : '')
         + '<button type="button" class="np-m-chip np-m-into" data-np-into="line">→ Jot line</button></div>';
-      let opts = '';
-      if (lvl === 2) bulletTypes().forEach(t => { opts += `<option value="${t}"${t === parts[0] ? ' selected' : ''}>${esc(PAGE_LABELS[t])} — top level</option>` + sortCats(g[t] || {}).filter(c => c && !(t === parts[0] && c === parts[1])).map(c => `<option value="${t}/${esc(c)}">${esc(PAGE_LABELS[t])} / ${esc(c)} — as subcategory</option>`).join(''); });
-      else bulletTypes().forEach(t => { opts += `<option value="${t}">${esc(PAGE_LABELS[t])} — top level</option>` + sortCats(g[t] || {}).filter(Boolean).map(c => `<option value="${t}/${esc(c)}"${t === parts[0] && c === parts[1] ? ' selected' : ''}>${esc(PAGE_LABELS[t])} / ${esc(c)}</option>`).join(''); });
-      html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move-group aria-label="Move this ${lvl === 2 ? 'category' : 'subcategory'} to">${opts}</select></div><button type="button" class="np-m-act" data-np-act="rename">Rename</button><button type="button" class="np-m-act" data-np-act="ungroup">Ungroup — move lines up one level</button>`;
+      const types = parts[0] === 'expense' ? ['expense'] : bulletTypes();
+      html += `<div class="np-m-sep"></div><div class="np-m-act np-m-move"><span>Move to</span><select data-np-move-group aria-label="Move this group to">${moveOptions(types, parent, key)}</select></div><button type="button" class="np-m-act" data-np-act="rename">Rename</button><button type="button" class="np-m-act" data-np-act="ungroup">Ungroup — move everything up one level</button>`;
     }
     m.innerHTML = html; m._block = block; m.hidden = false;
     const r = block.getBoundingClientRect(), w = 272, h = Math.min(m.offsetHeight || 420, window.innerHeight - 16);
@@ -975,99 +1024,91 @@
   }
   const closeNpMenu = () => { const m = $('npMenu'); if (m && !m.hidden) { m.hidden = true; m._block = null; } };
 
-  function npRename(path, label){
-    const parts = path.split('/'), type = parts[0], old = parts[parts.length - 1];
-    const next = String(label).replace(/\//g, ' ').trim().slice(0, 60);
+  /* ---- moving things about ---- */
+  /* carry a group, and everything below it, to another place in the document */
+  function movePathTo(type, from, toType, to){
+    const fromKey = keyOf(type, from), toKey = keyOf(toType, to);
+    if (fromKey === toKey) return false;
+    if ((type === 'expense') !== (toType === 'expense')) { toast('Expenses stay under Expenses.'); return false; }
+    if (toType === type && to.length > from.length && from.every((n, i) => to[i] === n)) { toast('A group cannot go inside itself.'); return false; }
+    if (to.length > NP_MAX_DEPTH) { toast('That is as deep as groups go.'); return false; }
+    const under = p => p.length >= from.length && from.every((n, i) => p[i] === n);
+    const list = groupItems(type).filter(e => under(pathOf(e))).map(e => {
+      const np = [...to, ...pathOf(e).slice(from.length)];
+      const patch = pathFields(np);
+      if (toType !== type && e.kind !== 'expense') patch.type = toType;
+      return {id:e.id, patch};
+    });
+    remapPaths(fromKey, toKey);
+    patchEach(list);
+    return true;
+  }
+  function npRename(key, label){
+    const parts = key.split('/'), path = parts.slice(1), old = path[path.length - 1];
+    const next = String(label).replace(/[\/>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
     if (!next || next === old) { renderPages(); return; }
-    const all = groupItems(type);
-    const ids = parts.length === 2 ? all.filter(e => (e.cat || '') === old).map(e => e.id)
-                                   : all.filter(e => (e.cat || '') === parts[1] && (e.subcat || '') === old).map(e => e.id);
-    remapPaths(path, parts.slice(0, -1).concat(next).join('/'));
-    patchMany(ids, parts.length === 2 ? {cat:next} : {subcat:next});
+    movePathTo(parts[0], path, parts[0], [...path.slice(0, -1), next]);
   }
-  /* move a whole category (level 2) to another type, or a subcategory (level 3) under another type/category */
-  function moveGroup(path, target){
-    const parts = path.split('/'), type = parts[0], all = groupItems(type);
-    if (type === 'expense') { toast('Expense groups stay under Expenses.'); return; }
-    const [tType, tCat = ''] = target.split('/');
-    if (!bulletTypes().includes(tType)) return;
-    let ids, patch, newPath;
-    if (parts.length === 2) {
-      ids = all.filter(e => (e.cat || '') === parts[1]).map(e => e.id);
-      if (tCat) {
-        if (tCat === parts[1] && tType === type) return;
-        const subs = Object.keys((pagesGrouped()[type] || {})[parts[1]] || {}).filter(Boolean);
-        if (subs.length) { toast('Move its subcategories out first.'); return; }
-        patch = {type:tType, cat:tCat, subcat:parts[1]}; newPath = tType + '/' + tCat + '/' + parts[1];
-      } else { patch = {type:tType}; newPath = tType + '/' + parts[1]; }
-    }
-    else {
-      ids = all.filter(e => (e.cat || '') === parts[1] && (e.subcat || '') === parts[2]).map(e => e.id);
-      patch = tCat ? {type:tType, cat:tCat, subcat:parts[2]} : {type:tType, cat:parts[2], subcat:''};
-      newPath = tCat ? tType + '/' + tCat + '/' + parts[2] : tType + '/' + parts[2];
-    }
-    if (newPath === path) return;
-    remapPaths(path, newPath);
-    patchMany(ids, patch);
-    toast('Moved');
+  function moveGroup(key, targetKey){
+    const p = key.split('/'), t = targetKey.split('/');
+    if (movePathTo(p[0], p.slice(1), t[0], [...t.slice(1), p[p.length - 1]])) toast('Moved');
   }
-  function moveLine(id, tType, tCat, tSub){
+  function moveLine(id, targetKey){
     const it = items.find(i => i.id === id); if (!it) return;
-    if (it.kind === 'expense' ? tType !== 'expense' : (tType === 'expense' || !bulletTypes().includes(tType))) { toast('That can only move within its own section.'); return; }
-    if ((it.type || 'expense') === tType && (it.cat || '') === tCat && (it.subcat || '') === tSub) return;
-    patchItem(id, it.kind === 'expense' ? {cat:tCat, subcat:tSub} : {type:tType, cat:tCat, subcat:tSub});
+    const t = targetKey.split('/'), tType = t[0], tPath = t.slice(1);
+    if ((it.kind === 'expense') !== (tType === 'expense')) { toast('That can only move within its own section.'); return; }
+    if (keyOf(it.kind === 'expense' ? 'expense' : it.type, pathOf(it)) === targetKey) return;
+    const patch = pathFields(tPath);
+    if (it.kind !== 'expense') patch.type = tType;
+    patchItem(id, patch);
   }
-  /* drop target -> the group it belongs to */
-  const groupOfBlock = b => ({type:b.dataset.type, cat:b.dataset.cat || '', sub:b.dataset.sub || ''});
   function npDrop(drag, block){
-    if (!drag || !block) return;
-    const g = groupOfBlock(block);
-    if (drag.id) { moveLine(drag.id, g.type, g.cat, g.sub); return; }
-    const lvl = Number(drag.level);
-    if (lvl === 2) moveGroup(drag.path, g.cat && g.cat !== drag.path.split('/')[1] ? g.type + '/' + g.cat : g.type);
-    else if (lvl === 3) moveGroup(drag.path, g.cat ? g.type + '/' + g.cat : g.type);
+    const target = block && block.dataset.key;
+    if (!drag || !target) return;
+    if (drag.id) moveLine(drag.id, target); else moveGroup(drag.path, target);
   }
-  function npUngroup(path){
-    const parts = path.split('/'), type = parts[0], all = groupItems(type);
-    if (parts.length === 2) patchMany(all.filter(e => (e.cat || '') === parts[1]).map(e => e.id), {cat:'', subcat:''});
-    else patchMany(all.filter(e => (e.cat || '') === parts[1] && (e.subcat || '') === parts[2]).map(e => e.id), {subcat:''});
-    dropGroup(path);
-  }
+  /* the group goes away and everything it held moves up a level */
+  const npUngroup = key => { const p = key.split('/'); movePathTo(p[0], p.slice(1), p[0], p.slice(1, -1)); };
   /* a jot line becomes a heading: its words name the new group and the line is used up */
-  function lineToGroup(id, level){
+  function lineToGroup(id, where){
     const it = items.find(i => i.id === id); if (!it) return;
     const type = it.kind === 'expense' ? 'expense' : it.type;
-    const name = String(it.text || it.name || '').replace(/\//g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+    const name = String(it.text || it.name || '').replace(/[\/>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
     if (!name) { toast('Give the line some words first.'); return; }
-    const path = (level === 'sub' && it.cat) ? type + '/' + it.cat + '/' + name : type + '/' + name;
-    addGroup(path);
+    const path = where === 'sub' ? [...pathOf(it), name] : [name];
+    if (path.length > NP_MAX_DEPTH) { toast('That is as deep as groups go.'); return; }
+    addGroup(keyOf(type, path));
     removeItems([id]);
-    toast('Now a ' + (level === 'sub' ? 'subcategory' : 'category'));
+    toast('Now a heading');
   }
   /* a heading becomes a plain line again; whatever was inside moves up a level */
-  function groupToLine(path){
-    const parts = path.split('/'), type = parts[0], name = parts[parts.length - 1];
+  function groupToLine(key){
+    const parts = key.split('/'), type = parts[0], path = parts.slice(1), name = path[path.length - 1];
     if (type === 'expense') { toast('Expense groups cannot become lines.'); return; }
-    npUngroup(path);
-    addItem('bullet', {date:isoToday, type, text:name.slice(0, 500), at:Date.now(), cat:parts.length === 3 ? parts[1] : undefined});
+    npUngroup(key);
+    addItem('bullet', {date:isoToday, type, text:name.slice(0, 500), at:Date.now(), ...pathFields(path.slice(0, -1))});
     toast('Now a line');
   }
 
   function downloadPagesWord(){
-    const g = pagesGrouped();
     let body = '';
-    [...PAGE_TYPES, 'expense'].filter(t => g[t]).forEach(type => {
-      body += `<h1>${esc(PAGE_LABELS[type] || type)}</h1>`;
-      sortCats(g[type]).forEach(cat => {
-        if (cat) body += `<h2>${esc(cat)}</h2>`;
-        sortCats(g[type][cat]).forEach(sub => {
-          if (sub) body += `<h3>${esc(sub)}</h3>`;
-          body += '<ul>' + g[type][cat][sub].slice().sort(byTime).map(e => `<li>${esc(e.text || e.name || '')}${e.kind === 'expense' ? ' — ' + money(e.amount) : ''}${e.date ? ' (' + prettyDate(e.date) + ')' : ''}</li>`).join('') + '</ul>';
-        });
+    const walk = (type, node, path) => {
+      node.items.slice().sort(byTime).forEach(e => { body += `<li>${esc(e.text || e.name || '')}${e.kind === 'expense' ? ' — ' + money(e.amount) : ''}${e.date ? ' (' + prettyDate(e.date) + ')' : ''}</li>`; });
+      sortNames(node.kids).forEach(name => {
+        const kp = [...path, name];
+        body += '</ul>' + `<h${Math.min(kp.length + 1, 6)}>${esc(name)}</h${Math.min(kp.length + 1, 6)}>` + '<ul>';
+        walk(type, node.kids[name], kp);
       });
+    };
+    [...PAGE_TYPES, 'expense'].forEach(type => {
+      const root = treeFor(type);
+      if (!root.items.length && !Object.keys(root.kids).length) return;
+      body += `<h1>${esc(PAGE_LABELS[type] || type)}</h1><ul>`;
+      walk(type, root, []);
+      body += '</ul>';
     });
     if (!body) { toast('Nothing to export yet.'); return; }
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pages</title><style>body{font-family:Calibri,Arial,sans-serif;margin:2cm;line-height:1.6;color:#111}h1{font-size:20pt;border-bottom:2px solid #1a1a2e;padding-bottom:4pt;margin-top:24pt}h2{font-size:15pt;margin-top:14pt}h3{font-size:12pt;color:#555;margin-top:10pt}ul{margin:0 0 8pt;padding-left:18pt}li{margin-bottom:4pt}</style></head><body><h1>My Pages</h1>${body}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pages</title><style>body{font-family:Calibri,Arial,sans-serif;margin:2cm;line-height:1.6;color:#111}h1{font-size:20pt;border-bottom:2px solid #1a1a2e;padding-bottom:4pt;margin-top:24pt}h2{font-size:15pt;margin-top:14pt}h3{font-size:13pt;margin-top:11pt}h4,h5,h6{font-size:11.5pt;color:#555;margin-top:9pt}ul{margin:0 0 8pt;padding-left:18pt}li{margin-bottom:4pt}</style></head><body><h1>My Pages</h1>${body}</body></html>`;
     const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'my-pages.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -2057,13 +2098,6 @@
   const REFLECT = {idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
   const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood', '+':'idea', '✦':'idea', 'x':'mistake', 'X':'mistake', '✘':'mistake', '@':'observation', '◎':'observation', '?':'problem', '△':'problem'};
   let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', jnTab = 'day', lgTab = 'plan';
-  /* extract /cat or /cat /sub prefix from jot text, e.g. "/work /project idea here" */
-  function parseCategoryPrefix(raw) {
-    const m = String(raw).match(/^\/([\wऀ-ॿ]+)(?:\s+\/([\wऀ-ॿ]+))?\s+([\s\S]+)/);
-    if (!m) return {cat:'', subcat:'', text:raw};
-    return {cat:m[1].toLowerCase(), subcat:(m[2]||'').toLowerCase(), text:m[3].trim()};
-  }
-
   function parseEntry(raw, type){
     let text = String(raw).trim(), t = type, high = false, time = '';
     const m = text.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s+(.+)$/);
@@ -2426,14 +2460,65 @@
     if ($('lgHint')) safeHTML($('lgHint'), LG_HINT[logType] || '');
     if ($('lgText')) $('lgText').placeholder = LG_PH[logType] || 'Jot it down and press Enter';
   };
+  /* typing / in the jot sheet offers the groups that already exist at that depth */
+  let sugList = [], sugIdx = -1;
+  function jotSuggestAt(value, type){
+    let rest = String(value), path = [], m;
+    while (path.length < NP_MAX_DEPTH && (m = rest.match(/^\/([^\s\/>]+)(\s+)/))) {
+      path.push(resolveName(type, path, m[1]));
+      rest = rest.slice(m[0].length);
+    }
+    const m2 = rest.match(/^\/([^\s\/>]*)$/);
+    return m2 ? {path, partial:m2[1], head:value.length - rest.length} : null;
+  }
+  function paintSuggest(){
+    const box = $('lgSuggest'), input = $('lgText');
+    sugList = []; sugIdx = -1;
+    if (!box || !input) return;
+    const st = input.value ? jotSuggestAt(input.value, logType) : null;
+    const node = st && PAGE_LABELS[logType] ? nodeAt(treeFor(logType), st.path, false) : null;
+    const q = st ? st.partial.toLowerCase() : '';
+    const kids = node ? sortNames(node.kids).filter(n => !q || n.toLowerCase().indexOf(q) >= 0) : [];
+    if (!st || !kids.length) { box.hidden = true; box.innerHTML = ''; return; }
+    sugList = kids.slice(0, 40).map(n => ({name:n, head:st.head}));
+    box.innerHTML = `<div class="jot-s-h">${st.path.length ? 'Inside ' + esc(st.path.join(' / ')) : esc(PAGE_LABELS[logType]) + ' groups'}</div>`
+      + sugList.map((x, i) => `<button type="button" class="jot-s-item" data-sug="${i}">${esc(x.name)}</button>`).join('');
+    box.hidden = false;
+  }
+  function markSuggest(){
+    const box = $('lgSuggest'); if (!box) return;
+    box.querySelectorAll('[data-sug]').forEach((el, i) => el.classList.toggle('on', i === sugIdx));
+    const on = box.querySelector('.jot-s-item.on');
+    if (on) try { on.scrollIntoView({block:'nearest'}); } catch(err) {}
+  }
+  function applySuggest(i){
+    const x = sugList[i], input = $('lgText');
+    if (!x || !input) return;
+    input.value = input.value.slice(0, x.head) + '/' + x.name + ' ';
+    input.focus();
+    paintSuggest();
+  }
+  $('lgSuggest') && $('lgSuggest').addEventListener('mousedown', e => {
+    const b = e.target.closest('[data-sug]');
+    if (b) { e.preventDefault(); applySuggest(Number(b.dataset.sug)); }
+  });
+  $('lgText') && $('lgText').addEventListener('keydown', e => {
+    if (!sugList.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); sugIdx = (sugIdx + 1) % sugList.length; markSuggest(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sugIdx = (sugIdx <= 0 ? sugList.length : sugIdx) - 1; markSuggest(); }
+    else if (e.key === 'Tab' || (e.key === 'Enter' && sugIdx >= 0)) { e.preventDefault(); applySuggest(sugIdx < 0 ? 0 : sugIdx); }
+    else if (e.key === 'Escape') { const box = $('lgSuggest'); if (box && !box.hidden) { e.preventDefault(); e.stopPropagation(); box.hidden = true; sugList = []; sugIdx = -1; } }
+  });
   $('lgType').addEventListener('click', e => {
     const b = e.target.closest('[data-btype]');
     if (!b) return;
     logType = logPicked = b.dataset.btype;
+    paintSuggest();
     paintLgType();
     $('lgText').focus();
   });
   paintLgType();
+  $('lgText').addEventListener('input', () => paintSuggest());
   $('lgText').addEventListener('input', e => {
     if (logPicked === 'expense' || logPicked === 'habit') return;
     const m = e.target.value.match(/^([-–.*•oO○=+xX@?✦✘◎△])\s/);
@@ -2484,28 +2569,40 @@
       return;
     }
     if (logType === 'expense') {
-      const {cat:eCat, subcat:eSub, text:eText} = parseCategoryPrefix(raw);
-      const n = addQuickExpense(eText, eCat ? {cat:eCat, subcat:eSub||''} : undefined);
-      if (!n) { toast('Try: 450 groceries or 200 coffee — or /fuel 450 diesel'); return; }
-      $('lgText').value = '';
+      const {path, lines} = parseJot(raw, 'expense', []);
+      let n = 0;
+      lines.forEach(l => { n += addQuickExpense(l, path.length ? pathFields(path) : undefined) || 0; });
+      if (!n) { toast('Try: 450 groceries or 200 coffee — or /fuel /bike 450 diesel'); return; }
+      $('lgText').value = ''; paintSuggest();
       toast('Added ' + n + (n === 1 ? ' expense' : ' expenses'));
       closeJotSheet();
       return;
     }
-    const {cat:bCat, subcat:bSub, text:bRaw} = parseCategoryPrefix(raw);
-    const p = parseEntry(bRaw, logType);
-    if (!p.text) return;
-    $('lgText').value = '';
+    const {path:gp, lines} = parseJot(raw, logType, []);
+    const parsed = lines.map(l => parseEntry(l, logType)).filter(x => x.text);
+    if (!parsed.length) {
+      /* "/business /sales" on its own just makes the group */
+      if (gp.length && PAGE_LABELS[logType]) {
+        addGroup(keyOf(logType, gp));
+        $('lgText').value = ''; paintSuggest();
+        toast(gp.join(' / ') + ' added');
+        closeJotSheet();
+      }
+      return;
+    }
+    $('lgText').value = ''; paintSuggest();
     logType = logPicked;
     paintLgType();
-    if (p.type === 'task') {
-      if (p.high) newTask(p.text, logDate, {priority:'High'});
-      else {
-        /* let "buy milk tomorrow" catch the date word even when the kind is Action */
-        const list = (logDate === isoToday) ? quickParse(p.text) : [];
-        if (list.length) addMany(list); else newTask(p.text, logDate);
-      }
-    } else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0,500), time:p.time, at:Date.now(), cat:bCat||undefined, subcat:bSub||undefined});
+    parsed.forEach(p => {
+      if (p.type === 'task') {
+        if (p.high) newTask(p.text, logDate, {priority:'High'});
+        else {
+          /* let "buy milk tomorrow" catch the date word even when the kind is Action */
+          const list = (logDate === isoToday) ? quickParse(p.text) : [];
+          if (list.length) addMany(list); else newTask(p.text, logDate);
+        }
+      } else addItem('bullet', {date:logDate, type:p.type, text:p.text.slice(0, 500), time:p.time, at:Date.now(), ...(gp.length ? pathFields(gp) : {})});
+    });
     closeJotSheet();
   });
   $('lgTomForm').addEventListener('submit', e => {
@@ -3152,7 +3249,7 @@
         e.preventDefault();
         const b = t.closest('.np-block');
         /* carry on into a fresh line in the same group */
-        if (b && b.dataset.type) npTrail = {type:b.dataset.type, cat:b.dataset.cat || '', sub:b.dataset.sub || ''};
+        if (b && b.dataset.key) npTrail = b.dataset.key;
         t.blur();
       }
       else if (e.key === 'Escape') { t.textContent = t.dataset.npAdd != null ? '' : (t._was || ''); t._esc = true; t.blur(); }
@@ -3173,28 +3270,21 @@
         const b = t.closest('.np-add');
         if (esc_ || !text) { npTrail = null; if (b && b.classList.contains('np-temp')) b.remove(); else t.textContent = ''; }
         else if (b) {
-          const type = b.dataset.type, cat = b.dataset.cat, sub = b.dataset.sub;
-          /* a leading /name makes a group here instead of a line: a category at the end of a
-             section, otherwise a subcategory beside whatever this group sits in */
-          const gm = text.match(/^\/([\w\u0900-\u097F]+)\s*([\s\S]*)$/);
-          if (gm) {
-            const name = gm[1], rest = gm[2].trim();
-            const path = cat ? type + '/' + cat + '/' + name : type + '/' + name;
-            npEdit(() => {
-              addGroup(path);
-              if (rest) {
-                if (type === 'expense') addQuickExpense(rest, cat ? {cat, subcat:name} : {cat:name, subcat:''});
-                else addItem('bullet', {date:isoToday, type, text:rest.slice(0, 500), at:Date.now(), cat:cat || name, subcat:cat ? name : undefined});
-              }
+          /* /name goes a level deeper from here, > starts another line */
+          const key = b.dataset.key, type = key.split('/')[0], base = key.split('/').slice(1);
+          const {path, lines} = parseJot(text, type, base);
+          const deeper = path.length > base.length;
+          if (!deeper && !lines.length) { t.textContent = ''; return; }
+          let bad = false;
+          npEdit(() => {
+            if (deeper) addGroup(keyOf(type, path));
+            lines.forEach(line => {
+              if (type === 'expense') { if (!addQuickExpense(line, pathFields(path))) bad = true; }
+              else addItem('bullet', {date:isoToday, type, text:line.slice(0, 500), at:Date.now(), ...pathFields(path)});
             });
-            npTrail = cat ? {type, cat, sub:name} : {type, cat:name, sub:''};
-          } else {
-            npTrail = {type, cat, sub};
-            const made = npEdit(() => type === 'expense'
-              ? addQuickExpense(text, {cat, subcat:sub})
-              : (addItem('bullet', {date:isoToday, type, text:text.slice(0, 500), at:Date.now(), cat:cat || undefined, subcat:sub || undefined}), 1));
-            if (type === 'expense' && !made) { toast('Try: 450 diesel'); npTrail = null; t.textContent = text; return; }
-          }
+          });
+          if (bad) toast('Try: 450 diesel');
+          npTrail = keyOf(type, path);
           t.textContent = '';
         }
       } else if (t.dataset.npEdit) {
