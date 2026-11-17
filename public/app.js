@@ -895,10 +895,7 @@
     const date = when ? `<span class="np-date">${esc(dayMonth(when))}</span>` : '';
     return `<div class="np-block np-line fmt-${fmt}${npStyle(e)}${e.done ? ' is-done' : ''}" data-id="${esc(e.id)}" data-kind="line" data-type="${esc(type)}" data-key="${esc(keyOf(type, path))}"><button type="button" class="np-handle" data-np-menu draggable="true" aria-label="Options, drag to move" tabindex="-1">⋮⋮</button>${mark}<span class="np-text" contenteditable="true" spellcheck="false" data-np-edit="${esc(e.id)}">${esc(lineText(e))}</span>${amount}${date}</div>`;
   }
-  const npAdd = (type, path) => {
-    const ph = path.length ? 'Type, /name for a sub-group, -line for another' : 'Type, or /name for a category';
-    return `<div class="np-block np-line np-add" data-kind="add" data-key="${esc(keyOf(type, path))}" data-type="${esc(type)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add data-placeholder="${esc(ph)}"></span></div>`;
-  };
+  const npAdd = (type, path) => `<div class="np-block np-line np-add" data-kind="add" data-key="${esc(keyOf(type, path))}" data-type="${esc(type)}"><span class="np-mark">+</span><span class="np-text" contenteditable="true" spellcheck="false" data-np-add></span></div>`;
   /* backspace on the empty new line closes it again, cursor back on the line above */
   function npCloseEmpty(t){
     npTrail = null; t._esc = true;
