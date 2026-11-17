@@ -2135,7 +2135,6 @@
 
   /* ---------- daily log ---------- */
   const GLYPH = {task:'•', note:'–', event:'○', mood:'=', idea:'✦', mistake:'✘', observation:'◎', problem:'△', expense:'₹', habit:'●', custom:'◆'};
-  const REFLECT = {idea:'Ideas', problem:'Problems', mistake:'Mistakes', observation:'Observations'};
   const PREFIX = {'-':'note', '–':'note', '.':'task', '*':'task', '•':'task', 'o':'event', 'O':'event', '○':'event', '=':'mood', '+':'idea', '✦':'idea', 'x':'mistake', 'X':'mistake', '✘':'mistake', '@':'observation', '◎':'observation', '?':'problem', '△':'problem'};
   let logDate = isoToday, logOpen = null, logType = 'task', logPicked = 'task', jnTab = 'day', lgTab = 'plan';
   function parseEntry(raw, type){
@@ -3023,19 +3022,6 @@
       const n = Object.keys(log).filter(dk => monthKey(dk) === key && (log[dk] || []).includes(h.id)).length;
       return `<div class="item"><div class="item-main"><div class="item-title">${esc(h.name.charAt(0).toUpperCase())} · ${esc(h.name)}</div><div class="item-meta">${n} ${n === 1 ? 'day' : 'days'} in ${esc(monthName(key))}</div></div><button type="button" class="icon-btn" data-habit-del="${esc(h.id)}" aria-label="Remove ${esc(h.name)}">✕</button></div>`;
     }).join('') : empty('No habits yet. Add one and tick it off each day in the month.');
-    renderMonthReflect(key);
-  }
-  function renderMonthReflect(key){
-    const groups = {};
-    ofKind('bullet').forEach(b => {
-      if (monthKey(b.date) === key && b.type in REFLECT) (groups[b.type] || (groups[b.type] = [])).push(b);
-    });
-    const html = Object.keys(REFLECT).filter(t => groups[t]).map(t => {
-      const rows = groups[t].sort((a, b) => a.date.localeCompare(b.date)).map(b =>
-        `<div class="bj ${t}" data-row="${esc(b.id)}"><span class="bj-g" role="img" aria-label="${t}">${GLYPH[t]}</span><div class="bj-t"><span class="tx">${esc(b.text)}</span><span class="bj-et">${esc(dayMonth(b.date))}</span></div></div>`).join('');
-      return `<div class="ml-reflect-group"><h3 class="ml-reflect-h">${GLYPH[t]} ${REFLECT[t]} <span class="item-meta">${groups[t].length}</span></h3><div class="bj-list">${rows}</div></div>`;
-    }).join('');
-    safeHTML($('mlReflect'), html || empty('Nothing logged yet. Use ✦ idea, △ problem, ✘ mistake or ◎ observation in your daily log.'));
   }
   $('mlRows').addEventListener('click', e => {
     const open = e.target.closest('[data-ml-open]'), dot = e.target.closest('[data-ml-habit]');
