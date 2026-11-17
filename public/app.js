@@ -9,7 +9,7 @@
     planner:  ['Planner', 'Day, week, month, year and life on one board, with your maker and manager time.'],
     journal:  ['Journal', 'Jot everything in one place. Decide what matters afterwards.'],
     travel:   ['Travel planner', 'Keep destinations, dates, budgets, and trip notes together.'],
-    pages:    ['Pages', 'All your notes, ideas, moods and entries — organised by category. Start entries with /category or /cat /sub to group them.']
+    pages:    ['Pages', 'Everything you jot, as one document. Put /group in front to file it — /business /sales /why goes three deep — and > starts another line.']
   };
 
   const $ = id => document.getElementById(id);
@@ -809,17 +809,9 @@
   }
   const npSlug = s => (s || '').replace(/[^\w\u0900-\u097F]+/g, '-').toLowerCase().replace(/^-|-$/g, '') || 'g';
   const npStyle = o => (o && o.color ? ' np-c-' + o.color : '') + (o && o.bg ? ' np-bg-' + o.bg : '');
-  /* default colours: every section heading shares one; the top group of a section gets its own
-     shade with a bar behind it, and anything deeper wears that shade as text only. */
-  const NP_TYPE_COLOR = 'blue', NP_CAT_HUES = ['green','orange','purple','pink','yellow','blue','red','brown'];
-  const catHue = name => { let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return NP_CAT_HUES[h % NP_CAT_HUES.length]; };
-  function headStyle(depth, key){
-    const meta = pagesMeta(), own = meta[key] || {}, parts = key.split('/'), top = parts[1];
-    const def = depth === 0 ? {color:NP_TYPE_COLOR}
-              : depth === 1 ? {color:catHue(top), bg:catHue(top)}
-              : {color:(meta[parts[0] + '/' + top] || {}).color || catHue(top)};
-    return {...def, ...own};
-  }
+  /* colour comes from how deep a heading sits, not from its name: the stylesheet gives each
+     level its own tone, and this only carries what was picked by hand in the block menu */
+  const headStyle = (depth, key) => pagesMeta()[key] || {};
   const bulletTypes = () => PAGE_TYPES.filter(t => t !== 'event');
 
   /* ---- groups as a path of any depth: ['business','sales','why'] ---- */

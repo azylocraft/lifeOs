@@ -1169,3 +1169,21 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   .np-rail-panel { width:min(78vw, 260px) }
   .np-h1 .np-text { font-size:22px } .np-h2 .np-text { font-size:17px }
 }
+
+/* ---- Pages headings: one tone per level ----
+   warm white #F8F7F2 for a section, red #FB3640 with a bar of its own for a
+   category, deep blue #22577A below it, softer again deeper down. Light themes
+   take darker versions of the same three so they stay readable on paper. */
+:root { --np-l0:#2a2a2c; --np-l1:#d8252f; --np-l1-bg:rgba(251,54,64,.13); --np-l2:#22577a; --np-l3:#5c7d93; --np-l4:#7e919c }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --np-l0:#f8f7f2; --np-l1:#fb3640; --np-l1-bg:rgba(251,54,64,.18); --np-l2:#5fa3cc; --np-l3:#a8c3d2; --np-l4:#8299a6 }
+}
+:root[data-theme="dark"] { --np-l0:#f8f7f2; --np-l1:#fb3640; --np-l1-bg:rgba(251,54,64,.18); --np-l2:#5fa3cc; --np-l3:#a8c3d2; --np-l4:#8299a6 }
+
+.np-h1 .np-text { color:var(--np-l0) }
+.np-block.np-h2 .np-text { color:var(--np-l1) }
+.np-block.np-h2, .np-block.np-h2:hover { background:var(--np-l1-bg) }
+.np-block.np-h2 { padding:7px 12px; border-radius:8px; margin:14px 0 4px }
+.np-h3 .np-text { color:var(--np-l2) }
+.np-h4 .np-text { color:var(--np-l3) }
+.np-h5 .np-text { color:var(--np-l4) }
