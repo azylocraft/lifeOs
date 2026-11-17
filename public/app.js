@@ -2904,7 +2904,6 @@
     const kids = kidsOf(g.id).sort(byDoneThenAge), kd = kids.filter(k => k.done).length, open = mlOpen === g.id;
     const weeks = monthWeeks(key);
     const stepsHTML = kids.map(k => {
-      const wkLabel = k.targetWeek ? 'W' + Number(k.targetWeek.slice(6)) : '';
       const subKids = kidsOf(k.id).sort(byDoneThenAge);
       const subHTML = subKids.map(sk => `<div class="bj sub-sub ${sk.done ? 'done' : ''}">
         <button type="button" class="bj-g" data-ml-done="${esc(sk.id)}" aria-pressed="${!!sk.done}">${sk.done ? '✕' : '○'}</button>
@@ -2912,7 +2911,7 @@
         <button type="button" class="icon-btn" data-act="delete" data-id="${esc(sk.id)}" aria-label="Delete sub-step: ${esc(sk.title)}">✕</button></div>`).join('');
       return `<div class="ml-step-wrap"><div class="bj sub ${k.done ? 'done' : ''}">
         <button type="button" class="bj-g" data-ml-done="${esc(k.id)}" aria-pressed="${!!k.done}">${k.done ? '✕' : '○'}</button>
-        <div class="bj-t"><span class="tx">${esc(k.title)}</span>${wkLabel ? `<span class="bj-m">${wkLabel}</span>` : ''}</div>
+        <div class="bj-t"><span class="tx">${esc(k.title)}</span></div>
         <select class="ml-wk-sel" data-ml-week="${esc(k.id)}" aria-label="Assign to week"><option value="">Wk</option>${weeks.map(w => `<option value="${w.wk}" ${k.targetWeek === w.wk ? 'selected' : ''}>${'W' + w.num}</option>`).join('')}</select>
         ${k.done ? '' : `<button type="button" class="icon-btn ml-sub-add" data-ml-sub="${esc(k.id)}" aria-label="Add sub-step">＋</button>`}
         <button type="button" class="icon-btn" data-act="delete" data-id="${esc(k.id)}" aria-label="Delete step: ${esc(k.title)}">✕</button>

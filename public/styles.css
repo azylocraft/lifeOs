@@ -1081,7 +1081,7 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   font-size:13.5px; font-family:inherit; border-radius:8px; cursor:pointer }
 .jot-s-item:hover, .jot-s-item.on { background:color-mix(in srgb, var(--text) 10%, transparent) }
 .np-m-into { border-color:color-mix(in srgb, var(--accent) 45%, transparent) }
-.np-doc { padding:4px 0 90px 28px; font-size:15px; line-height:1.55 }
+.np-doc { padding:4px 0 90px 28px; font-size:15px; line-height:1.55; color:var(--text) }
 .np-indent { padding-left:0; counter-reset:np }
 .np-block { position:relative; display:flex; align-items:flex-start; gap:6px; padding:3px 8px 3px 6px; border-radius:6px; margin:1px 0; scroll-margin-top:24px }
 .np-block:hover { background:color-mix(in srgb, var(--text) 4%, transparent) }
@@ -1176,15 +1176,24 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   .np-h1 .np-text { font-size:22px } .np-h2 .np-text { font-size:17px }
 }
 
-/* ---- Pages headings: one tone per level ----
-   warm white #F8F7F2 for a section, red #FB3640 with a bar of its own for a
-   category, deep blue #22577A below it, softer again deeper down. Light themes
-   take darker versions of the same three so they stay readable on paper. */
-:root { --np-l0:#2a2a2c; --np-l1:#1d4e74; --np-l1-bg:rgba(29,78,116,.11); --np-l2:#4c8aad; --np-l2-bg:rgba(76,138,173,.10); --np-l3:#7ba0b5; --np-l3-bg:rgba(123,160,181,.09); --np-l4:#9bb1bd; --np-l4-bg:rgba(155,177,189,.08) }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --np-l0:#f8f7f2; --np-l1:#8ecbee; --np-l1-bg:rgba(142,203,238,.15); --np-l2:#6ea8cb; --np-l2-bg:rgba(110,168,203,.13); --np-l3:#92aebe; --np-l3-bg:rgba(146,174,190,.11); --np-l4:#8299a6; --np-l4-bg:rgba(130,153,166,.09) }
-}
-:root[data-theme="dark"] { --np-l0:#f8f7f2; --np-l1:#8ecbee; --np-l1-bg:rgba(142,203,238,.15); --np-l2:#6ea8cb; --np-l2-bg:rgba(110,168,203,.13); --np-l3:#92aebe; --np-l3-bg:rgba(146,174,190,.11); --np-l4:#8299a6; --np-l4-bg:rgba(130,153,166,.09) }
+/* ---- Pages headings: one tone per level, all of them the accent ----
+   A section title is plain ink. Every level under it takes the accent colour
+   and steps a little further towards the body text, so a category, its
+   subcategory and anything deeper read as one family. They follow whichever
+   accent is picked, and they are drawn from --text rather than a fixed
+   light-or-dark pair, so a white palette stays readable on a phone whose
+   system is set to dark. */
+:root {
+  --np-acc:var(--pop, var(--accent));
+  --np-l0:var(--text);
+  --np-l1:color-mix(in oklch, var(--np-acc) 84%, var(--text));
+  --np-l1-bg:color-mix(in srgb, var(--np-acc) 11%, transparent);
+  --np-l2:color-mix(in oklch, var(--np-acc) 56%, var(--text));
+  --np-l2-bg:color-mix(in srgb, var(--np-acc) 7%, transparent);
+  --np-l3:color-mix(in oklch, var(--np-acc) 38%, var(--text-2));
+  --np-l3-bg:color-mix(in srgb, var(--np-acc) 5%, transparent);
+  --np-l4:color-mix(in oklch, var(--np-acc) 22%, var(--text-2));
+  --np-l4-bg:color-mix(in srgb, var(--np-acc) 4%, transparent) }
 
 .np-h1 .np-text { color:var(--np-l0) }
 .np-block.np-h2 .np-text { color:var(--np-l1) }
