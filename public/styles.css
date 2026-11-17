@@ -189,7 +189,7 @@
   .item-body { overflow-wrap:anywhere; white-space:pre-wrap; color:var(--text-2) }
   .item-meta { color:var(--muted); font-size:11.5px; margin-top:3px; overflow-wrap:anywhere }
   .item-side { font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap }
-  .icon-btn { width:28px; height:28px; display:inline-grid; place-items:center; padding:0; border:0; background:var(--track); color:var(--text-2); border-radius:50%; font-size:10.5px; line-height:1; flex-shrink:0 }
+  .icon-btn { width:24px; height:24px; display:inline-grid; place-items:center; padding:0; border:0; background:var(--track); color:var(--text-2); border-radius:50%; font-size:10px; line-height:1; flex-shrink:0 }
   .icon-btn:hover { color:var(--on-accent); background:var(--accent) }
   .check { accent-color:var(--accent); width:18px; height:18px; margin:2px 0 0; flex-shrink:0; padding:0 }
   .completed .item-title { color:var(--faint); text-decoration:line-through }
@@ -237,7 +237,7 @@
   .cal-head > div:first-child { min-width:0 }
   .cal-title { font-size:19px; font-weight:600; letter-spacing:-.3px }
   .cal-nav { display:flex; gap:6px; align-items:center }
-  .cal-nav .icon-btn { width:34px; height:34px; font-size:14px; color:var(--text) }
+  .cal-nav .icon-btn { width:28px; height:28px; font-size:13px; color:var(--text) }
   .cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px 2px; background:var(--tile); border-radius:22px; padding:14px 12px }
   .cal-dow { font-size:11px; color:var(--muted); text-align:center; padding:2px 0 6px }
   .cal-day { position:relative; justify-self:center; width:100%; max-width:42px; aspect-ratio:1; border:1px solid transparent; background:transparent; color:var(--text); border-radius:50%; font-size:13.5px; display:grid; place-items:center; padding:0; font-variant-numeric:tabular-nums }
@@ -441,7 +441,7 @@
     .form-grid { grid-template-columns:1fr }
     .form-grid .full { grid-column:auto }
     input,textarea,select { font-size:16px }
-    .icon-btn { width:30px; height:30px }
+    .icon-btn { width:26px; height:26px }
     th,td { padding-left:5px; padding-right:5px }
     /* on a phone the table runs with the page instead of being a box inside it */
     .table-wrap.scroll { --th-h:32px; max-height:none !important; overflow-y:visible }
@@ -497,7 +497,7 @@ button.bj-g:hover { background:var(--track) }
 .item.is-top .item-title { font-weight:600 }
 .ml-reflect-group + .ml-reflect-group { margin-top:16px }
 .ml-reflect-h { font-size:12.5px; font-weight:600; color:var(--muted); margin:0 0 4px; display:flex; align-items:center; gap:7px }
-.bj-more { width:28px; height:28px; background:transparent; font-size:15px; margin-top:1px }
+.bj-more { width:24px; height:24px; background:transparent; font-size:13px; margin-top:1px }
 .bj-strip { grid-column:2 / -1; display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:2px 0 8px }
 .bj-strip input, .bj-strip select { padding:5px 10px; border-radius:999px }
 .bj-add { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid var(--line-soft) }
@@ -574,7 +574,7 @@ button.bj-g:hover { background:var(--track) }
 .hz-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px }
 .hz-name { font-weight:600; font-size:15px }
 .hz-period { font-size:11.5px; color:var(--muted) }
-.hz-head .icon-btn { width:28px; height:28px; font-size:14px; color:var(--text) }
+.hz-head .icon-btn { width:24px; height:24px; font-size:13px; color:var(--text) }
 .hz-item { background:var(--card); border-radius:14px; padding:9px 10px; min-width:0; border:1px solid transparent }
 .hz-item.open { border-color:var(--stroke) }
 .hz-row { display:flex; align-items:flex-start; gap:8px }
@@ -594,7 +594,8 @@ button.bj-g:hover { background:var(--track) }
 .hz-kid.sub .check { transform:scale(.85) }
 .hz-sub-add { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px; align-items:center; margin-left:19px }
 .hz-sub-add input { padding:5px 10px; font-size:11.5px }
-.hz-sub-add .icon-btn { width:26px; height:26px; font-size:13px }
+.hz-sub-add .icon-btn { width:22px; height:22px; font-size:12px }
+.hz-add .icon-btn { width:24px; height:24px; font-size:12px }
 .hz-add, .hz-step { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; align-items:center }
 .hz-add input, .hz-step input, .hz-panel select { padding:8px 12px }
 .hz-empty { font-size:12px; color:var(--muted); padding:4px 2px }
