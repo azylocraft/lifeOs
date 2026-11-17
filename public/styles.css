@@ -1190,7 +1190,7 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 .np-block.np-h3 .np-text { color:var(--np-l2) }
 .np-block.np-h3, .np-block.np-h3:hover { background:var(--np-l2-bg) }
 .np-block.np-h4 .np-text { color:var(--np-l3) }
-.np-block.np-h4, .np-block.np-h4:hover { background:var(--np-l3-bg) }
 .np-block.np-h5 .np-text { color:var(--np-l4) }
-.np-block.np-h5, .np-block.np-h5:hover { background:var(--np-l4-bg) }
-.np-block.np-h3, .np-block.np-h4, .np-block.np-h5 { padding:6px 12px; border-radius:8px; margin:10px 0 4px }
+.np-block.np-h3 { padding:6px 12px; border-radius:8px; margin:10px 0 4px }
+/* bars stop at the subheading; deeper ones carry colour alone */
+.np-block.np-h4, .np-block.np-h5 { padding:5px 2px; margin:9px 0 2px }
