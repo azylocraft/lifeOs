@@ -1178,10 +1178,12 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
 
 /* ---- Pages headings: a chord off the accent ----
    A section title is plain ink. The category is the accent itself. The
-   subcategory steps 48 degrees around the colour wheel, so it is a relative
-   of the accent rather than a repeat of it, and everything below the
-   subcategory keeps that same hue in a softer tone. Pick a different accent
-   and the pair turns with it. Every tone is then mixed towards the
+   subcategory sits 214 degrees around the colour wheel from it, which is
+   the step that turns the red accent into the deep blue this palette was
+   built around, and turns every other accent into its opposite the same
+   way. Everything below the subcategory keeps that blue in a softer tone.
+   Pick a different accent and the pair turns with it. Every tone is then
+   mixed towards the
    palette's own text colour, which
    is what keeps it readable on white paper and on a dark page alike, instead
    of switching on the system setting the way the old fixed pairs did.
@@ -1200,7 +1202,7 @@ input:focus, textarea:focus, select:focus { border-color:color-mix(in srgb, var(
   --np-l4:color-mix(in oklch, var(--np-c4) 36%, var(--muted));
   --np-l4-bg:color-mix(in srgb, var(--np-c4) 5%, transparent) }
 @supports (color: oklch(from red l c h)) {
-  :root { --np-c2:oklch(from var(--np-acc) l calc(c * .94) calc(h + 48)) }
+  :root { --np-c2:oklch(from var(--np-acc) l calc(c * .94) calc(h + 214)) }
 }
 
 .np-h1 .np-text { color:var(--np-l0) }
