@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "V=$(echo \"${VERCEL_GIT_COMMIT_SHA:-local}\" | cut -c1-8); sed -i \"s/__V__/$V/g\" public/index.html",
+  "outputDirectory": "public"
+}
