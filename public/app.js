@@ -203,9 +203,9 @@
   /* ---------- account storage ---------- */
   function setStatus(mode){
     const t = $('saveTitle'), b = $('saveBody'), f = $('footerNote');
-    if (mode === 'account') { const L = (window.LifeOSStore && window.LifeOSStore.label) || {}; t.textContent = L.title || 'Saved'; b.textContent = L.body || ''; f.textContent = 'My Life OS — ' + (L.title || 'saved').toLowerCase(); }
-    else if (mode === 'local') { t.textContent = 'Saved on this device'; b.textContent = 'Kept in this browser only.'; f.textContent = 'My Life OS — saved in this browser on this device'; }
-    else { t.textContent = 'Private by default'; b.textContent = 'Getting your saved items…'; f.textContent = 'My Life OS'; }
+    if (mode === 'account') { const L = (window.LifeOSStore && window.LifeOSStore.label) || {}; t.textContent = L.title || 'Saved'; b.textContent = L.body || ''; f.textContent = 'Logtra — ' + (L.title || 'saved').toLowerCase(); }
+    else if (mode === 'local') { t.textContent = 'Saved on this device'; b.textContent = 'Kept in this browser only.'; f.textContent = 'Logtra — saved in this browser on this device'; }
+    else { t.textContent = 'Private by default'; b.textContent = 'Getting your saved items…'; f.textContent = 'Logtra'; }
   }
   async function connect(){
     /* CSV export works in any browser; Quick add stays hidden until you wire up an AI backend (set `sample`) */
@@ -310,7 +310,7 @@
     const due = ofKind('task').filter(t => !t.done && isStamp(t.remind) && !t.reminded && t.remind <= now).sort((a,b) => a.remind.localeCompare(b.remind));
     $('reminderBar').hidden = !due.length;
     $('reminderList').innerHTML = due.map(t => `<div class="item"><div class="item-main"><div class="item-title">${esc(t.title)}</div><div class="item-meta">Reminder set for ${esc(fmtRemind(t.remind))}</div></div><button type="button" class="btn small" data-act="ack-done" data-id="${esc(t.id)}">Mark done</button><button type="button" class="btn secondary small" data-act="ack" data-id="${esc(t.id)}">Dismiss</button></div>`).join('');
-    try { document.title = due.length ? `(${due.length}) My Life OS` : 'My Life OS'; } catch(e) {}
+    try { document.title = due.length ? `(${due.length}) Logtra` : 'Logtra'; } catch(e) {}
     const fresh = due.filter(t => !announced.has(t.id));
     fresh.forEach(t => announced.add(t.id));
     if (remindersSeen && fresh.length) toast('Reminder: ' + fresh[0].title + (fresh.length > 1 ? ` and ${fresh.length - 1} more` : ''));
@@ -1750,7 +1750,7 @@
     const lines = [['Date','Description','Category','Subcategory','Amount (INR)'].map(cell).join(',')]
       .concat(sortedExpenses().map(x => [cell(x.date), cell(x.name), cell(x.category), cell(x.sub || ''), Number(x.amount)||0].join(',')));
     try {
-      await downloads.save({filename:`my-life-os-expenses-${isoToday}.csv`, data:'\uFEFF' + lines.join('\r\n')});
+      await downloads.save({filename:`logtra-expenses-${isoToday}.csv`, data:'\uFEFF' + lines.join('\r\n')});
       toast('Expenses exported');
     } catch(err) {
       const code = err && err.code;

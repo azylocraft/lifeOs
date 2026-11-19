@@ -1,5 +1,5 @@
 /*
- * Storage layer for My Life OS.
+ * Storage layer for Logtra.
  *
  * The app only ever talks to this "collection" shape:
  *

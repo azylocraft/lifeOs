@@ -1,4 +1,4 @@
-# My Life OS
+# Logtra
 
 A personal dashboard for tasks, notes, mini projects, expenses, monthly budgets, saving plans/instalments and travel. Amounts are in Indian rupees (₹).
 
