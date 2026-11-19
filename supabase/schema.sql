@@ -12,6 +12,10 @@ create table if not exists public.entries (
 
 alter table public.entries enable row level security;
 
+-- newer Supabase projects no longer open new tables to the app automatically, so let
+-- signed-in people reach the table (the policies below still limit them to their own rows)
+grant select, insert, update, delete on public.entries to authenticated;
+
 drop policy if exists "read own entries"   on public.entries;
 drop policy if exists "insert own entries" on public.entries;
 drop policy if exists "update own entries" on public.entries;
