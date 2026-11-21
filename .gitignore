@@ -10,3 +10,6 @@ Thumbs.db
 
 # the Expo phone app lives in its own repository
 logtra/
+
+# the website build (public/) keeps its fonts and images under assets/node_modules: publish them
+!public/assets/node_modules/
