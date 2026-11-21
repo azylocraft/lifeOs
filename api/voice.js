@@ -17,6 +17,8 @@ const PROMPT = [
   'The speaker may talk in Tamil, English, or a mix of both (Tanglish), with an Indian accent.',
   'Write what they said in clear, natural English: translate any Tamil, and keep English parts as spoken.',
   'Keep numbers, money amounts (rupees), names, places and times exactly.',
+  'The app files notes with symbols: when the speaker says "slash", "hyphen" or "dash", or "percent" before a name (in any language), write the symbol /, - or % joined to the next word,',
+  'e.g. "slash business slash sales hyphen call the bank" becomes "/business /sales -call the bank", and "800 for food percent trip" becomes "800 for food %trip".',
   'Reply with only the English text: no quotes, no labels, no notes. If nothing was said, reply with nothing.',
 ].join(' ');
 
